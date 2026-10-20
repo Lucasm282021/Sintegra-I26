@@ -10,7 +10,7 @@ El frontend de ARBA es un dashboard educativo para consultar un padrón ficticio
 - Tailwind CSS 4 mediante el plugin de Vite.
 - Lucide React para iconos.
 - El punto de entrada HTML es `index.html`; `src/client/main.jsx` monta `App` en `#root` e importa los estilos globales.
-- El servidor de desarrollo usa el puerto `3000`. Iniciar desde la carpeta `arba-tomi/arba` con `npm install` y `npm run dev`.
+- El servidor de desarrollo usa el puerto `3000`. Iniciar desde la carpeta `arba-tomi` con `npm install` y `npm run dev`.
 - `npm run build` genera la versión de producción y `npm run preview` permite servirla localmente.
 
 ## Organización del código
