@@ -1,0 +1,5 @@
+node_modules
+arba.db
+arba.db-*
+test
+.git

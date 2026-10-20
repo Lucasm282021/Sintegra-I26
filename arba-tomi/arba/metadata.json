@@ -1,0 +1,7 @@
+{
+  "name": "ARBA - Percepciones IIBB",
+  "description": "Dashboard educativo y consola de visualización del módulo ARBA de percepción de Ingresos Brutos (IIBB) del ecosistema fintech simulado.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
