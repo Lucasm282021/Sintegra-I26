@@ -77,4 +77,13 @@ Los nombres y campos concretos de cada servicio externo deben seguir el contrato
 
 ## Estado actual del repositorio
 
-Este repositorio contiene el README y recursos de identidad visual y video en `recursos/`. **Todavía no contiene una aplicación ejecutable ni integraciones implementadas.** Por eso, esta documentación describe el objetivo y el comportamiento previsto del sistema. Cuando se construya el software, actualizar este documento para distinguir las funciones terminadas de las pendientes.
+Este documento describe la arquitectura objetivo; no es un inventario actualizado de implementaciones. En el checkout actual hay servicios y frontends de ARBA, Municipio y Billetera, además de archivos de despliegue de TPV. Banco y ARCA todavía no tienen backend en este repositorio. El estado, las diferencias entre contratos y las tareas por aplicación están en el [informe de unificación](INFORME-UNIFICACION-APPS.md) y sus [ajustes por módulo](#ajustes-de-contrato-por-aplicacion).
+
+## Ajustes de contrato por aplicación
+
+- [ARBA](AJUSTE-ARBA.md)
+- [Municipio](AJUSTE-MUNICIPIO.md)
+- [Billetera](AJUSTE-BILLETERA.md)
+- [TPV](AJUSTE-TPV.md)
+- [Banco](AJUSTE-BANCO.md)
+- [ARCA](AJUSTE-ARCA.md)
