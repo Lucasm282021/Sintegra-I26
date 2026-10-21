@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log*
+municipio.db*
+data
+.env
+.git
+.gitignore
+README.md
+PROXIMOS-PASOS.md

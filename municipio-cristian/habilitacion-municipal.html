@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Flujo funcional de habilitación municipal para el módulo Municipio del Ecosistema Fintech simulado.">
+  <title>Habilitación municipal — Módulo Municipio</title>
+  <style>
+    :root{color-scheme:light;--ink:#202536;--muted:#606b7b;--paper:#f4f5f8;--card:#fff;--line:#dce1e9;--purple:#5b3a7a;--purple-soft:#eee8f5;--green:#276749;--green-soft:#e8f4ed;--amber:#8a5b0b;--amber-soft:#fff4d9;--red:#9b2c2c;--mono:Consolas,"Cascadia Code",monospace;--sans:"Segoe UI",Arial,sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--sans)}a{color:var(--purple)}.wrap{max-width:1020px;margin:auto;padding:28px 20px 64px}nav{display:flex;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line);font-size:13px}nav a{text-decoration:none}.hero{padding:34px 0 26px;border-bottom:1px solid var(--line)}.eyebrow{font:12px var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}h1{font-size:clamp(32px,5vw,48px);line-height:1.1;margin:10px 0;color:var(--purple)}.hero p,.sub{color:var(--muted);max-width:790px}.badge{display:inline-block;margin:6px 6px 0 0;padding:4px 9px;background:var(--purple-soft);color:var(--purple);font:12px var(--mono)}section{margin:34px 0}h2{font-size:23px;margin:0 0 8px}h3{font-size:17px;margin:0 0 8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);padding:18px}.card p{margin:5px 0;color:var(--muted)}.notice{background:var(--amber-soft);border:1px solid #efd99f;padding:15px 18px;margin:18px 0}.notice strong{color:var(--amber)}ol.flow{counter-reset:flow;list-style:none;padding:0;display:grid;gap:10px}.flow li{counter-increment:flow;position:relative;background:var(--card);border:1px solid var(--line);padding:14px 16px 14px 54px}.flow li:before{content:counter(flow);position:absolute;left:14px;top:14px;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:var(--purple-soft);color:var(--purple);font:13px var(--mono)}.flow strong{display:block}.checklist{list-style:none;padding:0;display:grid;gap:9px}.checklist li{background:var(--card);border:1px solid var(--line);padding:13px 15px}.checklist li:before{content:"□";color:var(--purple);font-size:18px;margin-right:10px}.status{display:inline-block;padding:2px 8px;background:var(--green-soft);color:var(--green);font:11px var(--mono)}code,pre{font-family:var(--mono)}code{font-size:.9em;background:#f0f1f5;padding:1px 4px}pre{white-space:pre;overflow:auto;background:#18202b;color:#edf1f7;padding:16px;font-size:13px;line-height:1.55}table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px}td,th{text-align:left;vertical-align:top;border:1px solid var(--line);padding:10px 12px}th{background:var(--purple-soft);color:var(--purple);font:12px var(--mono)}.scroll{overflow:auto}footer{border-top:1px solid var(--line);padding-top:16px;margin-top:42px;color:var(--muted);font-size:13px}
+    @media(prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#eef0f5;--muted:#abb2c0;--paper:#151720;--card:#1d202b;--line:#343846;--purple:#c5a8e0;--purple-soft:#30263b;--green:#9dd7ae;--green-soft:#1d3025;--amber:#f0c56c;--amber-soft:#342b19;--red:#f19b9b}code{background:#292d39}}
+    @media(max-width:600px){.wrap{padding-inline:14px}td,th{padding:8px;font-size:13px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <nav aria-label="Navegación del módulo">
+    <a href="README.md">← Módulo Municipio</a>
+    <a href="../../docs/guia-fundacional-equipos.html">Contrato común</a>
+    <a href="../../docs/panel-integracion.html">Panel de integración</a>
+  </nav>
+
+  <header class="hero">
+    <div class="eyebrow">Ecosistema Fintech simulado · servicio Municipio · puerto 3005</div>
+    <h1>Habilitación municipal de comercios</h1>
+    <p>Propuesta funcional para que un comerciante solicite la habilitación de su local, presente la documentación requerida y complete el pago de la Tasa de Seguridad e Higiene (TSyH).</p>
+    <span class="badge">Solicitud + documentación</span><span class="badge">ARCA + ARBA</span><span class="badge">TSyH</span><span class="badge">Documento de diseño</span>
+  </header>
+
+  <div class="notice"><strong>Alcance del proyecto:</strong> esta página describe el proceso de la actividad y sirve como referencia para evolucionar el módulo. El servicio actual permite dar de alta un comercio y registrar/consultar tasas; todavía no gestiona solicitudes, adjuntos ni revisión documental. Los requisitos se toman de la consigna de la cátedra y no representan una lista legal completa para todos los municipios.</div>
+
+  <section>
+    <h2>Requisitos para iniciar el trámite</h2>
+    <p class="sub">El comerciante presenta los siguientes elementos para que el Municipio revise su solicitud de habilitación:</p>
+    <div class="grid">
+      <article class="card"><h3>Nota de solicitud</h3><p>Pedido formal de habilitación, con los datos de contacto y la identificación del comercio.</p></article>
+      <article class="card"><h3>Plano y ubicación del local</h3><p>Plano del establecimiento y dirección/ubicación donde funcionará la actividad.</p></article>
+      <article class="card"><h3>Inscripción en ARCA</h3><p>Constancia o documentación que acredita la inscripción del comerciante ante ARCA.</p></article>
+      <article class="card"><h3>Inscripción en ARBA</h3><p>Constancia o documentación que acredita la inscripción del comerciante ante ARBA.</p></article>
+      <article class="card"><h3>Pago de TSyH</h3><p>Comprobante del pago de la Tasa de Seguridad e Higiene correspondiente al período definido por el Municipio.</p></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>Flujo propuesto</h2>
+    <ol class="flow">
+      <li><strong>Iniciar solicitud</strong>El comerciante informa CUIT, razón social, rubro, domicilio y ubicación del local. El sistema crea una solicitud en estado <code>borrador</code>.</li>
+      <li><strong>Presentar documentación</strong>Adjunta la nota, el plano/ubicación y las constancias de inscripción en ARCA y ARBA. El sistema registra nombre, tipo y estado de cada documento.</li>
+      <li><strong>Revisar requisitos</strong>El Municipio comprueba que la documentación esté completa y revisa la solicitud. Si falta algo, la marca <code>observada</code> y registra qué debe corregirse.</li>
+      <li><strong>Registrar el pago de TSyH</strong>Se asocia el comprobante de pago al CUIT, período e importe. El pago es por período; no se cobra como parte de cada venta del TPV.</li>
+      <li><strong>Resolver la solicitud</strong>Cuando los requisitos documentales y el pago estén verificados, la autoridad simulada aprueba la solicitud y el comercio pasa a <code>activo</code>. Si no corresponde, registra el motivo de rechazo.</li>
+      <li><strong>Consultar habilitación</strong>El TPV u otro consumidor consulta el CUIT. Solo un comercio con habilitación aprobada puede operar en el flujo de ventas.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Estados sugeridos</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Estado</th><th>Significado</th><th>Acción siguiente</th></tr></thead>
+      <tbody>
+        <tr><td><code>borrador</code></td><td>Solicitud en preparación; todavía puede editarse.</td><td>Completar datos y adjuntar requisitos.</td></tr>
+        <tr><td><code>presentada</code></td><td>El comerciante envió la solicitud para revisión.</td><td>Verificar documentación y TSyH.</td></tr>
+        <tr><td><code>observada</code></td><td>Hay documentación faltante o que requiere corrección.</td><td>Informar observaciones y permitir subsanación.</td></tr>
+        <tr><td><code>aprobada</code></td><td>Requisitos verificados; habilitación concedida en la simulación.</td><td>Activar el comercio para el flujo de TPV.</td></tr>
+        <tr><td><code>rechazada</code></td><td>Solicitud no aprobada; se conserva un motivo.</td><td>Informar el resultado al comerciante.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Información mínima de la solicitud</h2>
+    <p class="sub">Estructura orientativa para el diseño de la API. Los archivos adjuntos pueden almacenarse fuera de la base de datos; se persiste su referencia y metadatos.</p>
+    <pre><code>{
+  "cuit": "30712345678",
+  "razon_social": "Comercio Demo",
+  "rubro": "Alimentos",
+  "domicilio": "Av. Ejemplo 123",
+  "ubicacion": {
+    "latitud": -34.6037,
+    "longitud": -58.3816
+  },
+  "documentacion": [
+    { "tipo": "nota_solicitud", "archivo": "nota.pdf" },
+    { "tipo": "plano_local", "archivo": "plano.pdf" },
+    { "tipo": "inscripcion_arca", "archivo": "arca.pdf" },
+    { "tipo": "inscripcion_arba", "archivo": "arba.pdf" },
+    { "tipo": "pago_tsyh", "archivo": "pago-tsyh.pdf", "periodo": "2026-10" }
+  ]
+}</code></pre>
+  </section>
+
+  <section>
+    <h2>API actual y evolución sugerida</h2>
+    <p class="sub">No confundir rutas existentes con las que se proponen para una siguiente etapa. Mantener el contrato común de la integración: JSON, CUIT como texto, errores <code>{"error":"mensaje"}</code> y persistencia propia.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Estado</th><th>Ruta</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td><span class="status">Implementada</span></td><td><code>POST /municipio/comercios</code></td><td>Alta simple de comercio. Hoy lo crea directamente como activo; no verifica adjuntos.</td></tr>
+        <tr><td><span class="status">Implementada</span></td><td><code>GET /municipio/comercios/{cuit}</code></td><td>Consulta el registro del comercio.</td></tr>
+        <tr><td><span class="status">Implementada</span></td><td><code>POST /municipio/tributos/pagos</code></td><td>Registra un pago TSyH para un comercio existente.</td></tr>
+        <tr><td><span class="status">Implementada</span></td><td><code>GET /municipio/tributos/{cuit}</code></td><td>Consulta el historial de tributos registrados.</td></tr>
+        <tr><td>Propuesta</td><td><code>POST /municipio/solicitudes</code></td><td>Crear una solicitud en borrador con datos del local y comerciante.</td></tr>
+        <tr><td>Propuesta</td><td><code>POST /municipio/solicitudes/{id}/documentos</code></td><td>Registrar cada requisito y su referencia de archivo.</td></tr>
+        <tr><td>Propuesta</td><td><code>POST /municipio/solicitudes/{id}/presentar</code></td><td>Enviar una solicitud completa a revisión.</td></tr>
+        <tr><td>Propuesta</td><td><code>GET /municipio/solicitudes/{id}</code></td><td>Consultar estado, documentos, observaciones y resolución.</td></tr>
+        <tr><td>Propuesta</td><td><code>PATCH /municipio/solicitudes/{id}/estado</code></td><td>Registrar observación, aprobación o rechazo con motivo.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Próximos pasos del módulo</h2>
+    <ul class="checklist">
+      <li>Definir cómo se guardarán los adjuntos de prueba y limitar tipos/tamaños de archivo.</li>
+      <li>Agregar tabla de solicitudes y documentos con historial de estado.</li>
+      <li>Validar CUIT, campos obligatorios, tipo documental, período e importe.</li>
+      <li>Evitar marcar activo un comercio antes de aprobar la solicitud.</li>
+      <li>Agregar idempotencia y restricción única para pagos TSyH por período.</li>
+      <li>Documentar y probar alta, documentación faltante, observación, pago y aprobación.</li>
+    </ul>
+  </section>
+
+  <footer>Documento de diseño del módulo Municipio · Actividad educativa con datos ficticios · <a href="README.md">Volver al README del servicio</a></footer>
+</main>
+</body>
+</html>
