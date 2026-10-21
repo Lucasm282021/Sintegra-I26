@@ -14,6 +14,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/arba/, '/arba'),
       },
+      '/api/auth': {
+        target: 'http://localhost:3003',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/auth/, '/auth'),
+      },
       '/api/health': {
         target: 'http://localhost:3003',
         changeOrigin: true,

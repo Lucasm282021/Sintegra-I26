@@ -100,6 +100,18 @@ VITE_API_BASE_URL=/api
 
 También es posible modificar la `API_BASE_URL` en tiempo real desde el botón de configuración (ícono de engranaje) en el encabezado de la aplicación.
 
+### Autenticación y usuarios del panel
+
+Copiar `.env.example` a `.env` y definir `AUTH_SECRET`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` antes de iniciar el backend. La cuenta administradora se crea al iniciar si todavía no existe. No guardar secretos reales en el repositorio. Las contraseñas se almacenan con scrypt; la sesión usa una cookie firmada `HttpOnly`.
+
+En Modo Demo: `admin@arba.demo` / `demo-admin-123` y `usuario@arba.demo` / `demo-user-123`.
+
+Los usuarios del panel (`admin`, `convencional`) son distintos de los sujetos del padrón (`persona_humana`, `persona_juridica`). El usuario convencional crea borradores y envía altas propias a revisión. El administrador revisa y aprueba, y luego configura el estado operativo, la alícuota decimal y las aplicaciones. Los estados de trámite son `borrador`, `pendiente_revision`, `observado`, `aprobado`, `activo` e `inactivo`. Datos fiscales nuevos quedan `pendiente_consulta`; el simulador solo admite sujetos `activo` con `arba_iibb` habilitado.
+
+Rutas nuevas: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`; administración `GET/POST /arba/usuarios`, `PUT /arba/usuarios/:id`, `PATCH /arba/usuarios/:id/estado`, `GET /arba/auditoria`; sujetos `GET/POST /arba/sujetos`, `GET/PUT /arba/sujetos/:cuit`, `POST /arba/sujetos/:cuit/enviar-revision|aprobar|observar`, `PATCH /arba/sujetos/:cuit/estado-operativo`. Las rutas anteriores de percepciones y padrón se conservan.
+
+El módulo es académico: no consulta ARBA/ARCA, no confirma datos fiscales y no constituye una inscripción ni habilitación oficial.
+
 ---
 
 ## 5. Especificación del Contrato REST
@@ -188,10 +200,3 @@ Ejecuta los 10 tests unitarios con el runner nativo `node --test` verificando sa
 docker build -t arba .
 docker run -p 3003:3003 -v arba-data:/data arba
 ```
-
-## 9. Alta simplificada de comercios
-
-- [Prototipo interactivo de alta](docs/alta-comercio-simplificada.html)
-- [Análisis y requisitos para integración](docs/alta-comercio-simplificada.md)
-
-El prototipo se abre directamente en un navegador y no persiste ni envía los datos. La integración en el sistema requiere ampliar el contrato de API y el esquema de persistencia.

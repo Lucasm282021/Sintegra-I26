@@ -116,6 +116,26 @@ export class ArbaApiService {
     return this.requestComercio('/arba/comercios', 'POST', comercio);
   }
 
+  async auth(path, method = 'GET', body) {
+    if (this.mode === 'demo') return demoEngine.auth(path, method, body);
+    return this.requestComercio(path.startsWith('/auth') ? path : `/auth${path}`, method, body);
+  }
+
+  async subjects(method = 'GET', path = '/arba/sujetos', body) {
+    if (this.mode === 'demo') return demoEngine.subjects(method, path, body);
+    return this.requestComercio(path, method, body);
+  }
+
+  async users(method = 'GET', path = '/arba/usuarios', body) {
+    if (this.mode === 'demo') return demoEngine.users(method, path, body);
+    return this.requestComercio(path, method, body);
+  }
+
+  async auditSubjects() {
+    if (this.mode === 'demo') return demoEngine.auditSubjects();
+    return this.requestComercio('/arba/auditoria', 'GET');
+  }
+
   async updateComercio(cuit, comercio) {
     if (this.mode === 'demo') return demoEngine.updateComercio(cuit, comercio);
     return this.requestComercio(`/arba/comercios/${encodeURIComponent(cuit)}`, 'PUT', comercio);
@@ -135,6 +155,7 @@ export class ArbaApiService {
     try {
       const res = await fetch(this.getEffectiveEndpoint(path), {
         method,
+        credentials: 'include',
         headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });

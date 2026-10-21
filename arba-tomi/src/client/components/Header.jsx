@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Server, AlertCircle, Database, Settings, CheckCircle2, XCircle, RefreshCw, LayoutDashboard, Building2 } from 'lucide-react';
+import { ShieldCheck, Server, AlertCircle, Database, Settings, CheckCircle2, XCircle, RefreshCw, LayoutDashboard, Building2, LogOut, UserRound } from 'lucide-react';
 
 export function Header({
   mode,
@@ -11,6 +11,8 @@ export function Header({
   isCheckingHealth,
   activeView,
   onViewChange,
+  user,
+  onLogout,
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [tempUrl, setTempUrl] = useState(apiBaseUrl);
@@ -57,8 +59,8 @@ export function Header({
           {/* Zona 2: Selector de Modo & Estado */}
           <div className="flex items-center gap-3">
             <div className="hidden lg:flex items-center bg-slate-900/70 border border-slate-800 p-0.5 rounded-lg">
-              <button type="button" onClick={() => onViewChange('panel')} className={`px-2.5 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${activeView === 'panel' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'}`}><LayoutDashboard className="w-3.5 h-3.5" />Panel general</button>
-              <button type="button" onClick={() => onViewChange('comercios')} className={`px-2.5 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${activeView === 'comercios' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}><Building2 className="w-3.5 h-3.5" />Comercios</button>
+              {user?.rol === 'admin' && <button type="button" onClick={() => onViewChange('panel')} className={`px-2.5 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${activeView === 'panel' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'}`}><LayoutDashboard className="w-3.5 h-3.5" />Panel general</button>}
+              {user && <button type="button" onClick={() => onViewChange(user.rol === 'admin' ? 'sujetos' : 'altas')} className={`px-2.5 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${['sujetos','altas'].includes(activeView) ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}><Building2 className="w-3.5 h-3.5" />{user.rol === 'admin' ? 'Gestión de sujetos' : 'Altas'}</button>}
             </div>
             {/* Toggle de Modo Segmentado */}
             <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-lg">
@@ -120,12 +122,13 @@ export function Header({
             >
               <Settings className="w-4 h-4" />
             </button>
+            {user && <><span className="hidden xl:flex items-center gap-1.5 text-xs text-slate-400"><UserRound className="w-3.5 h-3.5"/>{user.nombre} · {user.rol}</span><button type="button" onClick={onLogout} title="Cerrar sesión" className="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg"><LogOut className="w-4 h-4"/></button></>}
           </div>
         </div>
 
         <div className="lg:hidden pb-3 flex items-center bg-slate-900/60 border border-slate-800 p-0.5 rounded-lg w-fit">
-          <button type="button" onClick={() => onViewChange('panel')} className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${activeView === 'panel' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'}`}><LayoutDashboard className="w-3.5 h-3.5" />Panel general</button>
-          <button type="button" onClick={() => onViewChange('comercios')} className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${activeView === 'comercios' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}><Building2 className="w-3.5 h-3.5" />Comercios</button>
+          {user?.rol === 'admin' && <button type="button" onClick={() => onViewChange('panel')} className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${activeView === 'panel' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'}`}><LayoutDashboard className="w-3.5 h-3.5" />Panel general</button>}
+          {user && <button type="button" onClick={() => onViewChange(user.rol === 'admin' ? 'sujetos' : 'altas')} className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${['sujetos','altas'].includes(activeView) ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}><Building2 className="w-3.5 h-3.5" />{user.rol === 'admin' ? 'Gestión de sujetos' : 'Altas'}</button>}
         </div>
 
         {/* Panel de configuración colapsable */}

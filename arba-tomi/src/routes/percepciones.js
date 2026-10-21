@@ -40,14 +40,18 @@ router.post('/', (req, res) => {
   }
 
   const contribuyente = db.prepare(
-    'SELECT cuit, actividad, alicuota, estado, aplicaciones FROM padron WHERE cuit = ?'
+    'SELECT cuit, actividad, alicuota, estado, aplicaciones, estado_tramite FROM padron WHERE cuit = ?'
   ).get(cuit);
+  if (contribuyente && ['borrador','pendiente_revision','observado','aprobado','inactivo'].includes(contribuyente.estado_tramite)) {
+    return res.status(403).json({ error: 'sujeto sin habilitacion operativa' });
+  }
   if (!contribuyente) {
     return res.status(404).json({ error: 'cuit no encontrado en padron' });
   }
   let aplicaciones = { arba_iibb: true };
   try { aplicaciones = { ...aplicaciones, ...JSON.parse(contribuyente.aplicaciones || '{}') }; } catch { /* use defaults */ }
-  if (contribuyente.estado === 'inactivo' || !aplicaciones.arba_iibb) {
+  if (contribuyente.estado === 'inactivo' || !aplicaciones.arba_iibb
+    || ['borrador','pendiente_revision','observado','aprobado','inactivo'].includes(contribuyente.estado_tramite)) {
     return res.status(403).json({ error: 'comercio sin modulo arba iibb activo' });
   }
 

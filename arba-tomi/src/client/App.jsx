@@ -11,10 +11,13 @@ import { ApiContract } from './components/ApiContract';
 import { ComerciosPanel } from './components/ComerciosPanel';
 import { arbaApi } from './services/arbaApi';
 import { demoEngine } from './services/demoEngine';
+import { AccessPanel, LoginPanel } from './components/AccessPanel';
 import { AlertCircle, RefreshCw, ServerOff } from 'lucide-react';
 
 export function App() {
-  const [activeView, setActiveView] = useState('panel');
+  const [activeView, setActiveView] = useState('login');
+  const [user, setUser] = useState(null);
+  const [authError, setAuthError] = useState('');
   // Modo explícito seleccionado por el usuario ('api' | 'demo')
   const [mode, setMode] = useState(() => {
     return localStorage.getItem('arba_app_mode') || 'demo';
@@ -64,6 +67,26 @@ export function App() {
     arbaApi.setBaseUrl(apiBaseUrl);
     localStorage.setItem('arba_app_mode', mode);
   }, [mode, apiBaseUrl]);
+
+  useEffect(() => {
+    let alive = true;
+    arbaApi.auth('/auth/me').then((res) => {
+      if (!alive) return;
+      if (res.ok && res.data?.usuario) { setUser(res.data.usuario); setActiveView(res.data.usuario.rol === 'admin' ? 'panel' : 'altas'); }
+      else { setUser(null); setActiveView('login'); }
+    });
+    return () => { alive = false; };
+  }, [mode, apiBaseUrl]);
+
+  const handleLogin = async (event) => {
+    event.preventDefault(); setAuthError('');
+    const form = new FormData(event.currentTarget);
+    const res = await arbaApi.auth('/auth/login', 'POST', { email: form.get('email'), password: form.get('password') });
+    if (!res.ok) { setAuthError(res.data?.error || 'No se pudo iniciar sesión.'); return; }
+    setUser(res.data.usuario); setActiveView(res.data.usuario.rol === 'admin' ? 'panel' : 'altas');
+    if (res.data.usuario.rol === 'admin') loadComercios();
+  };
+  const handleLogout = async () => { await arbaApi.auth('/auth/logout', 'POST'); setUser(null); setActiveView('login'); };
 
   // Verificar Salud del Servicio
   const checkHealth = useCallback(async () => {
@@ -267,10 +290,12 @@ export function App() {
         isCheckingHealth={isCheckingHealth}
         activeView={activeView}
         onViewChange={setActiveView}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* Alerta de API Desconectada cuando el usuario está en Modo API y no hay respuesta */}
-      {mode === 'api' && healthStatus.checked && !healthStatus.connected && (
+      {user && mode === 'api' && healthStatus.checked && !healthStatus.connected && (
         <div className="bg-rose-500/10 border-b border-rose-500/20 py-2.5 px-4 text-xs text-rose-300">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -302,8 +327,8 @@ export function App() {
 
       {/* Contenido Principal */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {!user ? <LoginPanel onLogin={handleLogin} error={authError} /> : user.rol === 'convencional' ? <AccessPanel user={user} api={arbaApi} onDataChanged={loadPadron} /> : activeView === 'sujetos' ? <AccessPanel user={user} api={arbaApi} onDataChanged={refreshComercios} /> : <>
         {/* Resumen Principal de Métricas */}
-        {activeView === 'panel' ? <>
         <SummaryCards
           mode={mode}
           healthStatus={healthStatus}
@@ -367,15 +392,7 @@ export function App() {
 
         {/* Panel Técnico: Contrato del Servicio */}
         <ApiContract />
-        </> : <ComerciosPanel
-          items={comercioItems}
-          onCreate={handleCreateComercio}
-          onUpdate={handleUpdateComercio}
-          onDelete={handleDeleteComercio}
-          isLoading={isComercioLoading}
-          error={comercioError}
-          mode={mode}
-        />}
+        </>}
       </main>
 
       {/* Footer sobrio */}

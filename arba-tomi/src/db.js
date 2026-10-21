@@ -55,6 +55,21 @@ function migratePadron(db) {
   if (!columns.some((column) => column.name === 'aplicaciones')) {
     db.exec("ALTER TABLE padron ADD COLUMN aplicaciones TEXT NOT NULL DEFAULT '{\"arba_iibb\":true,\"arca_facturacion\":false}'");
   }
+  const extra = [
+    ['tipo_titular', "TEXT NOT NULL DEFAULT 'persona_juridica'"], ['nombre_fantasia', 'TEXT'],
+    ['actividad_codigo', 'TEXT'], ['actividades_secundarias', "TEXT NOT NULL DEFAULT '[]'"],
+    ['fecha_inicio', 'TEXT'], ['domicilio_fiscal', 'TEXT'], ['domicilios_actividad', "TEXT NOT NULL DEFAULT '[]'"],
+    ['jurisdicciones', "TEXT NOT NULL DEFAULT '[]'"], ['email_contacto', 'TEXT'], ['telefono', 'TEXT'],
+    ['estado_tramite', "TEXT NOT NULL DEFAULT 'activo'"], ['estado_fiscal', "TEXT NOT NULL DEFAULT 'verificado'"],
+    ['fuente_verificacion', 'TEXT'], ['fecha_verificacion', 'TEXT'], ['creado_por', 'INTEGER'], ['revisado_por', 'INTEGER'],
+    ['creado_en', 'TEXT'], ['actualizado_en', 'TEXT'], ['apellido_nombres', 'TEXT'], ['tipo_documento', 'TEXT'],
+    ['numero_documento', 'TEXT'], ['apoderado', 'TEXT'], ['forma_juridica', 'TEXT'], ['fecha_constitucion', 'TEXT'],
+    ['domicilio_legal', 'TEXT'], ['representante_legal', 'TEXT'], ['dato_registral', 'TEXT']
+  ];
+  for (const [name, type] of extra) if (!columns.some((column) => column.name === name)) {
+    db.exec(`ALTER TABLE padron ADD COLUMN ${name} ${type}`);
+  }
+  db.exec("UPDATE padron SET estado_tramite = 'activo', estado_fiscal = 'verificado' WHERE creado_por IS NULL AND estado = 'activo'");
 }
 
 function initDb(dbPath = DB_PATH) {
@@ -83,6 +98,18 @@ function initDb(dbPath = DB_PATH) {
 
   migratePercepciones(db);
   migratePadron(db);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL, rol TEXT NOT NULL CHECK (rol IN ('admin','convencional')),
+      activo INTEGER NOT NULL DEFAULT 1, creado_en TEXT NOT NULL, actualizado_en TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS auditoria_sujetos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, actor_id INTEGER, accion TEXT NOT NULL, tipo_sujeto TEXT,
+      sujeto_cuit TEXT, estado_anterior TEXT, estado_posterior TEXT, fecha TEXT NOT NULL, detalle_json TEXT
+    );
+  `);
 
   const count = db.prepare('SELECT COUNT(*) AS n FROM padron').get().n;
   if (count === 0) {

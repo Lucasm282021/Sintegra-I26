@@ -1,6 +1,7 @@
 const express = require('express');
 const { validarCuit } = require('../validate');
 const { publicPadron } = require('../db');
+const { authRequired, adminRequired } = require('./auth');
 
 const router = express.Router();
 
@@ -36,8 +37,14 @@ function comercioDesdeFila(row) {
   };
 }
 
+function auditCommerce(db, user, action, cuit, before, after) {
+  db.prepare('INSERT INTO auditoria_sujetos (actor_id,accion,tipo_sujeto,sujeto_cuit,estado_anterior,estado_posterior,fecha,detalle_json) VALUES (?,?,?,?,?,?,?,?)')
+    .run(user.id, action, 'persona_juridica', cuit, before?.estado || null, after?.estado || null,
+      new Date().toISOString(), JSON.stringify({ legacy_comercio: true, alicuota_anterior: before?.alicuota, alicuota_posterior: after?.alicuota }));
+}
+
 // Panel de administración de comercios, separado del contrato público del padrón ARBA.
-router.get('/comercios', (req, res) => {
+router.get('/comercios', authRequired, adminRequired, (req, res) => {
   const page = Number.parseInt(req.query.page || '1', 10);
   const limit = Number.parseInt(req.query.limit || '100', 10);
   if (!Number.isInteger(page) || page < 1 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
@@ -50,11 +57,12 @@ router.get('/comercios', (req, res) => {
   return res.status(200).json({ page, limit, total, items: rows.map(comercioDesdeFila) });
 });
 
-router.post('/comercios', (req, res) => {
+router.post('/comercios', authRequired, adminRequired, (req, res) => {
   const { cuit } = req.body || {};
   const comercio = normalizeComercio(req.body);
   if (!validarCuit(cuit) || !comercio) return res.status(400).json({ error: 'datos de comercio invalidos' });
   const db = req.app.locals.db;
+  const before = db.prepare('SELECT estado, alicuota FROM padron WHERE cuit = ?').get(cuit);
   try {
     db.prepare('INSERT INTO padron (cuit, razon_social, actividad, alicuota, condicion, estado, aplicaciones) VALUES (?, ?, ?, ?, ?, ?, ?)')
       .run(cuit, comercio.razon_social, comercio.actividad, comercio.alicuota, 'contribuyente', comercio.estado, JSON.stringify(comercio.aplicaciones));
@@ -64,23 +72,29 @@ router.post('/comercios', (req, res) => {
     }
     throw err;
   }
+  auditCommerce(db, req.user, 'crear_comercio', cuit, null, comercio);
   return res.status(201).json({ cuit, ...comercio });
 });
 
-router.put('/comercios/:cuit', (req, res) => {
+router.put('/comercios/:cuit', authRequired, adminRequired, (req, res) => {
   const comercio = normalizeComercio(req.body);
   if (!validarCuit(req.params.cuit) || !comercio) return res.status(400).json({ error: 'datos de comercio invalidos' });
   const db = req.app.locals.db;
+  const before = db.prepare('SELECT estado, alicuota FROM padron WHERE cuit = ?').get(req.params.cuit);
   const result = db.prepare('UPDATE padron SET razon_social = ?, actividad = ?, alicuota = ?, estado = ?, aplicaciones = ? WHERE cuit = ?')
     .run(comercio.razon_social, comercio.actividad, comercio.alicuota, comercio.estado, JSON.stringify(comercio.aplicaciones), req.params.cuit);
   if (!result.changes) return res.status(404).json({ error: 'comercio no encontrado' });
+  auditCommerce(db, req.user, 'editar_comercio', req.params.cuit, before, comercio);
   return res.status(200).json({ cuit: req.params.cuit, ...comercio });
 });
 
-router.delete('/comercios/:cuit', (req, res) => {
+router.delete('/comercios/:cuit', authRequired, adminRequired, (req, res) => {
   if (!validarCuit(req.params.cuit)) return res.status(400).json({ error: 'cuit invalido' });
-  const result = req.app.locals.db.prepare('DELETE FROM padron WHERE cuit = ?').run(req.params.cuit);
+  const db = req.app.locals.db;
+  const before = db.prepare('SELECT estado, alicuota FROM padron WHERE cuit = ?').get(req.params.cuit);
+  const result = db.prepare('DELETE FROM padron WHERE cuit = ?').run(req.params.cuit);
   if (!result.changes) return res.status(404).json({ error: 'comercio no encontrado' });
+  auditCommerce(db, req.user, 'eliminar_comercio', req.params.cuit, before, null);
   return res.status(200).json({ cuit: req.params.cuit });
 });
 
