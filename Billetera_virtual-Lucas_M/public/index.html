@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4efe7" />
+    <title>Billetera | Panel de control</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Inicio de Billetera">
+          <span class="brand-mark">B</span>
+          <span>Billetera</span>
+        </a>
+        <div class="connection-status"><span></span> API conectada</div>
+      </header>
+
+      <main class="dashboard">
+        <section class="intro">
+          <div>
+            <p class="eyebrow">Panel de control</p>
+            <h1>Tu dinero, en movimiento.</h1>
+            <p class="intro-copy">Administra cuentas, cargas y pagos desde un solo lugar.</p>
+          </div>
+          <button class="button button-dark" data-open-modal="account-modal">+ Nueva cuenta</button>
+        </section>
+
+        <section class="workspace-grid" aria-label="Gestión de billetera">
+          <div class="main-column">
+            <article class="balance-card">
+              <div class="balance-topline">
+                <span>Saldo disponible</span>
+                <span class="account-label" id="account-label">Sin cuenta seleccionada</span>
+              </div>
+              <strong class="balance" id="balance">$ 0</strong>
+              <div class="balance-footer">
+                <span id="account-holder">Crea o selecciona una cuenta para comenzar</span>
+                <span class="balance-dot"></span>
+              </div>
+            </article>
+
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Actividad reciente</p>
+                <h2>Movimientos</h2>
+              </div>
+              <button class="text-button" id="refresh-button" type="button">Actualizar</button>
+            </div>
+            <div class="activity-list" id="activity-list">
+              <div class="empty-state">
+                <span class="empty-icon">↗</span>
+                <strong>Aún no hay movimientos</strong>
+                <p>Las cargas y pagos de tu cuenta aparecerán aquí.</p>
+              </div>
+            </div>
+          </div>
+
+          <aside class="side-column">
+            <section class="panel account-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Tus cuentas</p>
+                  <h2>Acceso rápido</h2>
+                </div>
+                <button class="icon-button" data-open-modal="account-modal" aria-label="Crear cuenta">+</button>
+              </div>
+              <label class="field-label" for="account-id">ID de cuenta</label>
+              <div class="account-picker">
+                <input id="account-id" type="number" min="1" placeholder="Ej. 1" />
+                <button class="button button-small" id="load-account" type="button">Ver</button>
+              </div>
+              <p class="helper-text">Ingresa el ID de una billetera existente para consultar su saldo.</p>
+            </section>
+
+            <section class="panel action-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Operaciones</p>
+                  <h2>Mover dinero</h2>
+                </div>
+              </div>
+              <button class="action-row" data-open-modal="deposit-modal" type="button">
+                <span class="action-icon deposit">↙</span>
+                <span><strong>Cargar saldo</strong><small>Acreditar dinero</small></span>
+                <span class="row-arrow">→</span>
+              </button>
+              <button class="action-row" data-open-modal="payment-modal" type="button">
+                <span class="action-icon payment">↗</span>
+                <span><strong>Realizar pago</strong><small>Enviar a un comercio</small></span>
+                <span class="row-arrow">→</span>
+              </button>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <dialog class="modal" id="account-modal">
+      <form class="modal-card" id="account-form">
+        <button class="close-button" type="button" data-close-modal aria-label="Cerrar">×</button>
+        <p class="eyebrow">Nueva billetera</p>
+        <h2>Crear una cuenta</h2>
+        <p class="modal-copy">Completá los datos para sumar una nueva billetera al ecosistema.</p>
+        <label for="holder">Titular</label>
+        <input id="holder" name="titular" required placeholder="Ej. Almacén Don Mateo" />
+        <label for="cuit">CUIT</label>
+        <input id="cuit" name="cuit" required inputmode="numeric" pattern="[0-9]{11}" placeholder="11 dígitos, sin guiones" />
+        <label for="alias">Alias</label>
+        <input id="alias" name="alias" required placeholder="ejemplo.billetera" />
+        <button class="button button-dark full-width" type="submit">Crear cuenta</button>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="deposit-modal">
+      <form class="modal-card operation-form" id="deposit-form">
+        <button class="close-button" type="button" data-close-modal aria-label="Cerrar">×</button>
+        <p class="eyebrow">Acreditar dinero</p>
+        <h2>Cargar saldo</h2>
+        <label for="deposit-cuit">CUIT de la cuenta</label>
+        <input id="deposit-cuit" name="cuit" required inputmode="numeric" pattern="[0-9]{11}" placeholder="11 dígitos, sin guiones" />
+        <label for="deposit-amount">Monto</label>
+        <input id="deposit-amount" name="monto" required type="number" min="1" step="1" placeholder="$ 0" />
+        <button class="button button-dark full-width" type="submit">Cargar saldo</button>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="payment-modal">
+      <form class="modal-card operation-form" id="payment-form">
+        <button class="close-button" type="button" data-close-modal aria-label="Cerrar">×</button>
+        <p class="eyebrow">Enviar dinero</p>
+        <h2>Realizar pago</h2>
+        <label for="payment-cuit">CUIT de tu cuenta</label>
+        <input id="payment-cuit" name="cuit" required inputmode="numeric" pattern="[0-9]{11}" placeholder="11 dígitos, sin guiones" />
+        <label for="payment-amount">Monto</label>
+        <input id="payment-amount" name="monto" required type="number" min="1" step="1" placeholder="$ 0" />
+        <label for="merchant-cuit">CUIT del comercio <span>(opcional)</span></label>
+        <input id="merchant-cuit" name="comercio_cuit" inputmode="numeric" pattern="[0-9]{11}" placeholder="11 dígitos, sin guiones" />
+        <button class="button button-dark full-width" type="submit">Confirmar pago</button>
+      </form>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

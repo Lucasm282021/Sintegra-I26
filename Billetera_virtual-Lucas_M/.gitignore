@@ -1,0 +1,5 @@
+node_modules/
+billetera.db
+billetera.db-wal
+billetera.db-shm
+server.log

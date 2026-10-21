@@ -1,0 +1,12 @@
+{
+  "name": "billetera-virtual",
+  "version": "1.0.0",
+  "description": "Módulo Billetera Virtual del ecosistema fintech simulado (puerto 3006)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

@@ -188,3 +188,10 @@ Ejecuta los 10 tests unitarios con el runner nativo `node --test` verificando sa
 docker build -t arba .
 docker run -p 3003:3003 -v arba-data:/data arba
 ```
+
+## 9. Alta simplificada de comercios
+
+- [Prototipo interactivo de alta](docs/alta-comercio-simplificada.html)
+- [Análisis y requisitos para integración](docs/alta-comercio-simplificada.md)
+
+El prototipo se abre directamente en un navegador y no persiste ni envía los datos. La integración en el sistema requiere ampliar el contrato de API y el esquema de persistencia.
