@@ -377,6 +377,9 @@ function ComerciosView() {
     <div>
       <div className="card">
         <h2 className="card-title">{isEditing ? `Editar Comercio: ${formData.cuit}` : 'Registrar Nuevo Comercio'}</h2>
+        <div className="alert alert-info">
+          Esta pantalla administra datos de demostración académica. Guardar un comercio no confirma una inscripción oficial en IIBB ni consulta el padrón real de ARBA. Las actividades y alícuotas son ficticias.
+        </div>
         
         {feedback.message && <div className={`alert alert-${feedback.type}`}>{feedback.message}</div>}
 

@@ -1,136 +1,71 @@
-\# Informe técnico — Módulo ARBA
+# Informe técnico — Módulo ARBA de Nehemías
 
+**Proyecto:** Sintegra I26  
+**Autor:** Nehemías Luque  
+**Tipo de entrega:** Parcial académico  
+**Estado:** Versión de demostración; no es una integración fiscal oficial.
 
+## 1. Objetivo
 
-\*\*Responsable:\*\* Nehemías
+Implementar de forma individual un módulo web para consultar un padrón ficticio de Ingresos Brutos, administrar comercios de prueba y calcular percepciones asociadas a ventas. El frontend y el backend están juntos dentro de `arba-nehemías`, pero se ejecutan como dos aplicaciones separadas.
 
-\*\*Proyecto:\*\* Sintegra I26
+## 2. Tecnologías y ejecución
 
-\*\*Estado:\*\* En desarrollo
+- **Backend:** Node.js y Express, puerto `3003`.
+- **Frontend:** React y Vite, puerto `5173`.
+- **Persistencia de esta versión:** archivo local `backend/data/db.json` (se crea al primer inicio).
+- **Inicio local:** en la carpeta del backend, `npm ci` y `npm start`; en otra terminal, dentro de `frontend`, `npm install` y `npm run dev`; abrir `http://localhost:5173`.
+- Vite reenvía las solicitudes del navegador al backend local.
 
+## 3. Alcance funcional
 
+- Consultar el padrón ficticio y buscar un CUIT.
+- Crear, actualizar y dar de baja comercios de prueba desde la pantalla administrativa.
+- Calcular percepciones en el servidor usando el importe en centavos y la alícuota vigente de demostración.
+- Consultar el historial de percepciones por CUIT.
+- Evitar duplicados por `sale_id`: la primera operación devuelve `201`, el mismo reintento devuelve `200` y una repetición con contenido diferente devuelve `409`.
+- Mantener las rutas antiguas mientras la interfaz individual migra al contrato nuevo.
 
-\## Objetivo
+## 4. Contrato API
 
+Las rutas versionadas se publican bajo `/api/v1/arba`:
 
+| Método y ruta | Función |
+|---|---|
+| `GET /health` | Estado del servicio |
+| `GET /padron?page&limit` | Consulta paginada del padrón |
+| `GET /padron/:cuit` | Consulta de inscripción y tasa aplicable |
+| `GET /inscripciones-iibb/:cuit` | Consulta explícita de inscripción IIBB |
+| `GET/POST /comercios` | Consulta y alta de perfil comercial |
+| `PUT/DELETE /comercios/:cuit` | Edición y baja del perfil comercial |
+| `POST /inscripciones-iibb` | Alta de inscripción de demostración separada del perfil |
+| `PUT/DELETE /inscripciones-iibb/:cuit` | Modificación o baja lógica de inscripción simulada |
+| `POST /percepciones` | Cálculo de percepción con tasa resuelta por el backend |
+| `GET /percepciones/:cuit` | Historial por CUIT |
 
-El módulo ARBA simula la consulta de un padrón de comercios y calcula percepciones de Ingresos Brutos (IIBB) sobre ventas, usando la alícuota registrada para cada CUIT.
+Para una percepción se envían `sale_id`, `cuit` (o `commerce_id`), `base_amount_minor` y `currency`. Los centavos se representan como enteros; por ejemplo, `$10.000,00` se envía como `1000000` con `currency: "ARS"`. La respuesta conserva la venta, el comercio, la tasa aplicada, la versión de tasa, su fecha de vigencia, la fuente, la base y el importe calculado.
 
+## 5. Modelo de datos
 
+La persistencia separa cuatro colecciones:
 
-\## Estructura del módulo
+- `comercios`: perfil e identificador comercial.
+- `inscripciones_iibb`: jurisdicción, estado, actividad y condición de demostración.
+- `alicuotas`: valores versionados con fechas de vigencia y fuente.
+- `percepciones`: operación única por venta, montos enteros en centavos, tasa aplicada y referencia de versión.
 
+El archivo previo se migra automáticamente al nuevo esquema cuando se inicia el backend. Se conservan las percepciones anteriores y los datos migrados se identifican como heredados de demostración cuando no tenían una fuente disponible.
 
+## 6. Datos académicos
 
-\- `arba-nehemias/backend`: API con Node.js y Express.
+El padrón inicial contiene cinco filas ficticias. `AR-B` se usa como código de jurisdicción de Buenos Aires; las actividades `DEMO-01` a `DEMO-05`, los CUIT, las razones sociales y las tasas son datos inventados para la simulación, no códigos ni tasas oficiales. La fecha inicial de vigencia de la semilla es `2026-01-01`. La aplicación informa que guardar un comercio no certifica una inscripción ante ARBA.
 
-\- `arba-nehemias/frontend`: interfaz con React y Vite.
+## 7. Pruebas y límites
 
-\- `doc/INFORME-TECNICO-ARBA-NEHEMIAS.md`: este informe.
+Las rutas antiguas conservaron los escenarios manuales de la versión individual: salud, consulta, cálculo, reintento, conflicto, CUIT inexistente y administración de registros. La interfaz usa ahora las rutas versionadas para consulta, cálculo e historial. El cambio de contrato y la nueva presentación todavía requieren una ejecución manual en la máquina de entrega antes de incorporarlos a la solicitud de revisión.
 
+Pendiente: autenticación y permisos por rol, integración con TPV, pruebas de Docker e integración con la implementación elegida por el equipo. Docker Desktop no estuvo disponible en el entorno de entrega. Esta persistencia JSON es local y no debe convertirse en padrón compartido de producción.
 
+## 8. Referencia de integración
 
-\## Backend
-
-
-
-El servidor escucha en el puerto `3003` y ofrece:
-
-
-
-\- `GET /health`: consulta el estado del servicio.
-
-\- `GET /arba/padron/:cuit`: consulta un CUIT del padrón.
-
-\- `GET /arba/comercios?page=1\\\\\\\\\\\\\\\&limit=5`: lista comercios con paginación.
-
-\- Rutas para registrar, editar y dar de baja comercios.
-
-\- `POST /arba/percepciones`: calcula y registra una percepción.
-
-\- `GET /arba/percepciones/:cuit`: consulta percepciones de un CUIT.
-
-
-
-El cálculo probado fue una venta de `$10.000` con alícuota `0,03` (3%), que da una percepción de `$300`.
-
-
-
-Si se repite la misma solicitud con el mismo `id\\\\\\\\\\\\\\\_venta`, el servicio devuelve el registro existente. Si se reutiliza el `id\\\\\\\\\\\\\\\_venta` con datos diferentes, responde con HTTP `409`.
-
-
-
-\## Frontend
-
-
-
-Interfaz desarrollada con React y Vite. Permite consultar el padrón, administrar comercios, registrar percepciones y revisar el historial.
-
-
-
-\## Pruebas manuales realizadas
-
-
-
-\- `/health` respondió correctamente.
-
-\- El CUIT `20345678901` devolvió la actividad “Comercio minorista” y alícuota `0,03`.
-
-\- Una venta de `$10.000` calculó `$300` de percepción.
-
-\- El reintento idéntico devolvió el mismo registro.
-
-\- Reutilizar el `id\\\\\\\\\\\\\\\_venta` con otro importe devolvió HTTP `409`.
-
-\- Un CUIT no registrado devolvió HTTP `404`.
-
-\- Se probó desde la interfaz el alta, edición y baja de un comercio.
-
-
-
-\## Ejecución local
-
-
-
-Backend, desde la carpeta `backend`:
-
-
-
-1\. Ejecutar `npm ci`.
-
-2\. Ejecutar `npm start`.
-
-
-
-Frontend, desde la carpeta `frontend`:
-
-
-
-1\. Ejecutar `npm install`.
-
-2\. Ejecutar `npm run dev`.
-
-3\. Abrir la dirección local que muestra Vite, normalmente `http://localhost:5173/`.
-
-
-
-\## Pendiente
-
-
-
-\- Implementar el inicio de sesión y los permisos para usuario, administrador y superadministrador.
-
-\- Probar la integración con TPV.
-
-\- Probar Docker cuando la virtualización del equipo esté disponible.
-
-\- Publicar el frontend para compartirlo mediante un enlace.
-
-
-
-\## Alcance de los datos
-
-
-
-Los CUIT, comercios y alícuotas usados son datos de prueba para una simulación académica. No son información fiscal oficial.
-
+El documento `AJUSTE-ARBA.md` del repositorio del equipo recomienda `arba-tomi` como implementación de referencia común. Este módulo conserva una implementación separada para el parcial de Nehemías y sigue el contrato propuesto en lo posible, pero su desarrollo no significa que se haya elegido como padrón principal del ecosistema. Las dos versiones no deben operar como dueñas del mismo padrón compartido.
