@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14214f" />
+    <title>Entorno de pruebas | Sintegra</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+  <body>
+    <header class="demo-topbar">
+      <a href="/" class="demo-brand" aria-label="Volver a Billetera Virtual">
+        <img src="/assets/logo-sintegra.png" alt="i26 Sintegra" />
+        <span>Billetera Virtual <small>ENTORNO DE PRUEBAS</small></span>
+      </a>
+      <a class="back-to-wallet" href="/">Volver al acceso <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="demo-main">
+      <section class="demo-intro">
+        <p class="kicker">SANDBOX · SIMULACIÓN LOCAL</p>
+        <h1>Probá la billetera con perfiles ficticios.</h1>
+        <p>Selecciona un cliente de prueba e ingresa a su billetera con saldo simulado. Estos datos no pertenecen a personas reales ni mueven dinero.</p>
+      </section>
+
+      <div class="demo-grid">
+        <section class="demo-profiles" aria-labelledby="profiles-title">
+          <div class="section-title">
+            <div><p class="kicker">PERFILES DISPONIBLES</p><h2 id="profiles-title">Elige un escenario</h2></div>
+            <span class="demo-badge">DEMO</span>
+          </div>
+          <div id="client-list" class="client-list" aria-live="polite">
+            <p class="loading-copy">Cargando perfiles de prueba…</p>
+          </div>
+        </section>
+
+        <section class="demo-login-card" aria-labelledby="login-title">
+          <p class="kicker">ACCESO SIMULADO</p>
+          <h2 id="login-title">Ingresa a una cuenta</h2>
+          <p class="login-help">Selecciona un perfil para completar sus credenciales demo.</p>
+          <form id="demo-login-form">
+            <label for="demo-cuil">CUIL</label>
+            <input id="demo-cuil" name="cuil" inputmode="numeric" autocomplete="username" required pattern="[0-9]{11}" maxlength="11" placeholder="Selecciona un perfil" />
+            <label for="demo-password">Contraseña demo</label>
+            <input id="demo-password" name="contrasena" type="password" autocomplete="current-password" required placeholder="demo1234" />
+            <button class="demo-submit" type="submit">Abrir billetera <span aria-hidden="true">→</span></button>
+            <p id="demo-error" class="demo-error" role="alert" hidden></p>
+          </form>
+          <p class="credential-note">Contraseña compartida por los perfiles: <code>demo1234</code></p>
+          <a class="normal-login" href="/">Ir al login de la billetera</a>
+        </section>
+      </div>
+
+      <footer class="demo-footer">Espacio de prueba separado de la experiencia habitual de Billetera Virtual.</footer>
+    </main>
+    <script src="/demo.js"></script>
+  </body>
+</html>

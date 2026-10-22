@@ -1,5 +1,7 @@
 node_modules/
+.env
 billetera.db
 billetera.db-wal
 billetera.db-shm
 server.log
+server-error.log
