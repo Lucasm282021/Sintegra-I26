@@ -29,7 +29,8 @@ export default function App() {
   const [loadingInitial, setLoadingInitial] = useState<boolean>(true);
   const [trafficLogs, setTrafficLogs] = useState<ApiTrafficLog[]>([]);
   const [dockOpen, setDockOpen] = useState<boolean>(false);
-
+  const [showIntro, setShowIntro] = useState(true);
+  
   useEffect(() => {
     const unsubscribe = subscribeTrafficLogs((logs) => {
       setTrafficLogs(logs);
@@ -108,6 +109,27 @@ export default function App() {
     setSelectedCuit('30789012345');
     await cargarEstadoInicial();
   };
+
+    if (showIntro) {
+  return (
+    <div className="fixed inset-0 bg-[#070b14] flex flex-col items-center justify-center z-50">
+      <video 
+        src="/intro-muni-i26.mp4" 
+        autoPlay 
+        muted 
+        playsInline
+        onEnded={() => setShowIntro(false)}
+        className="w-full max-w-4xl shadow-[0_0_50px_rgba(255,100,0,0.2)]"
+      />
+      <button 
+        onClick={() => setShowIntro(false)} 
+        className="mt-6 text-slate-500 hover:text-white text-sm underline cursor-pointer"
+      >
+        Omitir intro
+      </button>
+    </div>
+  );
+}
 
   return (
     <div id="top" className="min-h-screen flex flex-col bg-slate-50 text-slate-900">

@@ -24,7 +24,7 @@ export const HeaderGlobal: React.FC<HeaderGlobalProps> = ({
     {
       id: 'padron',
       label: 'Alta y Padrón de Comercios',
-      icon: <Building2 className="w-3.5 h-3.5 shrink-0" />,
+      icon: <img src="/logo-muni-i26.png" alt="Logo Muni" className="h-10 w-auto" />
     },
     {
       id: 'cuentas',
