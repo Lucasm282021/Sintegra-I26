@@ -1,8 +1,10 @@
 const express = require('express');
 const db = require('../db');
 const { isValidCuit, normalizeComercio, normalizeComercioUpdate, pageParameters } = require('../validation');
+const auth = require('../auth');
 
 const router = express.Router();
+router.use(auth.requireAuth, auth.requireRoles('admin', 'superadmin'));
 
 router.get('/', (req, res) => {
   const paging = pageParameters(req.query, 100);

@@ -17,7 +17,7 @@ const seedPadron = [
 ];
 
 function emptyData() {
-  return { schema_version: 2, comercios: [], inscripciones_iibb: [], alicuotas: [], percepciones: [] };
+  return { schema_version: 2, comercios: [], inscripciones_iibb: [], alicuotas: [], percepciones: [], usuarios: [] };
 }
 
 function buildSeed() {
@@ -53,6 +53,7 @@ function buildSeed() {
 
 function legacyToV2(previous) {
   const data = emptyData();
+  data.usuarios = Array.isArray(previous.usuarios) ? previous.usuarios : [];
   const oldPadron = Array.isArray(previous.padron) ? previous.padron : [];
   const oldComercios = Array.isArray(previous.comercios) ? previous.comercios : [];
   const sourceRows = oldPadron.length ? oldPadron : oldComercios;
@@ -157,6 +158,10 @@ function readData() {
     && Array.isArray(stored.inscripciones_iibb)
     && Array.isArray(stored.alicuotas)
     && Array.isArray(stored.percepciones)) {
+    if (!Array.isArray(stored.usuarios)) {
+      stored.usuarios = [];
+      writeData(stored);
+    }
     return stored;
   }
   const migrated = legacyToV2(stored);
@@ -419,6 +424,31 @@ function getPercepcionByIdempotencyKey(key) {
   return readData().percepciones.find((row) => row.idempotency_key === key) || null;
 }
 
+function countUsers() {
+  return readData().usuarios.length;
+}
+
+function findUserByEmail(email) {
+  return readData().usuarios.find((user) => user.email === email.toLowerCase()) || null;
+}
+
+function findUserById(id) {
+  return readData().usuarios.find((user) => user.id === id) || null;
+}
+
+function createUser(user) {
+  const data = readData();
+  if (data.usuarios.some((existing) => existing.email === user.email.toLowerCase())) return false;
+  if (user.role === 'superadmin' && data.usuarios.some((existing) => existing.role === 'superadmin')) return false;
+  data.usuarios.push({ ...user, email: user.email.toLowerCase() });
+  writeData(data);
+  return true;
+}
+
+function listUsers() {
+  return readData().usuarios.map(({ password_hash, ...user }) => user);
+}
+
 function createPercepcion(percepcion) {
   const data = readData();
   if (data.percepciones.some((row) => row.sale_id === percepcion.sale_id)) return false;
@@ -456,12 +486,15 @@ function listPercepcionesV1ByCuit(cuit) {
 ensureInitialized();
 
 module.exports = {
+  countUsers,
   createComercio,
   createInscription,
   createPercepcion,
   createProfile,
   deleteComercio,
   fullComercio,
+  findUserByEmail,
+  findUserById,
   getComercioByCuit,
   getInscription,
   getPadronByCuit,
@@ -473,6 +506,8 @@ module.exports = {
   listPadronV1,
   listPercepcionesByCuit,
   listPercepcionesV1ByCuit,
+  listUsers,
+  createUser,
   updateComercio,
   updateInscription,
   updateProfile,

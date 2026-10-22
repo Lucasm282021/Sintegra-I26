@@ -23,6 +23,8 @@ Implementar de forma individual un módulo web para consultar un padrón fictici
 - Crear, actualizar y dar de baja comercios de prueba desde la pantalla administrativa.
 - Calcular percepciones en el servidor usando el importe en centavos y la alícuota vigente de demostración.
 - Consultar el historial de percepciones por CUIT.
+- Crear la primera cuenta superadmin y, desde ella, administrar las cuentas admin y user. No hay registro público de cuentas.
+- Aplicar permisos por rol tanto en la interfaz como en rutas administrativas del backend.
 - Evitar duplicados por `sale_id`: la primera operación devuelve `201`, el mismo reintento devuelve `200` y una repetición con contenido diferente devuelve `409`.
 - Mantener las rutas antiguas mientras la interfaz individual migra al contrato nuevo.
 
@@ -42,6 +44,8 @@ Las rutas versionadas se publican bajo `/api/v1/arba`:
 | `PUT/DELETE /inscripciones-iibb/:cuit` | Modificación o baja lógica de inscripción simulada |
 | `POST /percepciones` | Cálculo de percepción con tasa resuelta por el backend |
 | `GET /percepciones/:cuit` | Historial por CUIT |
+| `GET /auth/setup-status`, `POST /auth/bootstrap`, `POST /auth/login`, `GET /auth/me` | Configuración inicial y sesión |
+| `GET/POST /auth/users` | Listado y alta de cuentas, solo superadmin |
 
 Para una percepción se envían `sale_id`, `cuit` (o `commerce_id`), `base_amount_minor` y `currency`. Los centavos se representan como enteros; por ejemplo, `$10.000,00` se envía como `1000000` con `currency: "ARS"`. La respuesta conserva la venta, el comercio, la tasa aplicada, la versión de tasa, su fecha de vigencia, la fuente, la base y el importe calculado.
 
@@ -60,12 +64,18 @@ El archivo previo se migra automáticamente al nuevo esquema cuando se inicia el
 
 El padrón inicial contiene cinco filas ficticias. `AR-B` se usa como código de jurisdicción de Buenos Aires; las actividades `DEMO-01` a `DEMO-05`, los CUIT, las razones sociales y las tasas son datos inventados para la simulación, no códigos ni tasas oficiales. La fecha inicial de vigencia de la semilla es `2026-01-01`. La aplicación informa que guardar un comercio no certifica una inscripción ante ARBA.
 
-## 7. Pruebas y límites
+## 7. Acceso y permisos
 
-Las rutas antiguas conservaron los escenarios manuales de la versión individual: salud, consulta, cálculo, reintento, conflicto, CUIT inexistente y administración de registros. La interfaz usa ahora las rutas versionadas para consulta, cálculo e historial. El cambio de contrato y la nueva presentación todavía requieren una ejecución manual en la máquina de entrega antes de incorporarlos a la solicitud de revisión.
+La primera visita permite crear una única cuenta superadmin. Esa cuenta puede crear cuentas admin y user. User puede consultar el padrón, calcular percepciones y consultar historial; admin también administra comercios e inscripciones de demostración; superadmin además administra cuentas. El backend usa hash `scrypt` para contraseñas y sesiones firmadas con vencimiento de ocho horas. No se guardan contraseñas en texto legible.
 
-Pendiente: autenticación y permisos por rol, integración con TPV, pruebas de Docker e integración con la implementación elegida por el equipo. Docker Desktop no estuvo disponible en el entorno de entrega. Esta persistencia JSON es local y no debe convertirse en padrón compartido de producción.
+Si no se configura `JWT_SECRET`, el backend genera una clave aleatoria al iniciar y los usuarios vuelven a ingresar luego de cada reinicio. Para un despliegue se debe configurar una clave privada estable. Este inicio de sesión es académico y no reemplaza un servicio de identidad de producción.
 
-## 8. Referencia de integración
+## 8. Pruebas y límites
+
+Las rutas antiguas conservaron los escenarios manuales de la versión individual: salud, consulta, cálculo, reintento, conflicto, CUIT inexistente y administración de registros. La interfaz usa ahora las rutas versionadas para consulta, cálculo e historial. Los permisos de roles se verifican en las rutas del backend además de ocultar controles en la interfaz. Esta versión con acceso por roles todavía requiere una ejecución manual en la máquina de entrega antes de incorporarse a la solicitud de revisión.
+
+Pendiente: cambiar contraseñas y desactivar cuentas desde la app, integración con TPV, pruebas de Docker e integración con la implementación elegida por el equipo. Docker Desktop no estuvo disponible en el entorno de entrega. Esta persistencia JSON es local y no debe convertirse en padrón compartido de producción.
+
+## 9. Referencia de integración
 
 El documento `AJUSTE-ARBA.md` del repositorio del equipo recomienda `arba-tomi` como implementación de referencia común. Este módulo conserva una implementación separada para el parcial de Nehemías y sigue el contrato propuesto en lo posible, pero su desarrollo no significa que se haya elegido como padrón principal del ecosistema. Las dos versiones no deben operar como dueñas del mismo padrón compartido.

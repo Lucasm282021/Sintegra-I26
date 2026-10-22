@@ -1,6 +1,7 @@
 const express = require('express');
 const { randomUUID } = require('crypto');
 const db = require('../db');
+const auth = require('../auth');
 const { isValidCuit, pageParameters } = require('../validation');
 
 const router = express.Router();
@@ -68,7 +69,7 @@ router.get('/inscripciones-iibb/:cuit', (req, res) => {
 });
 
 // El perfil comercial se administra separado de la inscripción IIBB.
-router.get('/comercios', (req, res) => {
+router.get('/comercios', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const paging = pageParameters(req.query, 100);
   if (!paging) return res.status(400).json({ error: 'Paginación inválida' });
   const result = db.listComercios(paging.page, paging.limit);
@@ -78,7 +79,7 @@ router.get('/comercios', (req, res) => {
   });
 });
 
-router.post('/comercios', (req, res) => {
+router.post('/comercios', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const body = req.body || {};
   if (!isValidCuit(body.cuit) || !validText(body.razon_social)) {
     return res.status(400).json({ error: 'Se requiere CUIT válido y razón social' });
@@ -88,7 +89,7 @@ router.post('/comercios', (req, res) => {
   return res.status(201).json(commerce);
 });
 
-router.put('/comercios/:cuit', (req, res) => {
+router.put('/comercios/:cuit', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const { cuit } = req.params;
   if (!isValidCuit(cuit) || !validText(req.body?.razon_social)) {
     return res.status(400).json({ error: 'Se requiere CUIT válido y razón social' });
@@ -98,14 +99,14 @@ router.put('/comercios/:cuit', (req, res) => {
   return res.status(200).json(updated);
 });
 
-router.delete('/comercios/:cuit', (req, res) => {
+router.delete('/comercios/:cuit', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const { cuit } = req.params;
   if (!isValidCuit(cuit)) return res.status(400).json({ error: 'CUIT inválido' });
   if (!db.deleteComercio(cuit)) return res.status(404).json({ error: 'Comercio no encontrado' });
   return res.status(200).json({ cuit });
 });
 
-router.post('/inscripciones-iibb', (req, res) => {
+router.post('/inscripciones-iibb', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const body = req.body || {};
   if (!isValidCuit(body.cuit)
     || !validText(body.activity_code, 40)
@@ -133,7 +134,7 @@ router.post('/inscripciones-iibb', (req, res) => {
   return res.status(201).json(publicEnrollment(enrollment));
 });
 
-router.put('/inscripciones-iibb/:cuit', (req, res) => {
+router.put('/inscripciones-iibb/:cuit', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const { cuit } = req.params;
   const body = req.body || {};
   if (!isValidCuit(cuit)) return res.status(400).json({ error: 'CUIT inválido' });
@@ -151,7 +152,7 @@ router.put('/inscripciones-iibb/:cuit', (req, res) => {
   return res.status(200).json(publicEnrollment(updated));
 });
 
-router.delete('/inscripciones-iibb/:cuit', (req, res) => {
+router.delete('/inscripciones-iibb/:cuit', auth.requireAuth, auth.requireRoles('admin', 'superadmin'), (req, res) => {
   const { cuit } = req.params;
   if (!isValidCuit(cuit)) return res.status(400).json({ error: 'CUIT inválido' });
   const updated = db.updateInscription(cuit, { status: 'inactive' });
@@ -159,7 +160,7 @@ router.delete('/inscripciones-iibb/:cuit', (req, res) => {
   return res.status(200).json({ cuit, enrollment_status: 'inactive', is_official: false });
 });
 
-router.post('/percepciones', (req, res) => {
+router.post('/percepciones', auth.requireAuth, (req, res) => {
   const body = req.body || {};
   const saleId = body.sale_id || body.id_venta;
   let cuit = body.cuit;
@@ -240,7 +241,7 @@ router.post('/percepciones', (req, res) => {
   return res.status(201).json({ data: resource });
 });
 
-router.get('/percepciones/:cuit', (req, res) => {
+router.get('/percepciones/:cuit', auth.requireAuth, (req, res) => {
   const { cuit } = req.params;
   if (!isValidCuit(cuit)) return res.status(400).json({ error: 'CUIT inválido' });
   const percepciones = db.listPercepcionesV1ByCuit(cuit);

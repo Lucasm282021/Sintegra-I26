@@ -1,10 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { arbaApi } from './services/arbaApi';
+import { authApi } from './services/authApi';
+import AuthScreen from './AuthScreen';
+import UsersView from './UsersView';
 import { cleanCuit, isValidCuit, formatPercent, formatCurrency } from './utils/formatters';
+
+const roleLabels = { superadmin: 'Superadmin', admin: 'Administrador', user: 'Usuario' };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('padron');
   const [health, setHealth] = useState({ status: 'checking', message: 'Conectando...' });
+  const [user, setUser] = useState(null);
+  const [setupRequired, setSetupRequired] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const restoreSession = async () => {
+      let needsSetup = false;
+      try {
+        const status = await authApi.getSetupStatus();
+        needsSetup = Boolean(status.data?.setup_required);
+      } catch {
+        // La pantalla de acceso informa el error si la API no está disponible.
+      }
+      const token = localStorage.getItem('arba_session_token');
+      if (token) {
+        try {
+          const result = await authApi.getMe();
+          setUser(result.data.user);
+        } catch {
+          localStorage.removeItem('arba_session_token');
+        }
+      }
+      setSetupRequired(needsSetup);
+      setAuthReady(true);
+    };
+    restoreSession();
+  }, []);
+
+  const handleAuthenticated = ({ token, user: authenticatedUser }) => {
+    localStorage.setItem('arba_session_token', token);
+    setUser(authenticatedUser);
+    setSetupRequired(false);
+    setActiveTab('padron');
+  };
+
+  const logout = () => {
+    localStorage.removeItem('arba_session_token');
+    setUser(null);
+    setActiveTab('padron');
+  };
 
   // Verificación de salud periódica
   const checkHealth = async () => {
@@ -21,6 +66,20 @@ export default function App() {
     const interval = setInterval(checkHealth, 20000);
     return () => clearInterval(interval);
   }, []);
+
+  if (!authReady) {
+    return <div className="auth-screen"><div className="auth-card">Cargando el acceso…</div></div>;
+  }
+  if (!user) return <AuthScreen setupRequired={setupRequired} onAuthenticated={handleAuthenticated} />;
+
+  const isAdmin = ['admin', 'superadmin'].includes(user.role);
+  const tabs = [
+    { id: 'padron', label: 'Padrón Público' },
+    ...(isAdmin ? [{ id: 'comercios', label: 'Administración de Comercios' }] : []),
+    { id: 'percepciones', label: 'Registrar Percepción' },
+    { id: 'historial', label: 'Historial de Percepciones' },
+    ...(user.role === 'superadmin' ? [{ id: 'usuarios', label: 'Usuarios' }] : []),
+  ];
 
   return (
     <div className="app-container">
@@ -39,33 +98,18 @@ export default function App() {
             Reintentar
           </button>
         </div>
+        <div className="session-status">
+          <span>{user.name} · {roleLabels[user.role]}</span>
+          <button className="btn btn-outline" onClick={logout}>Salir</button>
+        </div>
       </header>
 
       <nav className="nav-tabs">
-        <button
-          className={`tab-btn ${activeTab === 'padron' ? 'active' : ''}`}
-          onClick={() => setActiveTab('padron')}
-        >
-          Padrón Público
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'comercios' ? 'active' : ''}`}
-          onClick={() => setActiveTab('comercios')}
-        >
-          Administración de Comercios
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'percepciones' ? 'active' : ''}`}
-          onClick={() => setActiveTab('percepciones')}
-        >
-          Registrar Percepción
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'historial' ? 'active' : ''}`}
-          onClick={() => setActiveTab('historial')}
-        >
-          Historial de Percepciones
-        </button>
+        {tabs.map((tab) => (
+          <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+            {tab.label}
+          </button>
+        ))}
       </nav>
 
       <main>
@@ -73,6 +117,7 @@ export default function App() {
         {activeTab === 'comercios' && <ComerciosView />}
         {activeTab === 'percepciones' && <PercepcionesView />}
         {activeTab === 'historial' && <HistorialView />}
+        {activeTab === 'usuarios' && user.role === 'superadmin' && <UsersView />}
       </main>
     </div>
   );

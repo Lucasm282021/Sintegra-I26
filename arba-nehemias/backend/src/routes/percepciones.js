@@ -2,8 +2,10 @@ const express = require('express');
 const { randomUUID } = require('crypto');
 const db = require('../db');
 const { isValidCuit, isValidIdVenta, isValidMoney, round2 } = require('../validation');
+const auth = require('../auth');
 
 const router = express.Router();
+router.use(auth.requireAuth);
 
 function toLegacyResponse(row) {
   return {
