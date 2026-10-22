@@ -1,0 +1,6 @@
+{
+  "name": "Municipio - Sistema de Gestión Tributaria",
+  "description": "Plataforma web cliente para el módulo MUNICIPIO de ecosistema fintech: gestión de padrón de comercios, cuentas corrientes, cobranza de tasas municipales, certificados de libre deuda e inspector de tráfico REST API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
