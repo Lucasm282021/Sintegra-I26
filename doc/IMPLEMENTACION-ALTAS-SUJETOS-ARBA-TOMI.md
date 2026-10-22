@@ -20,6 +20,14 @@ Se sincronizó la implementación de la carpeta principal `arba` con el módulo 
 
 La aplicación sigue siendo educativa: no consulta organismos fiscales ni formaliza inscripciones. Las alícuotas y cuentas Demo son ficticias.
 
+## Actualización de interfaz
+
+- Se simplificó el panel con navegación lateral y vistas diferenciadas por rol: inicio, gestión de sujetos, usuarios, auditoría, percepciones y consulta del padrón.
+- Se centró el inicio de sesión en la pantalla completa, sin reservar espacio para la navegación lateral.
+- Se retiraron de las vistas de usuario las rutas, respuestas HTTP, JSON y detalles de conexión. Se conservaron los flujos de alta, revisión, administración, consulta y simulación.
+- El flujo de alta continúa en tres pasos y el administrador conserva la configuración operativa de sujetos aprobados.
+- La compilación de producción se verificó con `npm run build`.
+
 ## Ramas
 
 - Carpeta principal `arba`: rama `master` del repositorio `arba_tomi_fintech`.

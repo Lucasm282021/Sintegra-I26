@@ -63,15 +63,15 @@ export function PadronTable({
         <div>
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-              Padrón de Contribuyentes (IIBB)
+            <h2 className="text-sm font-bold text-white">
+              Sujetos habilitados
             </h2>
             <span className="text-[11px] font-mono text-slate-400">
-              ({total !== null ? `${total} total` : `${items.length} en memoria`})
+              ({total !== null ? `${total} en total` : `${items.length} registros`})
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Consulta de alícuotas deterministas registradas para la provincia
+            Consultá los sujetos disponibles para operar
           </p>
         </div>
 
@@ -86,7 +86,7 @@ export function PadronTable({
                 setSearchTerm(e.target.value);
                 setDirectCuitError(null);
               }}
-              placeholder="Buscar CUIT o actividad..."
+              placeholder="Buscar por CUIT o actividad..."
               className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 font-mono focus:outline-none focus:border-emerald-500"
             />
           </div>
@@ -107,7 +107,7 @@ export function PadronTable({
       {searchTerm.replace(/\D/g, '').length === 11 && filteredItems.length === 0 && (
         <div className="px-4 py-2.5 bg-sky-500/10 border-b border-sky-500/20 text-xs text-sky-300 flex items-center justify-between">
           <span>
-            ¿Desea consultar el CUIT <code className="font-mono text-white">{searchTerm}</code> directamente en el endpoint <code className="font-mono">GET /arba/padron/{'{cuit}'}</code>?
+            No encontramos este CUIT en la lista. ¿Querés consultarlo?
           </span>
           <button
             type="button"
@@ -158,8 +158,7 @@ export function PadronTable({
               <tr className="border-b border-slate-800 bg-slate-950/40 text-slate-400 font-medium font-mono text-[11px] uppercase tracking-wider">
                 <th className="py-2.5 px-4">CUIT</th>
                 <th className="py-2.5 px-4">Actividad Económica</th>
-                <th className="py-2.5 px-4 text-right">Alícuota Decimal</th>
-                <th className="py-2.5 px-4 text-right">Porcentaje IIBB</th>
+                <th className="py-2.5 px-4 text-right">Alícuota</th>
                 <th className="py-2.5 px-4 text-center">Acciones</th>
               </tr>
             </thead>
@@ -174,9 +173,6 @@ export function PadronTable({
                     {row.razon_social && (
                       <div className="text-[11px] text-slate-500 font-normal">{row.razon_social}</div>
                     )}
-                  </td>
-                  <td className="py-2.5 px-4 text-right text-emerald-400 font-semibold tabular-nums">
-                    {row.alicuota}
                   </td>
                   <td className="py-2.5 px-4 text-right text-white font-bold tabular-nums">
                     {formatPercent(row.alicuota)}
@@ -223,7 +219,7 @@ export function PadronTable({
             <option value={20}>20</option>
           </select>
           <span className="text-[11px] text-slate-500 hidden sm:inline">
-            (Padrón {mode === 'demo' ? 'demo en memoria' : 'SQLite'})
+            ({total ?? items.length} sujetos)
           </span>
         </div>
 

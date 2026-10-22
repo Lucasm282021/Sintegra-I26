@@ -1,18 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
-import { SummaryCards } from './components/SummaryCards';
-import { FlowDiagram } from './components/FlowDiagram';
 import { PadronTable } from './components/PadronTable';
 import { PadronDetailModal } from './components/PadronDetailModal';
 import { PercepcionForm } from './components/PercepcionForm';
 import { PercepcionResult } from './components/PercepcionResult';
 import { AuditHistory } from './components/AuditHistory';
-import { ApiContract } from './components/ApiContract';
-import { ComerciosPanel } from './components/ComerciosPanel';
 import { arbaApi } from './services/arbaApi';
 import { demoEngine } from './services/demoEngine';
 import { AccessPanel, LoginPanel } from './components/AccessPanel';
-import { AlertCircle, RefreshCw, ServerOff } from 'lucide-react';
 
 export function App() {
   const [activeView, setActiveView] = useState('login');
@@ -123,7 +118,7 @@ export function App() {
       } else {
         setPadronError(
           res.isNetworkError
-            ? `API desconectada: No se pudo conectar con ${apiBaseUrl}. Asegúrese de que el backend ARBA esté corriendo en el puerto 3003 o cambie a Modo Demo.`
+            ? 'No se pudo cargar el padrón. Intentá actualizar la información.'
             : (res.data?.error || 'Error al obtener contribuyentes del padrón.')
         );
         setPadronItems([]);
@@ -217,7 +212,7 @@ export function App() {
         if (res.status === 201) {
           const itemConOrigen = {
             ...res.data,
-            origen: res.origin || (mode === 'demo' ? 'Demo' : 'API'),
+            origen: res.origin || (mode === 'demo' ? 'Demo' : 'Sistema'),
           };
           setPercepcionesHistory((prev) => {
             const exists = prev.some((p) => p.id_venta === itemConOrigen.id_venta);
@@ -247,7 +242,7 @@ export function App() {
       if (res.ok && res.data && Array.isArray(res.data.percepciones)) {
         const nuevos = res.data.percepciones.map((p) => ({
           ...p,
-          origen: res.origin || (mode === 'demo' ? 'Demo' : 'API'),
+          origen: res.origin || (mode === 'demo' ? 'Demo' : 'Sistema'),
         }));
 
         setPercepcionesHistory((prev) => {
@@ -277,143 +272,20 @@ export function App() {
     }, 0);
   }, [percepcionesHistory]);
 
+  const viewNames = { panel: 'Inicio', altas: 'Mis altas', sujetos: 'Gestión de sujetos', usuarios: 'Usuarios', auditoria: 'Auditoría', percepciones: 'Percepciones', padron: 'Consulta de padrón' };
+  const contentView = user?.rol === 'convencional' ? 'altas' : activeView;
+
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans selection:bg-emerald-500/20 selection:text-emerald-400">
-      {/* Encabezado */}
-      <Header
-        mode={mode}
-        onModeChange={handleModeChange}
-        healthStatus={healthStatus}
-        apiBaseUrl={apiBaseUrl}
-        onApiBaseUrlChange={handleApiBaseUrlChange}
-        onCheckHealth={checkHealth}
-        isCheckingHealth={isCheckingHealth}
-        activeView={activeView}
-        onViewChange={setActiveView}
-        user={user}
-        onLogout={handleLogout}
-      />
-
-      {/* Alerta de API Desconectada cuando el usuario está en Modo API y no hay respuesta */}
-      {user && mode === 'api' && healthStatus.checked && !healthStatus.connected && (
-        <div className="bg-rose-500/10 border-b border-rose-500/20 py-2.5 px-4 text-xs text-rose-300">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <ServerOff className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>
-                <strong>API desconectada:</strong> El backend ARBA en <code className="font-mono text-white">{apiBaseUrl}</code> no responde al endpoint <code className="font-mono text-white">/health</code>. Las operaciones en Modo API fallarán hasta que se inicie el backend.
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={checkHealth}
-                className="px-2.5 py-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/30 rounded text-[11px] font-mono transition-colors flex items-center gap-1"
-              >
-                <RefreshCw className={`w-3 h-3 ${isCheckingHealth ? 'animate-spin' : ''}`} />
-                Reintentar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange('demo')}
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-[11px] font-mono transition-colors"
-              >
-                Cambiar a Modo Demo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Contenido Principal */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {!user ? <LoginPanel onLogin={handleLogin} error={authError} /> : user.rol === 'convencional' ? <AccessPanel user={user} api={arbaApi} onDataChanged={loadPadron} /> : activeView === 'sujetos' ? <AccessPanel user={user} api={arbaApi} onDataChanged={refreshComercios} /> : <>
-        {/* Resumen Principal de Métricas */}
-        <SummaryCards
-          mode={mode}
-          healthStatus={healthStatus}
-          padronCount={padronTotal !== null ? padronTotal : padronItems.length}
-          loadedPerceptionsCount={percepcionesHistory.length}
-          loadedTotalPerceptionsAmount={loadedTotalPerceptionsAmount}
-        />
-
-        {/* Flujo de una Percepción (TPV → ARBA → ARCA) */}
-        <FlowDiagram />
-
-        {/* Grid: Simulador (Izquierda) + Resultado (Derecha) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PercepcionForm
-            padronItems={comercioItems.length ? comercioItems.filter((item) => item.estado !== 'inactivo' && item.aplicaciones?.arba_iibb !== false) : padronItems}
-            selectedCuit={selectedCuitForSimulator}
-            onCalculate={handleCalculatePercepcion}
-            isSubmitting={isSubmitting}
-            lastSuccessfulPayload={lastSuccessfulPayload}
-          />
-
-          <PercepcionResult result={simulationResult} />
-        </div>
-
-        {/* Consulta y Búsqueda del Padrón */}
-        <PadronTable
-          items={padronItems}
-          total={padronTotal}
-          page={padronPage}
-          limit={padronLimit}
-          onPageChange={(p) => {
-            setPadronPage(p);
-            loadPadron(p, padronLimit);
-          }}
-          onLimitChange={(l) => {
-            setPadronLimit(l);
-            setPadronPage(1);
-            loadPadron(1, l);
-          }}
-          isLoading={isPadronLoading}
-          error={padronError}
-          onRefresh={() => loadPadron(padronPage, padronLimit)}
-          onSelectDetail={(item) => setSelectedDetailItem(item)}
-          onSelectForSimulation={(cuit) => {
-            setSelectedCuitForSimulator(cuit);
-            window.scrollTo({ top: 380, behavior: 'smooth' });
-          }}
-          onLookupDirectCuit={handleLookupDirectCuit}
-          mode={mode}
-        />
-
-        {/* Historial de Auditoría */}
-        <AuditHistory
-          percepciones={percepcionesHistory}
-          onQueryAuditByCuit={handleQueryAuditByCuit}
-          isLoading={isAuditLoading}
-          error={auditError}
-          mode={mode}
-          padronList={padronItems}
-        />
-
-        {/* Panel Técnico: Contrato del Servicio */}
-        <ApiContract />
-        </>}
-      </main>
-
-      {/* Footer sobrio */}
-      <footer className="border-t border-slate-800/80 bg-slate-950/60 py-4 text-center text-xs text-slate-500 font-mono">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Ecosistema Fintech simulado · Módulo ARBA (Percepciones IIBB)</span>
-          <span>Valores ficticios y deterministas con fines didácticos</span>
-        </div>
-      </footer>
-
-      {/* Modal de Detalle de Contribuyente */}
-      {selectedDetailItem && (
-        <PadronDetailModal
-          item={selectedDetailItem}
-          onClose={() => setSelectedDetailItem(null)}
-          onSelectForSimulation={(cuit) => {
-            setSelectedCuitForSimulator(cuit);
-            window.scrollTo({ top: 380, behavior: 'smooth' });
-          }}
-        />
-      )}
+    <div className="app-shell">
+      <Header activeView={contentView} onViewChange={setActiveView} user={user} onLogout={handleLogout} />
+      <div className={`dashboard-main ${user ? '' : 'login-layout'}`}>
+        {user && <div className="dashboard-topbar"><div><p className="text-xs text-slate-500">Panel <span className="px-1">/</span> {viewNames[contentView] || 'Inicio'}</p><h2 className="mt-1 text-lg font-semibold text-white">{viewNames[contentView] || 'Inicio'}</h2></div><div className="academic-badge"><span/>Entorno académico</div></div>}
+        <main className={user ? 'dashboard-content' : 'login-content'}>
+          {!user ? <LoginPanel onLogin={handleLogin} error={authError} /> : contentView === 'percepciones' ? <div className="space-y-6"><div className="page-heading"><div><p className="page-eyebrow">Simulación</p><h1>Percepciones</h1><p className="page-description">Consultá una operación de ejemplo y revisá su resultado.</p></div></div><div className="grid grid-cols-1 gap-5 xl:grid-cols-2"><PercepcionForm padronItems={comercioItems.length ? comercioItems.filter((item) => item.estado !== 'inactivo' && item.aplicaciones?.arba_iibb !== false) : padronItems} selectedCuit={selectedCuitForSimulator} onCalculate={handleCalculatePercepcion} isSubmitting={isSubmitting} lastSuccessfulPayload={lastSuccessfulPayload}/><PercepcionResult result={simulationResult}/></div><AuditHistory percepciones={percepcionesHistory} onQueryAuditByCuit={handleQueryAuditByCuit} isLoading={isAuditLoading} error={auditError}/></div> : contentView === 'padron' ? <PadronTable items={padronItems} total={padronTotal} page={padronPage} limit={padronLimit} onPageChange={(page) => { setPadronPage(page); loadPadron(page, padronLimit); }} onLimitChange={(limit) => { setPadronLimit(limit); setPadronPage(1); loadPadron(1, limit); }} isLoading={isPadronLoading} error={padronError} onRefresh={() => loadPadron(padronPage, padronLimit)} onSelectDetail={setSelectedDetailItem} onSelectForSimulation={(cuit) => { setSelectedCuitForSimulator(cuit); setActiveView('percepciones'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} onLookupDirectCuit={handleLookupDirectCuit} mode={mode}/> : <AccessPanel user={user} api={arbaApi} view={contentView} onDataChanged={refreshComercios}/>}
+        </main>
+        {user && <footer className="dashboard-footer">Datos ficticios para uso académico. No constituye una inscripción fiscal oficial.</footer>}
+      </div>
+      {selectedDetailItem && <PadronDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} onSelectForSimulation={(cuit) => { setSelectedCuitForSimulator(cuit); setActiveView('percepciones'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}/>}
     </div>
   );
 }
