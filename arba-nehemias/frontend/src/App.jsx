@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { arbaApi } from './services/arbaApi';
 import { authApi } from './services/authApi';
 import AuthScreen from './AuthScreen';
+import IntroScreen from './IntroScreen';
 import UsersView from './UsersView';
 import { cleanCuit, isValidCuit, formatPercent, formatCurrency } from './utils/formatters';
 
@@ -13,6 +14,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [setupRequired, setSetupRequired] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -42,12 +44,14 @@ export default function App() {
     localStorage.setItem('arba_session_token', token);
     setUser(authenticatedUser);
     setSetupRequired(false);
+    setIntroComplete(true);
     setActiveTab('padron');
   };
 
   const logout = () => {
     localStorage.removeItem('arba_session_token');
     setUser(null);
+    setIntroComplete(false);
     setActiveTab('padron');
   };
 
@@ -69,6 +73,9 @@ export default function App() {
 
   if (!authReady) {
     return <div className="auth-screen"><div className="auth-card">Cargando el acceso…</div></div>;
+  }
+  if (!user && !introComplete) {
+    return <IntroScreen onComplete={() => setIntroComplete(true)} />;
   }
   if (!user) return <AuthScreen setupRequired={setupRequired} onAuthenticated={handleAuthenticated} />;
 

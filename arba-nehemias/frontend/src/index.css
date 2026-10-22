@@ -91,7 +91,45 @@ header {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: linear-gradient(145deg, #eef2ff, #f8fafc 55%, #fefce8);
+  background: #07122f;
+}
+
+.intro-screen {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 1.5rem;
+  background: #07122f;
+}
+
+.intro-video {
+  display: block;
+  width: min(100%, 1100px);
+  max-height: calc(100svh - 3rem);
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+.intro-skip {
+  position: absolute;
+  right: max(1.5rem, calc((100vw - 1100px) / 2));
+  bottom: max(1.5rem, calc((100svh - 3rem - 620px) / 2));
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  color: #fff;
+  background: rgba(7, 18, 47, 0.82);
+  font: inherit;
+  cursor: pointer;
+}
+
+.intro-skip:hover,
+.intro-skip:focus-visible {
+  background: var(--azul-oscuro);
 }
 
 .auth-card {
