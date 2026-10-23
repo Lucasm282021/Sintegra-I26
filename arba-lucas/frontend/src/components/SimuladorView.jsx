@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../apiUrl';
 import { formatCurrency, formatPercent, formatDecimal, formatCuit, generateSaleId } from '../utils/formatters';
 
 export default function SimuladorView({ padron, onExecutePercepcion }) {
@@ -28,7 +29,7 @@ export default function SimuladorView({ padron, onExecutePercepcion }) {
       return;
     }
     try {
-      const res = await fetch(`/arba/padron/${cuitToVerify}`);
+      const res = await fetch(apiUrl(`/arba/padron/${cuitToVerify}`));
       if (res.status === 200) {
         const data = await res.json();
         setVerifiedTaxpayer(data);
@@ -68,7 +69,7 @@ export default function SimuladorView({ padron, onExecutePercepcion }) {
   const runPercepcion = async (payload) => {
     setApiResponse({ status: 'Procesando...', body: 'Enviando petición POST /arba/percepciones...' });
     try {
-      const res = await fetch('/arba/percepciones', {
+      const res = await fetch(apiUrl('/arba/percepciones'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

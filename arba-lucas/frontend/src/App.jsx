@@ -12,6 +12,7 @@ import ModalCreatePadron from './components/ModalCreatePadron';
 import ModalEditPadron from './components/ModalEditPadron';
 import ModalDeletePadron from './components/ModalDeletePadron';
 import ModalViewPadron from './components/ModalViewPadron';
+import { apiUrl } from './apiUrl';
 
 export default function App() {
   const [activeSection, setActiveSection] = useState('inicio');
@@ -47,7 +48,7 @@ export default function App() {
   // Health check
   const checkHealth = useCallback(async () => {
     try {
-      const res = await fetch('/health');
+      const res = await fetch(apiUrl('/health'));
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'ok') {
@@ -64,7 +65,7 @@ export default function App() {
   // Carga de Estadísticas
   const loadStats = useCallback(async () => {
     try {
-      const res = await fetch('/arba/stats');
+      const res = await fetch(apiUrl('/arba/stats'));
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -77,7 +78,7 @@ export default function App() {
   // Carga de Padrón
   const loadPadron = useCallback(async () => {
     try {
-      const res = await fetch('/arba/padron?page=1&limit=100');
+      const res = await fetch(apiUrl('/arba/padron?page=1&limit=100'));
       if (res.ok) {
         const data = await res.json();
         setPadron(data.items || []);
@@ -91,7 +92,7 @@ export default function App() {
   // Carga de Percepciones
   const loadHistory = useCallback(async () => {
     try {
-      const res = await fetch('/arba/percepciones?page=1&limit=100');
+      const res = await fetch(apiUrl('/arba/percepciones?page=1&limit=100'));
       if (res.ok) {
         const data = await res.json();
         setPercepciones(data.items || []);
@@ -114,7 +115,7 @@ export default function App() {
   // Manejadores CRUD
   const handleCreateTaxpayer = async (newTaxpayer, callback) => {
     try {
-      const res = await fetch('/arba/padron', {
+      const res = await fetch(apiUrl('/arba/padron'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTaxpayer),
@@ -141,7 +142,7 @@ export default function App() {
 
   const handleUpdateTaxpayer = async (cuit, updates) => {
     try {
-      const res = await fetch(`/arba/padron/${cuit}`, {
+      const res = await fetch(apiUrl(`/arba/padron/${cuit}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -163,7 +164,7 @@ export default function App() {
 
   const handleDeleteTaxpayer = async (cuit) => {
     try {
-      const res = await fetch(`/arba/padron/${cuit}`, { method: 'DELETE' });
+      const res = await fetch(apiUrl(`/arba/padron/${cuit}`), { method: 'DELETE' });
       const data = await res.json();
 
       if (!res.ok) {
@@ -184,7 +185,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/arba/seed/reset', { method: 'POST' });
+      const res = await fetch(apiUrl('/arba/seed/reset'), { method: 'POST' });
       if (res.ok) {
         addToast('Padrón restablecido a la semilla inicial', 'success');
         loadPadron();

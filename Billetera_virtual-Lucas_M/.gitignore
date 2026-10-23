@@ -5,3 +5,5 @@ billetera.db-wal
 billetera.db-shm
 server.log
 server-error.log
+.vercel
+.env*.local

@@ -1,5 +1,8 @@
 node_modules/
+dist/
 arba.db
 arba.db-*
 /data/
 .env
+.vercel
+.env*.local
