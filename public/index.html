@@ -247,7 +247,7 @@
       }
       .intro-screen.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
       .intro-atmosphere { position: absolute; inset: -28px; width: calc(100% + 56px); height: calc(100% + 56px); object-fit: cover; filter: blur(32px) brightness(.48) saturate(.8); transform: scale(1.04); opacity: 0; transition: opacity .45s ease; }
-      .intro-video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; background: #050a12; }
+      .intro-video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; background: transparent; }
       .intro-controls { position: absolute; z-index: 2; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; opacity: .06; transition: opacity .2s; }
       .intro-screen:hover .intro-controls, .intro-controls:focus-within { opacity: 1; }
       .intro-control { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid rgb(218 233 248 / 25%); border-radius: 50%; color: #fff; background: rgb(5 13 23 / 65%); cursor: pointer; backdrop-filter: blur(10px); }
@@ -257,7 +257,7 @@
       .sound-prompt.is-visible { display: inline-flex; }
       .sound-prompt svg { width: 18px; height: 18px; color: #78e1ce; }
       @media (orientation: portrait) {
-        .intro-screen { background: radial-gradient(ellipse at center, #172c40 0, #050a12 78%); }
+        .intro-screen { background: radial-gradient(ellipse at center, #244662 0, #10263a 46%, #050a12 92%); }
         .intro-atmosphere.is-ready { opacity: .92; }
         .intro-video { object-fit: contain; }
       }
