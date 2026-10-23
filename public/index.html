@@ -246,7 +246,8 @@
         transition: opacity .7s ease, visibility .7s ease;
       }
       .intro-screen.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
-      .intro-video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; background: #050a12; }
+      .intro-atmosphere { position: absolute; inset: -28px; width: calc(100% + 56px); height: calc(100% + 56px); object-fit: cover; filter: blur(32px) brightness(.48) saturate(.8); transform: scale(1.04); opacity: 0; transition: opacity .45s ease; }
+      .intro-video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; background: #050a12; }
       .intro-controls { position: absolute; z-index: 2; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; opacity: .06; transition: opacity .2s; }
       .intro-screen:hover .intro-controls, .intro-controls:focus-within { opacity: 1; }
       .intro-control { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid rgb(218 233 248 / 25%); border-radius: 50%; color: #fff; background: rgb(5 13 23 / 65%); cursor: pointer; backdrop-filter: blur(10px); }
@@ -257,6 +258,7 @@
       .sound-prompt svg { width: 18px; height: 18px; color: #78e1ce; }
       @media (orientation: portrait) {
         .intro-screen { background: radial-gradient(ellipse at center, #172c40 0, #050a12 78%); }
+        .intro-atmosphere.is-ready { opacity: .92; }
         .intro-video { object-fit: contain; }
       }
       @media (max-width: 960px) {
@@ -300,6 +302,9 @@
 
     <section class="intro-screen" id="intro-screen" aria-label="Presentación de Sintegra I26">
       <video class="intro-video" id="intro-video" autoplay playsinline preload="auto" poster="./media/logo-sintegra.png" aria-label="Presentación audiovisual del ecosistema Sintegra I26">
+        <source src="./media/sintegra-intro.mp4" type="video/mp4" />
+      </video>
+      <video class="intro-atmosphere" id="intro-atmosphere" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1">
         <source src="./media/sintegra-intro.mp4" type="video/mp4" />
       </video>
       <div class="intro-controls" aria-label="Controles de la presentación">
@@ -394,6 +399,7 @@
       (() => {
         const screen = document.getElementById('intro-screen');
         const video = document.getElementById('intro-video');
+        const atmosphere = document.getElementById('intro-atmosphere');
         const toggle = document.getElementById('toggle-video');
         const toggleIcon = document.getElementById('toggle-icon');
         const audioButton = document.getElementById('toggle-audio');
@@ -422,6 +428,7 @@
           screen.inert = true;
           document.body.classList.remove('intro-active');
           video.pause();
+          atmosphere.pause();
         };
 
         document.getElementById('skip-intro').addEventListener('click', dismiss);
@@ -451,6 +458,11 @@
         });
         video.addEventListener('play', updatePlaybackControl);
         video.addEventListener('pause', updatePlaybackControl);
+        video.addEventListener('timeupdate', () => {
+          if (Math.abs(atmosphere.currentTime - video.currentTime) > .5) {
+            try { atmosphere.currentTime = video.currentTime; } catch {}
+          }
+        });
         document.addEventListener('keydown', event => {
           if (event.key === 'Escape' && !dismissed) dismiss();
           if (event.key === 'Tab' && !dismissed && !video.paused) {
@@ -464,6 +476,10 @@
         } else {
           video.muted = false;
           video.volume = 1;
+          if (window.matchMedia('(orientation: portrait)').matches) {
+            atmosphere.classList.add('is-ready');
+            atmosphere.play().catch(() => atmosphere.classList.remove('is-ready'));
+          }
           video.play().then(() => {
             updateAudioControl();
           }).catch(() => {
