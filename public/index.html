@@ -31,6 +31,7 @@
           radial-gradient(ellipse at 50% -28%, #173552 0, transparent 58%),
           linear-gradient(180deg, #091421 0%, #07111f 48%, #081320 100%);
       }
+      body.intro-active { overflow: hidden; }
       a { color: inherit; }
       button, a { -webkit-tap-highlight-color: transparent; }
       a:focus-visible, button:focus-visible {
@@ -92,8 +93,8 @@
         box-shadow: 0 0 13px rgb(84 216 181 / 65%);
         content: "";
       }
-      main { width: min(1180px, 100%); margin: 0 auto; padding: 70px 28px 76px; }
-      .hero { position: relative; max-width: 780px; }
+      main { width: min(1320px, 100%); margin: 0 auto; padding: 76px 34px 90px; }
+      .hero { position: relative; max-width: 900px; padding: 14px 0 0; }
       .eyebrow {
         display: flex;
         align-items: center;
@@ -107,7 +108,7 @@
       h1 {
         max-width: 760px;
         margin: 19px 0 17px;
-        font-size: clamp(40px, 6vw, 68px);
+        font-size: clamp(48px, 6.7vw, 82px);
         font-weight: 650;
         line-height: 1.02;
         letter-spacing: -.058em;
@@ -118,7 +119,7 @@
         background-clip: text;
         -webkit-background-clip: text;
       }
-      .hero-copy { max-width: 620px; margin: 0; color: #a7b6ca; font-size: 16px; line-height: 1.75; }
+      .hero-copy { max-width: 650px; margin: 0; color: #a7b6ca; font-size: 17px; line-height: 1.75; }
       .hero-action {
         display: inline-flex;
         min-height: 46px;
@@ -142,31 +143,34 @@
         align-items: end;
         justify-content: space-between;
         gap: 16px;
-        margin: 68px 0 19px;
+        margin: 84px 0 24px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid rgb(133 160 190 / 18%);
       }
       .section-kicker { margin: 0 0 7px; color: #84a1bf; font: 600 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .15em; text-transform: uppercase; }
-      h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.025em; }
-      .solution-count { color: #8295ad; font-size: 12px; white-space: nowrap; }
-      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+      h2 { margin: 0; font-size: clamp(25px, 3vw, 34px); font-weight: 600; letter-spacing: -.035em; }
+      .solution-count { border: 1px solid #2c4055; border-radius: 999px; padding: 8px 12px; color: #b5c5d9; background: rgb(15 29 45 / 82%); font-size: 12px; white-space: nowrap; }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
       .card {
         position: relative;
         display: flex;
-        min-height: 242px;
+        min-height: 290px;
         flex-direction: column;
         overflow: hidden;
-        border: 1px solid #27384c;
-        border-radius: 16px;
-        padding: 20px;
-        background: linear-gradient(145deg, rgb(21 36 55 / 92%), rgb(12 24 38 / 96%));
+        border: 1px solid rgb(112 145 180 / 25%);
+        border-radius: 20px;
+        padding: 19px;
+        background: linear-gradient(155deg, rgb(20 36 55 / 96%), rgb(10 21 34 / 98%));
         text-decoration: none;
+        box-shadow: 0 14px 38px rgb(0 0 0 / 13%);
         transition: border-color .22s ease, transform .22s ease, box-shadow .22s ease, background .22s ease;
       }
       .card::before {
         position: absolute;
-        top: -80px;
-        right: -60px;
-        width: 175px;
-        height: 150px;
+        top: -90px;
+        right: -55px;
+        width: 210px;
+        height: 175px;
         border-radius: 50%;
         background: var(--glow, rgb(100 157 218 / 13%));
         filter: blur(38px);
@@ -174,46 +178,46 @@
         content: "";
       }
       .card:hover {
-        transform: translateY(-4px);
-        border-color: #5b8294;
+        transform: translateY(-5px);
+        border-color: var(--card-accent, #70e4d0);
         background: linear-gradient(145deg, #192d43, #102033);
-        box-shadow: 0 18px 48px rgb(0 0 0 / 22%);
+        box-shadow: 0 22px 56px rgb(0 0 0 / 30%), 0 0 0 1px color-mix(in srgb, var(--card-accent, #70e4d0) 35%, transparent);
       }
       .card:focus-visible { outline-offset: 3px; }
       .card-head { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-      .card h3 { margin: 0; font-size: 15px; font-weight: 620; letter-spacing: -.015em; }
+      .card h3 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.02em; }
       .tag {
         border: 1px solid #34475e;
         border-radius: 999px;
-        padding: 5px 9px;
+        padding: 6px 10px;
         color: #c2d0e2;
-        background: #1a2b40;
+        background: rgb(26 43 64 / 88%);
         font-size: 10px;
         line-height: 1;
         white-space: nowrap;
       }
       .tag-ready { border-color: #285b54; color: #b5eee1; background: #12302f; }
-      .card p { position: relative; min-height: 45px; margin: 12px 0 18px; color: #aabbd0; font-size: 14px; line-height: 1.6; }
+      .card p { position: relative; min-height: 45px; margin: 12px 0 18px; color: #b5c4d6; font-size: 14px; line-height: 1.65; }
       .card-foot { position: relative; display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: auto; }
       .logo-panel {
         display: grid;
-        width: min(190px, 70%);
-        height: 55px;
+        width: min(100%, 245px);
+        height: 68px;
         place-items: center;
         overflow: hidden;
-        border: 1px solid rgb(255 255 255 / 20%);
-        border-radius: 8px;
+        border: 1px solid rgb(255 255 255 / 35%);
+        border-radius: 11px;
         background: #fff;
       }
       .logo-panel img { display: block; width: 100%; height: 100%; object-fit: contain; }
       .open-label { display: inline-flex; align-items: center; gap: 6px; color: #9abaff; font-size: 12px; font-weight: 650; white-space: nowrap; }
       .open-label svg { width: 14px; height: 14px; transition: transform .2s ease; }
       .card:hover .open-label svg { transform: translate(2px, -2px); }
-      .card-arba { --glow: rgb(156 103 255 / 17%); }
-      .card-muni { --glow: rgb(255 133 61 / 17%); }
-      .card-tpv { --glow: rgb(69 127 255 / 17%); }
-      .card-fintech { --glow: rgb(239 58 142 / 16%); }
-      .card-arca { --glow: rgb(38 155 235 / 17%); }
+      .card-arba { --glow: rgb(156 103 255 / 22%); --card-accent: #a476ff; }
+      .card-muni { --glow: rgb(255 133 61 / 22%); --card-accent: #ff985e; }
+      .card-tpv { --glow: rgb(69 127 255 / 22%); --card-accent: #76a2ff; }
+      .card-fintech { --glow: rgb(239 58 142 / 20%); --card-accent: #f36da7; }
+      .card-arca { --glow: rgb(38 155 235 / 22%); --card-accent: #4fb5f2; }
       .card-coming { cursor: default; background: linear-gradient(145deg, rgb(18 30 46 / 75%), rgb(11 21 34 / 88%)); }
       .card-coming:hover { transform: none; border-color: #34465c; box-shadow: none; }
       .card-coming .logo-panel { opacity: .88; }
@@ -237,63 +241,20 @@
         position: fixed;
         z-index: 10;
         inset: 0;
-        display: grid;
-        place-items: center;
         overflow: hidden;
-        padding: 28px;
-        background:
-          radial-gradient(ellipse at 50% 40%, #122e48 0, transparent 52%),
-          #050a12;
-        transition: opacity .65s ease, visibility .65s ease;
-      }
-      .intro-screen::before {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, rgb(4 9 17 / 20%), rgb(4 9 17 / 5%) 45%, rgb(4 9 17 / 76%));
-        content: "";
-        pointer-events: none;
+        background: #050a12;
+        transition: opacity .7s ease, visibility .7s ease;
       }
       .intro-screen.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
-      .intro-wrap { position: relative; z-index: 1; display: flex; width: min(1120px, 100%); flex-direction: column; align-items: center; gap: 25px; }
-      .intro-video-frame {
-        position: relative;
-        width: 100%;
-        overflow: hidden;
-        border: 1px solid rgb(151 184 218 / 24%);
-        border-radius: 18px;
-        background: #07111f;
-        box-shadow: 0 35px 110px rgb(0 0 0 / 52%), 0 0 85px rgb(74 139 176 / 12%);
-      }
-      .intro-video-frame video { display: block; width: 100%; max-height: min(69vh, 680px); aspect-ratio: 16 / 9; object-fit: contain; background: #07111f; }
-      .intro-bottom { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 20px; }
-      .intro-brand { display: flex; align-items: center; gap: 16px; }
-      .intro-brand img { display: block; width: clamp(145px, 18vw, 195px); height: auto; border-radius: 5px; }
-      .intro-copy { color: #98aac1; font-size: 12px; line-height: 1.55; }
-      .intro-copy strong { display: block; margin-bottom: 3px; color: #edf5ff; font-size: 14px; font-weight: 600; }
-      .intro-actions { display: flex; align-items: center; gap: 10px; }
-      .intro-button {
-        display: inline-flex;
-        min-height: 44px;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        border: 1px solid #506279;
-        border-radius: 9px;
-        padding: 0 14px;
-        color: #e8f0fb;
-        background: rgb(19 34 51 / 92%);
-        font: inherit;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: border-color .18s, background .18s;
-      }
-      .intro-button:hover { border-color: #84afc2; background: #1b3048; }
-      .intro-button-primary { border-color: #56a99b; color: #dffff8; background: #123d3c; }
-      .intro-button-primary:hover { border-color: #79e3d0; background: #18504b; }
-      .intro-button svg { width: 15px; height: 15px; }
-      .intro-progress { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; background: rgb(255 255 255 / 15%); }
-      .intro-progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #51d5bd, #8baeff); }
+      .intro-video { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; background: #050a12; }
+      .intro-controls { position: absolute; z-index: 2; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; opacity: .06; transition: opacity .2s; }
+      .intro-screen:hover .intro-controls, .intro-controls:focus-within { opacity: 1; }
+      .intro-control { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid rgb(218 233 248 / 25%); border-radius: 50%; color: #fff; background: rgb(5 13 23 / 65%); cursor: pointer; backdrop-filter: blur(10px); }
+      .intro-control:hover { background: rgb(17 39 55 / 90%); }
+      .intro-control svg { width: 19px; height: 19px; }
+      .sound-prompt { position: absolute; z-index: 3; right: 50%; bottom: max(24px, env(safe-area-inset-bottom)); display: none; min-height: 48px; align-items: center; gap: 10px; transform: translateX(50%); border: 1px solid rgb(191 221 239 / 30%); border-radius: 999px; padding: 0 18px; color: #f3fbff; background: rgb(7 18 30 / 82%); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; backdrop-filter: blur(14px); }
+      .sound-prompt.is-visible { display: inline-flex; }
+      .sound-prompt svg { width: 18px; height: 18px; color: #78e1ce; }
       @media (max-width: 960px) {
         main { padding-top: 58px; }
         .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -311,57 +272,47 @@
         .section-heading { align-items: flex-start; margin-top: 53px; }
         .grid { grid-template-columns: 1fr; gap: 12px; }
         .card { min-height: 220px; padding: 18px; }
-        .intro-screen { padding: 18px; }
-        .intro-wrap { gap: 19px; }
-        .intro-video-frame { border-radius: 12px; }
-        .intro-video-frame video { max-height: 56vh; }
-        .intro-bottom { align-items: flex-start; flex-direction: column; }
-        .intro-brand { gap: 12px; }
-        .intro-brand img { width: 140px; }
-        .intro-actions { width: 100%; }
-        .intro-button { flex: 1; }
+        .intro-control { width: 48px; height: 48px; }
+        .intro-controls { opacity: 1; }
+        .sound-prompt { width: max-content; max-width: calc(100% - 32px); font-size: 13px; }
       }
       @media (max-width: 380px) {
         .card-head { align-items: flex-start; flex-direction: column; }
         .card p { min-height: 0; }
         .logo-panel { width: 64%; }
-        .intro-copy { font-size: 11px; }
-        .intro-copy strong { font-size: 13px; }
+        .card-head { align-items: flex-start; flex-direction: column; }
+        .card-foot { align-items: center; }
+        .logo-panel { width: min(100%, 225px); }
       }
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
         .intro-screen { display: none; }
+        .card:hover { transform: none; }
       }
     </style>
   </head>
-  <body>
+  <body class="intro-active">
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
 
     <section class="intro-screen" id="intro-screen" aria-label="Presentación de Sintegra I26">
-      <div class="intro-wrap">
-        <div class="intro-video-frame">
-          <video id="intro-video" autoplay muted playsinline preload="auto" poster="./media/logo-sintegra.png" aria-label="Animación de presentación de Sintegra I26">
-            <source src="./media/sintegra-intro.mp4" type="video/mp4" />
-          </video>
-          <div class="intro-progress" aria-hidden="true"><span id="intro-progress"></span></div>
-        </div>
-        <div class="intro-bottom">
-          <div class="intro-brand">
-            <img src="./media/logo-sintegra.png" alt="Sintegra I26 · Sistema Integral Fiscal" />
-            <div class="intro-copy"><strong>Un ecosistema conectado</strong>Soluciones fiscales, comerciales y financieras</div>
-          </div>
-          <div class="intro-actions">
-            <button class="intro-button" id="toggle-video" type="button" aria-label="Pausar presentación">
-              <svg id="toggle-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5v10M13 5v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              <span id="toggle-label">Pausar</span>
-            </button>
-            <button class="intro-button intro-button-primary" id="skip-intro" type="button">
-              <span>Ingresar al portal</span>
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </div>
+      <video class="intro-video" id="intro-video" autoplay playsinline preload="auto" poster="./media/logo-sintegra.png" aria-label="Presentación audiovisual del ecosistema Sintegra I26">
+        <source src="./media/sintegra-intro.mp4" type="video/mp4" />
+      </video>
+      <div class="intro-controls" aria-label="Controles de la presentación">
+        <button class="intro-control" id="toggle-video" type="button" aria-label="Pausar presentación" title="Pausar o reanudar">
+          <svg id="toggle-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5v10M13 5v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="intro-control" id="toggle-audio" type="button" aria-label="Silenciar presentación" title="Activar o silenciar audio">
+          <svg id="audio-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 8v4h3l4 3V5L6 8H3Zm10-1a4 4 0 0 1 0 6m2-8a7 7 0 0 1 0 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="intro-control" id="skip-intro" type="button" aria-label="Ir al portal" title="Ir al portal">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5m2-10v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
+      <button class="sound-prompt" id="sound-prompt" type="button">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 8v4h3l4 3V5L6 8H3Zm10-1a4 4 0 0 1 0 6m2-8a7 7 0 0 1 0 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Activar sonido</span>
+      </button>
     </section>
 
     <header class="topbar">
@@ -440,17 +391,23 @@
         const screen = document.getElementById('intro-screen');
         const video = document.getElementById('intro-video');
         const toggle = document.getElementById('toggle-video');
-        const toggleLabel = document.getElementById('toggle-label');
         const toggleIcon = document.getElementById('toggle-icon');
-        const progress = document.getElementById('intro-progress');
+        const audioButton = document.getElementById('toggle-audio');
+        const audioIcon = document.getElementById('audio-icon');
+        const soundPrompt = document.getElementById('sound-prompt');
         const pauseIcon = '<path d="M7 5v10M13 5v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
         const playIcon = '<path d="m7 5 8 5-8 5V5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
+        const soundIcon = '<path d="M3 8v4h3l4 3V5L6 8H3Zm10-1a4 4 0 0 1 0 6m2-8a7 7 0 0 1 0 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+        const muteIcon = '<path d="M3 8v4h3l4 3V5L6 8H3Zm10-.5 4 5m0-5-4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
         let dismissed = false;
 
-        const showPausedState = () => {
-          toggle.setAttribute('aria-label', 'Reanudar presentación');
-          toggleLabel.textContent = 'Reanudar';
-          toggleIcon.innerHTML = playIcon;
+        const updatePlaybackControl = () => {
+          toggle.setAttribute('aria-label', video.paused ? 'Reanudar presentación' : 'Pausar presentación');
+          toggleIcon.innerHTML = video.paused ? playIcon : pauseIcon;
+        };
+        const updateAudioControl = () => {
+          audioButton.setAttribute('aria-label', video.muted ? 'Activar sonido' : 'Silenciar presentación');
+          audioIcon.innerHTML = video.muted ? muteIcon : soundIcon;
         };
 
         const dismiss = () => {
@@ -459,41 +416,59 @@
           screen.classList.add('is-hidden');
           screen.setAttribute('aria-hidden', 'true');
           screen.inert = true;
+          document.body.classList.remove('intro-active');
           video.pause();
         };
 
         document.getElementById('skip-intro').addEventListener('click', dismiss);
         video.addEventListener('ended', dismiss, { once: true });
         video.addEventListener('error', dismiss, { once: true });
-        video.addEventListener('timeupdate', () => {
-          if (Number.isFinite(video.duration) && video.duration > 0) {
-            progress.style.width = (video.currentTime / video.duration * 100) + '%';
-          }
-        });
         toggle.addEventListener('click', () => {
           if (video.paused) {
-            video.play().then(() => {
-              toggle.setAttribute('aria-label', 'Pausar presentación');
-              toggleLabel.textContent = 'Pausar';
-              toggleIcon.innerHTML = pauseIcon;
-            }).catch(dismiss);
+            video.play().then(updatePlaybackControl).catch(() => {});
           } else {
             video.pause();
-            showPausedState();
+            updatePlaybackControl();
           }
         });
+        audioButton.addEventListener('click', () => {
+          video.muted = !video.muted;
+          soundPrompt.classList.remove('is-visible');
+          if (video.paused) video.play().catch(() => soundPrompt.classList.add('is-visible'));
+          updateAudioControl();
+        });
+        soundPrompt.addEventListener('click', () => {
+          video.muted = false;
+          video.volume = 1;
+          video.play().then(() => {
+            soundPrompt.classList.remove('is-visible');
+            updateAudioControl();
+          }).catch(() => soundPrompt.classList.add('is-visible'));
+        });
+        video.addEventListener('play', updatePlaybackControl);
+        video.addEventListener('pause', updatePlaybackControl);
         document.addEventListener('keydown', event => {
-          if (event.key !== 'Tab') return;
-          if (!dismissed && !video.paused) {
+          if (event.key === 'Escape' && !dismissed) dismiss();
+          if (event.key === 'Tab' && !dismissed && !video.paused) {
             video.pause();
-            showPausedState();
+            updatePlaybackControl();
           }
         });
 
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
           dismiss();
         } else {
-          video.play().catch(dismiss);
+          video.muted = false;
+          video.volume = 1;
+          video.play().then(() => {
+            updateAudioControl();
+          }).catch(() => {
+            video.muted = true;
+            video.play().then(() => {
+              updateAudioControl();
+              soundPrompt.classList.add('is-visible');
+            }).catch(dismiss);
+          });
         }
       })();
     </script>
