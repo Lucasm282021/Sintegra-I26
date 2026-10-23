@@ -255,6 +255,10 @@
       .sound-prompt { position: absolute; z-index: 3; right: 50%; bottom: max(24px, env(safe-area-inset-bottom)); display: none; min-height: 48px; align-items: center; gap: 10px; transform: translateX(50%); border: 1px solid rgb(191 221 239 / 30%); border-radius: 999px; padding: 0 18px; color: #f3fbff; background: rgb(7 18 30 / 82%); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; backdrop-filter: blur(14px); }
       .sound-prompt.is-visible { display: inline-flex; }
       .sound-prompt svg { width: 18px; height: 18px; color: #78e1ce; }
+      @media (orientation: portrait) {
+        .intro-screen { background: radial-gradient(ellipse at center, #172c40 0, #050a12 78%); }
+        .intro-video { object-fit: contain; }
+      }
       @media (max-width: 960px) {
         main { padding-top: 58px; }
         .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
