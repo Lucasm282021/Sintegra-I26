@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="description" content="Sintegra I26: acceso a soluciones de gestión fiscal, comercio y finanzas." />
+    <link rel="icon" type="image/png" href="./media/logo-sintegra.png" />
+    <title>Sintegra I26 · Ecosistema de soluciones</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #eff5ff;
+        background: #07111f;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        --muted: #9aabc1;
+        --line: #24364a;
+        --accent: #50d5bd;
+        --blue: #84aaff;
+      }
+      * { box-sizing: border-box; }
+      html { min-width: 320px; scroll-behavior: smooth; }
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        background:
+          radial-gradient(ellipse at 50% -28%, #173552 0, transparent 58%),
+          linear-gradient(180deg, #091421 0%, #07111f 48%, #081320 100%);
+      }
+      a { color: inherit; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      a:focus-visible, button:focus-visible {
+        outline: 3px solid #70e4d0;
+        outline-offset: 4px;
+      }
+      .skip-link {
+        position: fixed;
+        z-index: 20;
+        top: 12px;
+        left: 12px;
+        transform: translateY(-160%);
+        border-radius: 8px;
+        padding: 11px 15px;
+        color: #06121d;
+        background: #70e4d0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .skip-link:focus { transform: translateY(0); }
+      .topbar {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        min-height: 82px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid #26374b;
+        padding: 12px clamp(20px, 5vw, 76px);
+        background: rgb(7 17 31 / 75%);
+        backdrop-filter: blur(18px);
+      }
+      .brand img {
+        display: block;
+        width: clamp(170px, 18vw, 220px);
+        height: auto;
+        border-radius: 5px;
+      }
+      .topbar-meta { display: flex; align-items: center; gap: 20px; color: #b7c6d9; font-size: 12px; }
+      .topbar-label { color: #94a7bd; letter-spacing: .11em; text-transform: uppercase; }
+      .live-status {
+        display: inline-flex;
+        min-height: 36px;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid #2d4c52;
+        border-radius: 999px;
+        padding: 0 13px;
+        color: #c6f7eb;
+        background: #10262b;
+        white-space: nowrap;
+      }
+      .live-status::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #54d8b5;
+        box-shadow: 0 0 13px rgb(84 216 181 / 65%);
+        content: "";
+      }
+      main { width: min(1180px, 100%); margin: 0 auto; padding: 70px 28px 76px; }
+      .hero { position: relative; max-width: 780px; }
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #74dfcb;
+        font: 650 11px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+      }
+      .eyebrow::before { width: 23px; height: 1px; background: #54d8b5; content: ""; }
+      h1 {
+        max-width: 760px;
+        margin: 19px 0 17px;
+        font-size: clamp(40px, 6vw, 68px);
+        font-weight: 650;
+        line-height: 1.02;
+        letter-spacing: -.058em;
+      }
+      h1 span {
+        color: transparent;
+        background: linear-gradient(100deg, #79ddce 5%, #91b6ff 95%);
+        background-clip: text;
+        -webkit-background-clip: text;
+      }
+      .hero-copy { max-width: 620px; margin: 0; color: #a7b6ca; font-size: 16px; line-height: 1.75; }
+      .hero-action {
+        display: inline-flex;
+        min-height: 46px;
+        align-items: center;
+        gap: 12px;
+        margin-top: 25px;
+        border: 1px solid #4b827d;
+        border-radius: 10px;
+        padding: 0 17px;
+        color: #dffff8;
+        background: linear-gradient(110deg, #123b3e, #142c42);
+        font-size: 14px;
+        font-weight: 650;
+        text-decoration: none;
+        transition: border-color .2s, background .2s, transform .2s;
+      }
+      .hero-action:hover { transform: translateY(-2px); border-color: #73dcca; background: #174045; }
+      .hero-action svg { width: 16px; height: 16px; }
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 68px 0 19px;
+      }
+      .section-kicker { margin: 0 0 7px; color: #84a1bf; font: 600 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .15em; text-transform: uppercase; }
+      h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.025em; }
+      .solution-count { color: #8295ad; font-size: 12px; white-space: nowrap; }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+      .card {
+        position: relative;
+        display: flex;
+        min-height: 242px;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #27384c;
+        border-radius: 16px;
+        padding: 20px;
+        background: linear-gradient(145deg, rgb(21 36 55 / 92%), rgb(12 24 38 / 96%));
+        text-decoration: none;
+        transition: border-color .22s ease, transform .22s ease, box-shadow .22s ease, background .22s ease;
+      }
+      .card::before {
+        position: absolute;
+        top: -80px;
+        right: -60px;
+        width: 175px;
+        height: 150px;
+        border-radius: 50%;
+        background: var(--glow, rgb(100 157 218 / 13%));
+        filter: blur(38px);
+        pointer-events: none;
+        content: "";
+      }
+      .card:hover {
+        transform: translateY(-4px);
+        border-color: #5b8294;
+        background: linear-gradient(145deg, #192d43, #102033);
+        box-shadow: 0 18px 48px rgb(0 0 0 / 22%);
+      }
+      .card:focus-visible { outline-offset: 3px; }
+      .card-head { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .card h3 { margin: 0; font-size: 15px; font-weight: 620; letter-spacing: -.015em; }
+      .tag {
+        border: 1px solid #34475e;
+        border-radius: 999px;
+        padding: 5px 9px;
+        color: #c2d0e2;
+        background: #1a2b40;
+        font-size: 10px;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .tag-ready { border-color: #285b54; color: #b5eee1; background: #12302f; }
+      .card p { position: relative; min-height: 45px; margin: 12px 0 18px; color: #aabbd0; font-size: 14px; line-height: 1.6; }
+      .card-foot { position: relative; display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: auto; }
+      .logo-panel {
+        display: grid;
+        width: min(190px, 70%);
+        height: 55px;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 20%);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .logo-panel img { display: block; width: 100%; height: 100%; object-fit: contain; }
+      .open-label { display: inline-flex; align-items: center; gap: 6px; color: #9abaff; font-size: 12px; font-weight: 650; white-space: nowrap; }
+      .open-label svg { width: 14px; height: 14px; transition: transform .2s ease; }
+      .card:hover .open-label svg { transform: translate(2px, -2px); }
+      .card-arba { --glow: rgb(156 103 255 / 17%); }
+      .card-muni { --glow: rgb(255 133 61 / 17%); }
+      .card-tpv { --glow: rgb(69 127 255 / 17%); }
+      .card-fintech { --glow: rgb(239 58 142 / 16%); }
+      .card-arca { --glow: rgb(38 155 235 / 17%); }
+      .card-coming { cursor: default; background: linear-gradient(145deg, rgb(18 30 46 / 75%), rgb(11 21 34 / 88%)); }
+      .card-coming:hover { transform: none; border-color: #34465c; box-shadow: none; }
+      .card-coming .logo-panel { opacity: .88; }
+      .note {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        margin-top: 20px;
+        border: 1px solid #27384a;
+        border-radius: 12px;
+        padding: 14px 16px;
+        color: #91a3b9;
+        background: rgb(12 24 38 / 78%);
+        font-size: 11px;
+        line-height: 1.6;
+      }
+      .note svg { width: 16px; height: 16px; flex: none; color: #86a5ca; }
+      footer { border-top: 1px solid #223347; padding: 20px 24px; color: #71839b; font-size: 11px; text-align: center; }
+
+      .intro-screen {
+        position: fixed;
+        z-index: 10;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        padding: 28px;
+        background:
+          radial-gradient(ellipse at 50% 40%, #122e48 0, transparent 52%),
+          #050a12;
+        transition: opacity .65s ease, visibility .65s ease;
+      }
+      .intro-screen::before {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgb(4 9 17 / 20%), rgb(4 9 17 / 5%) 45%, rgb(4 9 17 / 76%));
+        content: "";
+        pointer-events: none;
+      }
+      .intro-screen.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
+      .intro-wrap { position: relative; z-index: 1; display: flex; width: min(1120px, 100%); flex-direction: column; align-items: center; gap: 25px; }
+      .intro-video-frame {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid rgb(151 184 218 / 24%);
+        border-radius: 18px;
+        background: #07111f;
+        box-shadow: 0 35px 110px rgb(0 0 0 / 52%), 0 0 85px rgb(74 139 176 / 12%);
+      }
+      .intro-video-frame video { display: block; width: 100%; max-height: min(69vh, 680px); aspect-ratio: 16 / 9; object-fit: contain; background: #07111f; }
+      .intro-bottom { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 20px; }
+      .intro-brand { display: flex; align-items: center; gap: 16px; }
+      .intro-brand img { display: block; width: clamp(145px, 18vw, 195px); height: auto; border-radius: 5px; }
+      .intro-copy { color: #98aac1; font-size: 12px; line-height: 1.55; }
+      .intro-copy strong { display: block; margin-bottom: 3px; color: #edf5ff; font-size: 14px; font-weight: 600; }
+      .intro-actions { display: flex; align-items: center; gap: 10px; }
+      .intro-button {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #506279;
+        border-radius: 9px;
+        padding: 0 14px;
+        color: #e8f0fb;
+        background: rgb(19 34 51 / 92%);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color .18s, background .18s;
+      }
+      .intro-button:hover { border-color: #84afc2; background: #1b3048; }
+      .intro-button-primary { border-color: #56a99b; color: #dffff8; background: #123d3c; }
+      .intro-button-primary:hover { border-color: #79e3d0; background: #18504b; }
+      .intro-button svg { width: 15px; height: 15px; }
+      .intro-progress { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; background: rgb(255 255 255 / 15%); }
+      .intro-progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #51d5bd, #8baeff); }
+      @media (max-width: 960px) {
+        main { padding-top: 58px; }
+        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .card { min-height: 230px; }
+      }
+      @media (max-width: 620px) {
+        .topbar { min-height: 72px; padding-inline: 18px; }
+        .brand img { width: 155px; }
+        .topbar-meta { gap: 0; }
+        .topbar-label { display: none; }
+        .live-status { min-height: 34px; padding-inline: 10px; font-size: 11px; }
+        main { padding: 47px 18px 56px; }
+        h1 { font-size: clamp(39px, 11vw, 54px); }
+        .hero-copy { font-size: 15px; }
+        .section-heading { align-items: flex-start; margin-top: 53px; }
+        .grid { grid-template-columns: 1fr; gap: 12px; }
+        .card { min-height: 220px; padding: 18px; }
+        .intro-screen { padding: 18px; }
+        .intro-wrap { gap: 19px; }
+        .intro-video-frame { border-radius: 12px; }
+        .intro-video-frame video { max-height: 56vh; }
+        .intro-bottom { align-items: flex-start; flex-direction: column; }
+        .intro-brand { gap: 12px; }
+        .intro-brand img { width: 140px; }
+        .intro-actions { width: 100%; }
+        .intro-button { flex: 1; }
+      }
+      @media (max-width: 380px) {
+        .card-head { align-items: flex-start; flex-direction: column; }
+        .card p { min-height: 0; }
+        .logo-panel { width: 64%; }
+        .intro-copy { font-size: 11px; }
+        .intro-copy strong { font-size: 13px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+        .intro-screen { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+    <section class="intro-screen" id="intro-screen" aria-label="Presentación de Sintegra I26">
+      <div class="intro-wrap">
+        <div class="intro-video-frame">
+          <video id="intro-video" autoplay muted playsinline preload="auto" poster="./media/logo-sintegra.png" aria-label="Animación de presentación de Sintegra I26">
+            <source src="./media/sintegra-intro.mp4" type="video/mp4" />
+          </video>
+          <div class="intro-progress" aria-hidden="true"><span id="intro-progress"></span></div>
+        </div>
+        <div class="intro-bottom">
+          <div class="intro-brand">
+            <img src="./media/logo-sintegra.png" alt="Sintegra I26 · Sistema Integral Fiscal" />
+            <div class="intro-copy"><strong>Un ecosistema conectado</strong>Soluciones fiscales, comerciales y financieras</div>
+          </div>
+          <div class="intro-actions">
+            <button class="intro-button" id="toggle-video" type="button" aria-label="Pausar presentación">
+              <svg id="toggle-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5v10M13 5v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span id="toggle-label">Pausar</span>
+            </button>
+            <button class="intro-button intro-button-primary" id="skip-intro" type="button">
+              <span>Ingresar al portal</span>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Inicio de Sintegra I26">
+        <img src="./media/logo-sintegra.png" alt="Sintegra I26 · Sistema Integral Fiscal" />
+      </a>
+      <div class="topbar-meta">
+        <span class="topbar-label">Portal de soluciones</span>
+        <span class="live-status">Ecosistema activo</span>
+      </div>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="eyebrow">Ecosistema Sintegra I26</div>
+        <h1 id="hero-title">Una plataforma.<br /><span>Todas tus soluciones.</span></h1>
+        <p class="hero-copy">Accedé desde un solo lugar a las herramientas de gestión fiscal, comercial y financiera desarrolladas por los equipos del ecosistema.</p>
+        <a class="hero-action" href="#aplicaciones">
+          <span>Explorar aplicaciones</span>
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12m-5-5 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </section>
+
+      <section id="aplicaciones" aria-labelledby="apps-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Acceso directo</p>
+            <h2 id="apps-title">Seleccioná una solución</h2>
+          </div>
+          <span class="solution-count">05 disponibles · 01 en preparación</span>
+        </div>
+
+        <div class="grid">
+          <a class="card card-arba" href="https://arba-tomi.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir ARBA Tomi en una nueva pestaña">
+            <div class="card-head"><h3>ARBA · Tomi</h3><span class="tag tag-ready">Disponible</span></div>
+            <p>Padrón de sujetos, altas, gestión fiscal y simulación de percepciones.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-arba.png" alt="i26 ARBA · Impuestos Provinciales" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
+          <a class="card card-arba" href="https://arba-lucas.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir ARBA Lucas en una nueva pestaña">
+            <div class="card-head"><h3>ARBA · Lucas</h3><span class="tag">Integración en curso</span></div>
+            <p>Consola de padrón y percepciones. La API debe configurarse para el entorno publicado.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-arba.png" alt="i26 ARBA · Impuestos Provinciales" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
+          <a class="card card-muni" href="https://municipio-cristian.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir Municipio Cristian en una nueva pestaña">
+            <div class="card-head"><h3>Municipio · Cristian</h3><span class="tag tag-ready">Disponible</span></div>
+            <p>Gestión de tasas, habilitaciones, cuenta corriente y comprobantes municipales.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-muni.png" alt="i26 Muni · Tasas y Habilitaciones" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
+          <a class="card card-tpv" href="https://tpv-sebastian.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir TPV Sebastián en una nueva pestaña">
+            <div class="card-head"><h3>TPV · Sebastián</h3><span class="tag">Despliegue independiente</span></div>
+            <p>Punto de venta, operaciones comerciales e integración de cobros.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-tpv.png" alt="i26 TPV · Punto de Venta" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
+          <a class="card card-fintech" href="https://billetera-virtual-lucas-m.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir Fintech Billetera Virtual en una nueva pestaña">
+            <div class="card-head"><h3>Fintech · Billetera virtual</h3><span class="tag">Backend por adaptar</span></div>
+            <p>Servicios de pagos y finanzas del módulo de banca digital.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-fintech.png" alt="i26 Fintech · Pagos y Finanzas" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
+          <article class="card card-arca card-coming" aria-label="ARCA Facturación Electrónica, próximamente">
+            <div class="card-head"><h3>ARCA · Facturación</h3><span class="tag">Próximamente</span></div>
+            <p>Próxima incorporación al ecosistema de soluciones Sintegra.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-arca.png" alt="i26 ARCA · Facturación Electrónica" /></span><span class="open-label">En preparación</span></div>
+          </article>
+        </div>
+
+        <div class="note">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 3.5 5v4.4c0 4.1 2.8 6.9 6.5 8.1 3.7-1.2 6.5-4 6.5-8.1V5L10 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 6.2v4.2m0 2.8v.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Los módulos son proyectos independientes y algunos todavía están en etapa de integración. Este portal académico no almacena datos; no ingreses información fiscal o bancaria real.</span>
+        </div>
+      </section>
+    </main>
+    <footer>Sintegra I26 · Ecosistema de soluciones</footer>
+
+    <script>
+      (() => {
+        const screen = document.getElementById('intro-screen');
+        const video = document.getElementById('intro-video');
+        const toggle = document.getElementById('toggle-video');
+        const toggleLabel = document.getElementById('toggle-label');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const progress = document.getElementById('intro-progress');
+        const pauseIcon = '<path d="M7 5v10M13 5v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+        const playIcon = '<path d="m7 5 8 5-8 5V5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
+        let dismissed = false;
+
+        const showPausedState = () => {
+          toggle.setAttribute('aria-label', 'Reanudar presentación');
+          toggleLabel.textContent = 'Reanudar';
+          toggleIcon.innerHTML = playIcon;
+        };
+
+        const dismiss = () => {
+          if (dismissed) return;
+          dismissed = true;
+          screen.classList.add('is-hidden');
+          screen.setAttribute('aria-hidden', 'true');
+          screen.inert = true;
+          video.pause();
+        };
+
+        document.getElementById('skip-intro').addEventListener('click', dismiss);
+        video.addEventListener('ended', dismiss, { once: true });
+        video.addEventListener('error', dismiss, { once: true });
+        video.addEventListener('timeupdate', () => {
+          if (Number.isFinite(video.duration) && video.duration > 0) {
+            progress.style.width = (video.currentTime / video.duration * 100) + '%';
+          }
+        });
+        toggle.addEventListener('click', () => {
+          if (video.paused) {
+            video.play().then(() => {
+              toggle.setAttribute('aria-label', 'Pausar presentación');
+              toggleLabel.textContent = 'Pausar';
+              toggleIcon.innerHTML = pauseIcon;
+            }).catch(dismiss);
+          } else {
+            video.pause();
+            showPausedState();
+          }
+        });
+        document.addEventListener('keydown', event => {
+          if (event.key !== 'Tab') return;
+          if (!dismissed && !video.paused) {
+            video.pause();
+            showPausedState();
+          }
+        });
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          dismiss();
+        } else {
+          video.play().catch(dismiss);
+        }
+      })();
+    </script>
+  </body>
+</html>
