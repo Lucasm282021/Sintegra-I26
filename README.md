@@ -10,6 +10,8 @@ Consulta la [documentación del frontend ARBA Tomi](doc/FRONTEND-ARBA-TOMI.md) p
 
 ## Sumar una app al ecosistema
 
+Cada alumno sube acá el **frontend** de su módulo. El backend común lo construimos después desde la cátedra, siguiendo la [propuesta de unificación](doc/INFORME-UNIFICACION-APPS.md). Mientras tanto cada frontend puede funcionar en modo demo, pero debe leer la URL de su API desde una variable de entorno (por ejemplo `VITE_API_BASE_URL`) para conectarse al backend cuando exista.
+
 - Conservá cada app en una carpeta propia de primer nivel con su `package.json`, lockfile, `README.md` y `.env.example`.
 - No muevas una carpeta sin actualizar el **Root Directory** de su proyecto Vercel.
 - Publicá cada frontend como proyecto independiente y agregá su dominio y logo a `public/index.html`.
