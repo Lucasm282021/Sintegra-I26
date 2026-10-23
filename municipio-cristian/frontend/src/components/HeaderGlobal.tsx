@@ -21,48 +21,64 @@ export const HeaderGlobal: React.FC<HeaderGlobalProps> = ({
   onPingHealth,
 }) => {
   const navItems: { id: ActiveTabId; label: string; icon: React.ReactNode; count?: number }[] = [
-    {
-      id: 'padron',
-      label: 'Alta y Padrón de Comercios',
-      icon: <img src="/logo-muni-i26.png" alt="Logo Muni" className="h-10 w-auto" />
-    },
-    {
-      id: 'cuentas',
-      label: 'Cuentas Corrientes y Pago de Tasas',
-      icon: <ReceiptText className="w-3.5 h-3.5 shrink-0" />,
-    },
-    {
-      id: 'comprobantes',
-      label: 'Comprobantes y Certificados',
-      icon: <FileCheck2 className="w-3.5 h-3.5 shrink-0" />,
-    },
-    {
-      id: 'inspector',
-      label: 'Inspector de Tráfico API',
-      icon: <Terminal className="w-3.5 h-3.5 shrink-0" />,
-      count: trafficCount,
-    },
+    { id: 'padron', label: 'Altas y padrón', icon: <Building2 className="h-4 w-4 shrink-0" /> },
+    { id: 'cuentas', label: 'Cuentas y pagos', icon: <ReceiptText className="h-4 w-4 shrink-0" /> },
+    { id: 'comprobantes', label: 'Comprobantes', icon: <FileCheck2 className="h-4 w-4 shrink-0" /> },
+    { id: 'inspector', label: 'Inspector API', icon: <Terminal className="h-4 w-4 shrink-0" />, count: trafficCount },
   ];
+  const activeColors: Record<ActiveTabId, string> = {
+    padron: 'bg-blue-700',
+    cuentas: 'bg-emerald-700',
+    comprobantes: 'bg-violet-700',
+    inspector: 'bg-slate-800',
+  };
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between gap-3">
-        {/* Zone 1: Brand Title */}
-        <a
-          href="#top"
-          onClick={(e) => {
-            e.preventDefault();
-            onSelectTab('padron');
-          }}
-          className="text-sm sm:text-base font-bold tracking-tight text-slate-900 truncate max-w-[225px] sm:max-w-none whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-blue-600 rounded"
-        >
-          Municipio - Sistema de Gestión Tributaria
-        </a>
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-900/[0.03] backdrop-blur">
+      <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8">
+        <div className="flex min-h-[76px] items-center justify-between gap-4 py-3">
+          <a
+            href="#top"
+            onClick={(event) => {
+              event.preventDefault();
+              onSelectTab('padron');
+            }}
+            className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+          >
+            <img
+              src="/logo-muni-i26.png"
+              alt="i26 Muni"
+              className="h-11 w-auto max-w-[138px] rounded-md border border-slate-200 object-contain sm:h-12"
+            />
+            <span className="hidden min-w-0 flex-col sm:flex">
+              <span className="text-sm font-bold tracking-tight text-slate-900 sm:text-base">Municipio</span>
+              <span className="text-xs text-slate-500">Gestión tributaria local</span>
+            </span>
+          </a>
 
-        {/* Zone 2: Primary Navigation Tabs */}
+          <button
+            type="button"
+            onClick={onPingHealth}
+            title={`Consultar estado de la API${lastHealthLatency !== null ? ` (${lastHealthLatency} ms)` : ''}`}
+            className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 cursor-pointer ${
+              apiOnline
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
+                : 'border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100'
+            }`}
+          >
+            <Activity className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{apiOnline ? 'API demo activa' : 'API sin conexión'}</span>
+            {lastHealthLatency !== null && (
+              <span className="hidden font-mono text-[11px] tabular-nums sm:inline">
+                {lastHealthLatency} ms
+              </span>
+            )}
+          </button>
+        </div>
+
         <nav
           aria-label="Navegación principal del módulo Municipio"
-          className="hidden xl:flex items-center gap-1"
+          className="grid grid-cols-2 gap-2 border-t border-slate-100 py-3 sm:flex sm:flex-wrap"
         >
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
@@ -72,67 +88,18 @@ export const HeaderGlobal: React.FC<HeaderGlobalProps> = ({
                 type="button"
                 onClick={() => onSelectTab(item.id)}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? `${activeColors[item.id]} text-white shadow-sm`
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 {item.icon}
                 <span>{item.label}</span>
                 {typeof item.count === 'number' && (
-                  <span
-                    className={`font-mono text-[11px] tabular-nums ${
-                      isActive ? 'text-slate-300' : 'text-slate-500'
-                    }`}
-                  >
-                    ({item.count})
+                  <span className={`font-mono text-[11px] tabular-nums ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>
+                    {item.count}
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Zone 3: Primary Action / API Status Indicator */}
-        <div className="flex items-center shrink-0">
-          <button
-            type="button"
-            onClick={onPingHealth}
-            title={`Ejecutar GET /health en puerto 3005${lastHealthLatency ? ` (Latencia: ${lastHealthLatency}ms)` : ''}`}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono font-semibold text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <Activity className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-            <span>{apiOnline ? 'MOCK ONLINE' : 'MOCK OFFLINE'}</span>
-            <span aria-hidden="true" className="hidden sm:inline text-emerald-400">·</span>
-            <span className="hidden sm:inline text-emerald-800 tabular-nums">:3005</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Responsive Sub-bar for viewports smaller than XL */}
-      <div className="xl:hidden border-t border-slate-200 bg-slate-50 px-4 py-2 overflow-x-auto">
-        <nav
-          aria-label="Navegación móvil del módulo Municipio"
-          className="flex items-center gap-1.5 min-w-max"
-        >
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectTab(item.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  isActive
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
-                }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-                {typeof item.count === 'number' && (
-                  <span className="font-mono tabular-nums opacity-80">({item.count})</span>
                 )}
               </button>
             );

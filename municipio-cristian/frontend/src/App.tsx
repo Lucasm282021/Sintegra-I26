@@ -110,6 +110,13 @@ export default function App() {
     await cargarEstadoInicial();
   };
 
+  const moduleBackground: Record<ActiveTabId, string> = {
+    padron: 'bg-blue-50/70',
+    cuentas: 'bg-emerald-50/70',
+    comprobantes: 'bg-violet-50/70',
+    inspector: 'bg-slate-100',
+  };
+
     if (showIntro) {
   return (
     <div className="fixed inset-0 bg-[#070b14] flex flex-col items-center justify-center z-50">
@@ -144,41 +151,39 @@ export default function App() {
       />
 
       {/* Context Subheader */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-slate-900">
-              Módulo MUNICIPIO (Puerto Local 3005)
+      <div className="bg-slate-50 border-b border-slate-200">
+        <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 px-4 py-3 text-xs text-slate-600 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex min-h-8 items-center rounded-full border border-blue-200 bg-blue-50 px-3 font-semibold text-blue-900">
+              Entorno de demostración
             </span>
-            <span aria-hidden="true">·</span>
-            <span>Moneda: Pesos Argentinos (ARS)</span>
-            <span aria-hidden="true">·</span>
-            <span>Períodos Activos: 2026-07, 2026-08, 2026-09</span>
+            <span className="text-slate-500">Moneda <strong className="font-semibold text-slate-800">Pesos argentinos (ARS)</strong></span>
+            <span className="hidden text-slate-300 sm:inline" aria-hidden="true">/</span>
+            <span className="text-slate-500">Períodos <strong className="font-semibold text-slate-800">jul–sep 2026</strong></span>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-slate-500">
-            <span>Seed Data:</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-slate-500">Casos de ejemplo</span>
             <button
               type="button"
               onClick={() => handleIrACuentaCorriente('30712345678')}
-              className="text-emerald-700 hover:underline font-medium cursor-pointer"
+              className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 font-medium text-emerald-900 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 cursor-pointer"
             >
-              30712345678 (Sin Deuda)
+              <span className="font-mono tabular-nums">30712345678</span><span>Al día</span>
             </button>
-            <span aria-hidden="true">·</span>
             <button
               type="button"
               onClick={() => handleIrACuentaCorriente('30789012345')}
-              className="text-amber-700 hover:underline font-medium cursor-pointer"
+              className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 font-medium text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 cursor-pointer"
             >
-              30789012345 (Con Deuda)
+              <span className="font-mono tabular-nums">30789012345</span><span>Con deuda</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className={`mx-auto w-full max-w-[1680px] flex-1 px-4 pb-28 pt-6 sm:px-6 lg:px-8 ${moduleBackground[activeTab]}`}>
         {activeTab === 'padron' && (
           <TabPadronComercios
             comercios={comercios}

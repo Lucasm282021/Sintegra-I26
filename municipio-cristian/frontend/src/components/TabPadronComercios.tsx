@@ -182,14 +182,14 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
   const comerciosAlDia = comercios.filter((c) => c.deuda_total === 0).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6">
       {/* KPI Overview Strip */}
       <section
         aria-label="Resumen del Padrón Municipal"
-        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
       >
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <div className="text-xs font-medium text-slate-500">Comercios Empadronados</div>
+        <div className="rounded-2xl border border-blue-200 border-l-4 border-l-blue-600 bg-blue-50/90 p-5 shadow-sm shadow-slate-900/[0.03]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Comercios empadronados</div>
           <div className="mt-1.5 flex items-baseline justify-between">
             <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">
               {comercios.length}
@@ -200,8 +200,8 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <div className="text-xs font-medium text-slate-500">Comercios Sin Deuda ($0,00)</div>
+        <div className="rounded-2xl border border-emerald-200 border-l-4 border-l-emerald-600 bg-emerald-50/90 p-5 shadow-sm shadow-slate-900/[0.03]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Comercios sin deuda</div>
           <div className="mt-1.5 flex items-baseline justify-between">
             <span className="text-2xl font-bold text-emerald-700 font-mono tabular-nums">
               {comerciosAlDia} / {comercios.length}
@@ -212,8 +212,8 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <div className="text-xs font-medium text-slate-500">Deuda Tributaria Devengada (Padrón)</div>
+        <div className="rounded-2xl border border-amber-200 border-l-4 border-l-amber-500 bg-amber-50/90 p-5 shadow-sm shadow-slate-900/[0.03]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Deuda tributaria del padrón</div>
           <div className="mt-1.5 flex items-baseline justify-between">
             <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">
               {formatearArs(totalDeudaPadron)}
@@ -230,36 +230,43 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
         {/* Left Column: Formulario de Alta de Comercio (POST /municipio/comercios) */}
         <section
           aria-labelledby="heading-alta-comercio"
-          className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-5"
+          className="lg:col-span-4 rounded-2xl border border-blue-200 bg-blue-50/80 p-5 shadow-sm shadow-slate-900/[0.03]"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-200">
+          <div className="pb-4">
             <div>
               <h2 id="heading-alta-comercio" className="text-base font-bold text-slate-900">
-                Alta de Comercio en Padrón
+                Alta de comercio
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5 font-mono">
-                POST /municipio/comercios · Genera 3 períodos iniciales
+              <p className="mt-1 text-sm text-slate-500">
+                Incorporá un contribuyente al padrón y generá sus períodos iniciales.
               </p>
             </div>
-            <div className="flex items-center gap-1.5">
+          </div>
+
+          <details className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <summary className="min-h-8 cursor-pointer text-xs font-semibold text-slate-600 marker:text-slate-400">
+              Herramientas de demostración
+            </summary>
+            <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
               <button
                 type="button"
                 onClick={handleAutocompletarDemo}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-blue-50 px-3 text-xs font-semibold text-blue-800 transition-colors hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Autocompletar Datos</span>
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                <span>Completar datos de ejemplo</span>
               </button>
               <button
                 type="button"
                 onClick={handleCargarDuplicado409}
-                title="Carga un CUIT ya existente para verificar respuesta HTTP 409 Conflict"
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                title="Carga un CUIT ya existente para verificar la respuesta 409"
+                className="inline-flex min-h-10 items-center rounded-lg bg-white px-3 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 cursor-pointer"
               >
-                <span>Probar 409</span>
+                Probar CUIT duplicado
               </button>
             </div>
-          </div>
+          </details>
+          <div className="border-t border-slate-200" />
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
             {/* CUIT Field */}
@@ -459,15 +466,15 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
         {/* Right Column: Tabla de Comercios Registrados */}
         <section
           aria-labelledby="heading-padron-registrados"
-          className="lg:col-span-8 bg-white border border-slate-200 rounded-xl p-6"
+          className="lg:col-span-8 min-w-0 rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div>
               <h2 id="heading-padron-registrados" className="text-base font-bold text-slate-900">
-                Padrón de Comercios Registrados
+                Padrón de comercios
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Contribuyentes activos en el módulo Municipio · Datos semilla cargados
+                Contribuyentes activos y situación tributaria.
               </p>
             </div>
 
@@ -609,21 +616,21 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
                         </td>
 
                         <td className="py-3.5 pl-4 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center justify-end gap-2">
+                            <div className="inline-flex items-center justify-end gap-1.5">
                             <button
                               type="button"
                               onClick={() => onIrACuentaCorriente(comercio.cuit)}
                               aria-label={`Ver cuenta corriente de ${comercio.razon_social}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                              className="inline-flex min-h-10 items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                             >
-                              <span>Cuenta Corriente</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              <span>Cuenta</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => onIrACertificados(comercio.cuit)}
                               aria-label={`Gestionar certificado de ${comercio.razon_social}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                              className="inline-flex min-h-10 items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                             >
                               <FileCheck2 className="w-3.5 h-3.5" />
                               <span>Certificado</span>
