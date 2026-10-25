@@ -128,12 +128,6 @@ export default function App() {
         onEnded={() => setShowIntro(false)}
         className="w-full max-w-4xl shadow-[0_0_50px_rgba(255,100,0,0.2)]"
       />
-      <button 
-        onClick={() => setShowIntro(false)} 
-        className="mt-6 text-slate-500 hover:text-white text-sm underline cursor-pointer"
-      >
-        Omitir intro
-      </button>
     </div>
   );
 }
