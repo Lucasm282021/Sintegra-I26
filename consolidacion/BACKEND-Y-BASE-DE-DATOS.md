@@ -23,7 +23,7 @@ Cada sistema tiene su **esquema** de Postgres y solo escribe en el suyo. Lo comp
 | `arba` | ARBA | `inscripciones` (actividad y alícuota), `percepciones` por venta |
 | `arca` | ARCA | `puntos_venta` (numeración correlativa), `comprobantes` con CAE simulado |
 | `banco` | Banco | `cuentas`, `movimientos` (ventas, cargas de billetera y transferencias) |
-| `billetera` | Billetera | `cuentas` asociadas a una cuenta del banco, `movimientos` |
+| `billetera` | Billetera | `cuentas` asociadas a una cuenta del banco, `movimientos`, `usuarios` (ingreso con CUIT y contraseña) |
 | `tpv` | TPV | `terminales`, `productos`, `ventas`, `venta_items` |
 
 Reglas:
@@ -38,14 +38,36 @@ La base impide por sí misma: CUIT mal formados, saldos negativos, dos tasas del
 ## Archivos
 
 - `backend/supabase/migrations/20261026000001_esquema_inicial.sql` — esquemas, tablas, vista y seguridad.
-- `backend/supabase/seed.sql` — datos ficticios: 5 contribuyentes, habilitaciones, tasas, cuentas, billeteras y el catálogo de cada TPV.
+- `backend/supabase/migrations/20261026000002_usuarios_billetera.sql` — usuarios de la billetera, con la contraseña guardada como hash bcrypt (`pgcrypto`, esquema `extensions` de Supabase).
+- `backend/supabase/seed.sql` — datos ficticios: contribuyentes, habilitaciones, tasas, cuentas, billeteras, usuarios demo y el catálogo de cada TPV.
+
+## Usuarios demo de la billetera
+
+| CUIT | Contraseña | Billetera | Cuenta de banco asociada |
+|---|---|---|---|
+| `20268326074` | `1234` | $50.000 | `cuenta-demo` ($200.000) |
+| `30000000001` | `demo1234` | $45.000 | — |
+| `30000000002` | `demo1234` | $18.000 | — |
+| `30000000003` | `demo1234` | $7.500 | — |
+
+El backend valida el ingreso así:
+
+```sql
+select c.*
+from billetera.usuarios u
+join billetera.cuentas c on c.id = u.cuenta_id
+where c.cuit = $1
+  and u.password_hash = extensions.crypt($2, u.password_hash);
+```
+
+La app actual de Lucas-M exige contraseñas de 8 caracteres o más; el usuario `20268326074` / `1234` solo funciona contra el backend nuevo.
 
 Están en el formato de la CLI de Supabase, así que también se pueden aplicar con `supabase db push`.
 
 ## Aplicar en Supabase
 
 1. En el proyecto de Supabase, abrir **SQL Editor**.
-2. Pegar y ejecutar el contenido de la migración.
+2. Pegar y ejecutar las dos migraciones, en orden.
 3. Pegar y ejecutar `seed.sql`.
 4. Comprobar con `select * from padron.ficha_contribuyente;`.
 
