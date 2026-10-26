@@ -215,7 +215,7 @@ Lista basada en la lista de verificación de UI UX Pro Max (`references/pro-rule
 
 | App | Menú y panel común | Estado |
 |---|---|---|
-| TPV David | Sí | Prueba piloto |
+| TPV David | Sí | Piloto aplicado (menú, Caja y accesibilidad); falta revisión |
 | TPV Sebastián | Sí | Pendiente |
 | ARBA Tomi | Sí | Pendiente |
 | ARBA Lucas | Sí | Pendiente |

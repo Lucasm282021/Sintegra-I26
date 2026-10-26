@@ -56,7 +56,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok", modulo: "tpv" });
+  const simulados = [BANCO_MOCK && "banco", ARBA_MOCK && "arba", ARCA_MOCK && "arca"].filter(Boolean);
+  res.status(200).json({ status: "ok", servicio: "tpv", modulo: "tpv", simulados });
 });
 
 app.use("/tpv/ventas", buildVentasRouter(ventasService));
