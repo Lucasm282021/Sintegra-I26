@@ -1,3 +1,4 @@
+
 // Errores de dominio. Cada uno sabe con qué status HTTP debería traducirse,
 // pero no sabe nada de Express: eso lo resuelve la capa de interfaces/http.
 
@@ -41,5 +42,13 @@ export class UpstreamNotRegisteredError extends AppError {
 export class UpstreamUnavailableError extends AppError {
   constructor(message: string) {
     super(message, 503);
+  }
+}
+
+// La operación no se puede hacer en el estado actual del recurso
+// (ej. reintentar una venta que ya está completada).
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super(message, 409);
   }
 }
