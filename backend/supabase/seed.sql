@@ -50,3 +50,31 @@ insert into tpv.productos (terminal_id, comercio_cuit, codigo, nombre, precio, s
   ('sebastian', '30987654321', 'CAF05', 'Café molido 500 g',  4500.00, 50),
   ('sebastian', '30987654321', 'LEC1L', 'Leche entera 1 L',   1200.00, 100),
   ('sebastian', '30987654321', 'AGU15', 'Agua mineral 1,5 L',  950.00, 80);
+
+-- Usuarios demo de la billetera (contraseñas de prueba, guardadas como hash).
+-- 20268326074 / 1234 es el usuario demo de la cátedra; los otros tres son los
+-- clientes demo que ya usa la app de Lucas-M.
+insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_iva) values
+  ('20268326074', 'Usuario Demo Billetera', 'fisica', 'consumidor_final'),
+  ('30000000001', 'Ana Gómez (Demo)',       'fisica', 'consumidor_final'),
+  ('30000000002', 'Marcos Ríos (Demo)',     'fisica', 'consumidor_final'),
+  ('30000000003', 'Laura Fernández (Demo)', 'fisica', 'consumidor_final');
+
+insert into banco.cuentas (id, cuit, titular, cbu, alias, saldo) values
+  ('cuenta-demo', '20268326074', 'Usuario Demo Billetera', '0000003100020268326074', 'demo.banco', 200000.00);
+
+insert into billetera.cuentas (cuit, titular, alias, saldo, banco_cuenta_id) values
+  ('20268326074', 'Usuario Demo Billetera', 'demo.billetera', 50000.00, 'cuenta-demo'),
+  ('30000000001', 'Ana Gómez (Demo)',       'ana.prueba',     45000.00, null),
+  ('30000000002', 'Marcos Ríos (Demo)',     'marcos.prueba',  18000.00, null),
+  ('30000000003', 'Laura Fernández (Demo)', 'laura.prueba',    7500.00, null);
+
+insert into billetera.usuarios (cuenta_id, password_hash)
+select c.id, extensions.crypt(u.clave, extensions.gen_salt('bf'))
+from (values
+  ('20268326074', '1234'),
+  ('30000000001', 'demo1234'),
+  ('30000000002', 'demo1234'),
+  ('30000000003', 'demo1234')
+) as u (cuit, clave)
+join billetera.cuentas c on c.cuit = u.cuit;
