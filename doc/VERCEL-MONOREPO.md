@@ -32,6 +32,7 @@ Importá el mismo repo una vez por cada frontend que se quiera publicar. Elegí 
 | ARBA Lucas | `arba-lucas` | Other | `npm run build` | `dist` | [arba-lucas.vercel.app](https://arba-lucas.vercel.app) · interfaz publicada; API pendiente |
 | Municipio Cristian | `municipio-cristian/frontend` | Vite | `npm run build` | `dist` | [municipio-cristian.vercel.app](https://municipio-cristian.vercel.app) · demo local en navegador |
 | TPV Sebastián | `alumnos/sebastian/tpv-frontend` | Vite | `npm run build` | `dist` | [tpv-sebastian.vercel.app](https://tpv-sebastian.vercel.app) · interfaz publicada; API pendiente |
+| TPV David | `tpv-david` | Other | — | `public` | [tpv-david.vercel.app](https://tpv-david.vercel.app) · UI y API demo (Banco, ARBA y ARCA simulados) |
 | Billetera virtual | `Billetera_virtual-Lucas_M` | Other | — | `public` | [billetera-virtual-lucas-m.vercel.app](https://billetera-virtual-lucas-m.vercel.app) · interfaz publicada; backend pendiente |
 
 Los cinco dominios de aplicaciones devuelven la interfaz publicada. Esto no significa que sus APIs estén listas: el menú marca las interfaces que todavía no tienen backend. No habilites **Include source files outside of the Root Directory** salvo que una app lo necesite de verdad.
@@ -48,7 +49,8 @@ El backend TPV es NestJS + Prisma + SQLite. Desplegalo como contenedor en un hos
 - **ARBA Lucas:** Vercel sirve el frontend Vite. Su Dockerfile ahora compila el frontend y ejecuta la API Express. Desplegalo desde el root `arba-lucas` en un servicio Docker, agrega disco en `/data`, configura `DB_PATH=/data/db.json` y `FRONTEND_ORIGIN=https://arba-lucas.vercel.app`. Al proyecto Vercel del frontend agregá `VITE_API_BASE_URL=https://<dominio-api>` en Build & Development Settings y redeployá.
 - **Municipio Cristian:** la interfaz usa una implementación simulada dentro del frontend; crear/pagar cambia solo datos de demo en memoria. El backend SQLite actual es otro servicio, y todavía no implementa todos los endpoints que la demo simula. Para conservar altas y pagos, primero hay que integrar ambos contratos y alojar la API con disco persistente.
 - **Billetera:** el proyecto Vercel publica solo `public/`. El ingreso y las operaciones no funcionan todavía porque requieren el backend Express y una base persistente. No desplegar SQLite de archivo en Vercel; el Dockerfile usa `/data/billetera.db`, que requiere un servicio Docker con volumen en `/data`.
-- **TPV:** el frontend está publicado, pero requiere el backend NestJS y base persistente por separado. Configurar `VITE_TPV_API_BASE_URL` para que el usuario pueda cargar productos y ventas.
+- **TPV David:** `tpv-david/vercel.json` sirve `public/` como estático y manda `/health` y `/tpv/*` a una función Express (`api/index.ts`). Variables del proyecto: `DATA_DIR=/tmp/tpv-data`, `BANCO_MOCK=true`, `ARBA_MOCK=true`, `ARCA_MOCK=true`. Productos y ventas se guardan en `/tmp` y se pierden cuando la función se reinicia: es una demo, no un registro persistente.
+- **TPV Sebastián:** el frontend está publicado, pero requiere el backend NestJS y base persistente por separado. Configurar `VITE_TPV_API_BASE_URL` para que el usuario pueda cargar productos y ventas.
 - **ARCA:** el repo tiene la identidad visual, pero todavía no contiene una app desplegable.
 
 Todos los CUIT, movimientos, alícuotas y comprobantes actuales son de simulación. No cargar información fiscal real ni credenciales reales.

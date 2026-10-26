@@ -1,0 +1,10 @@
+{
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/health", "destination": "/api" },
+    { "source": "/tpv/:path*", "destination": "/api" }
+  ]
+}

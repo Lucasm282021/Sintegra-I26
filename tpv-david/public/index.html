@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TPV — Punto de venta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EDEFEC;
+    --panel: #FFFFFF;
+    --ink: #1B2321;
+    --ink-soft: #5A625E;
+    --line: #D7DAD4;
+    --accent: #1F6F54;
+    --accent-dark: #16523E;
+    --warn: #B5482A;
+    --warn-bg: #FBEAE4;
+    --ok-bg: #E8F3EE;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); line-height:1.45;
+  }
+  header{
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+    padding:18px 28px; background:var(--ink); color:var(--paper);
+  }
+  header .brand{
+    font-family:var(--mono); font-size:16px; font-weight:600;
+    letter-spacing:.02em; white-space:nowrap;
+  }
+  header .campo{display:flex; flex-direction:column; gap:3px;}
+  header .campo label{font-size:11px; color:#9BA79F;}
+  header .campo input, header .campo select{
+    background:#28312E; border:1px solid #3B443F; color:var(--paper);
+    padding:7px 10px; font-family:var(--sans); font-size:13.5px; border-radius:3px;
+    min-width:140px;
+  }
+  header .campo input::placeholder{color:#6E7873;}
+
+  main{
+    display:grid; grid-template-columns:1.6fr 1fr;
+    gap:1px; background:var(--line);
+    min-height:calc(100vh - 76px);
+  }
+  @media (max-width:820px){ main{grid-template-columns:1fr;} }
+
+  section{background:var(--paper); padding:24px 28px;}
+
+  h2{
+    font-size:14px; font-weight:600; margin:0 0 16px;
+    text-transform:none; color:var(--ink-soft);
+  }
+
+  .catalogo-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr));
+    gap:10px;
+  }
+  .producto-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:14px 12px; cursor:pointer; text-align:left;
+    font-family:var(--sans); transition:border-color .12s ease;
+  }
+  .producto-card:hover{border-color:var(--accent);}
+  .producto-card:active{transform:translateY(1px);}
+  .producto-card .nombre{font-size:13.5px; font-weight:500; margin-bottom:6px; display:block;}
+  .producto-card .precio{font-family:var(--mono); font-size:14px; color:var(--accent-dark);}
+
+  .alta-producto{
+    margin-top:18px; padding-top:18px; border-top:1px dashed var(--line);
+  }
+  .alta-producto form{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;}
+  .alta-producto .campo{display:flex; flex-direction:column; gap:4px;}
+  .alta-producto label{font-size:11.5px; color:var(--ink-soft);}
+  .alta-producto input{
+    padding:8px 10px; border:1px solid var(--line); border-radius:3px;
+    font-family:var(--sans); font-size:13.5px; width:150px;
+  }
+  .alta-producto button{
+    padding:8px 14px; border:1px solid var(--ink); background:var(--panel);
+    border-radius:3px; font-size:13px; cursor:pointer;
+  }
+  .alta-producto button:hover{background:var(--ink); color:var(--paper);}
+  .catalogo-vacio{color:var(--ink-soft); font-size:13.5px; padding:20px 0;}
+
+  .ticket{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    display:flex; flex-direction:column; min-height:320px;
+  }
+  .ticket-items{flex:1; padding:18px 18px 4px;}
+  .ticket-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+    gap:10px;
+  }
+  .ticket-item .nombre{flex:1;}
+  .ticket-item .cantidad-control{
+    display:flex; align-items:center; gap:6px; font-family:var(--mono);
+  }
+  .ticket-item .cantidad-control button{
+    width:22px; height:22px; border:1px solid var(--line); background:var(--paper);
+    border-radius:3px; cursor:pointer; font-size:13px; line-height:1;
+  }
+  .ticket-item .subtotal{font-family:var(--mono); width:70px; text-align:right;}
+  .ticket-vacio{color:var(--ink-soft); font-size:13.5px; padding:16px 0;}
+
+  .ticket-total{
+    padding:16px 18px; border-top:2px solid var(--ink);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .ticket-total .label{font-size:13px; color:var(--ink-soft);}
+  .ticket-total .monto{font-family:var(--mono); font-size:26px; font-weight:600;}
+
+  .cobrar-btn{
+    margin:0 18px 18px; padding:14px; border:none; border-radius:4px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600;
+    cursor:pointer; font-family:var(--sans);
+  }
+  .cobrar-btn:hover{background:var(--accent-dark);}
+  .cobrar-btn:disabled{background:#A7B0AB; cursor:not-allowed;}
+
+  .resultado{
+    margin:0 18px 18px; padding:16px; border-radius:4px; font-size:13.5px;
+  }
+  .resultado.ok{background:var(--ok-bg); border:1px solid #BEDBCC;}
+  .resultado.error{background:var(--warn-bg); border:1px solid #EBC3B4; color:var(--warn);}
+  .resultado dl{margin:8px 0 0; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:13px;}
+  .resultado dt{color:var(--ink-soft);}
+  .resultado dd{margin:0; font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">TPV</div>
+  <div class="campo">
+    <label for="cuit">CUIT del comercio</label>
+    <input id="cuit" placeholder="20345678901" maxlength="11" value="20345678901">
+  </div>
+  <div class="campo">
+    <label for="razonSocial">Razón social</label>
+    <input id="razonSocial" placeholder="Kiosco Don José" value="Kiosco Don José">
+  </div>
+  <div class="campo">
+    <label for="medioPago">Medio de pago</label>
+    <select id="medioPago">
+      <option value="efectivo">Efectivo</option>
+      <option value="tarjeta">Tarjeta</option>
+      <option value="transferencia">Transferencia</option>
+      <option value="billetera_virtual">Billetera virtual</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <section id="panel-catalogo">
+    <h2>Catálogo</h2>
+    <div id="catalogo-grid" class="catalogo-grid"></div>
+
+    <div class="alta-producto">
+      <h2>Cargar producto nuevo</h2>
+      <form id="form-producto">
+        <div class="campo">
+          <label for="p-nombre">Nombre</label>
+          <input id="p-nombre" required placeholder="Coca Cola 500ml">
+        </div>
+        <div class="campo">
+          <label for="p-precio">Precio</label>
+          <input id="p-precio" required type="number" min="0" step="0.01" placeholder="1500">
+        </div>
+        <div class="campo">
+          <label for="p-codigo">Código (opcional)</label>
+          <input id="p-codigo" placeholder="COC500">
+        </div>
+        <button type="submit">Agregar al catálogo</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="panel-ticket">
+    <h2>Venta actual</h2>
+    <div class="ticket">
+      <div id="ticket-items" class="ticket-items">
+        <p class="ticket-vacio">Elegí productos del catálogo para armar la venta.</p>
+      </div>
+      <div class="ticket-total">
+        <span class="label">Total</span>
+        <span id="ticket-total-monto" class="monto">$0</span>
+      </div>
+      <button id="cobrar-btn" class="cobrar-btn" disabled>Cobrar</button>
+      <div id="resultado"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const state = { catalogo: [], carrito: new Map() };
+
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => "$" + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+  async function cargarCatalogo() {
+    const res = await fetch("/tpv/productos?limit=100");
+    const data = await res.json();
+    state.catalogo = data.productos ?? [];
+    renderCatalogo();
+  }
+
+  function renderCatalogo() {
+    const grid = $("catalogo-grid");
+    if (state.catalogo.length === 0) {
+      grid.innerHTML = '<p class="catalogo-vacio">Todavía no hay productos cargados. Agregá el primero abajo.</p>';
+      return;
+    }
+    grid.innerHTML = state.catalogo.map((p) => `
+      <button class="producto-card" data-id="${p.id}">
+        <span class="nombre">${escapeHtml(p.nombre)}</span>
+        <span class="precio">${money(p.precio)}</span>
+      </button>
+    `).join("");
+    grid.querySelectorAll(".producto-card").forEach((btn) => {
+      btn.addEventListener("click", () => agregarAlCarrito(btn.dataset.id));
+    });
+  }
+
+  function agregarAlCarrito(productoId) {
+    state.carrito.set(productoId, (state.carrito.get(productoId) ?? 0) + 1);
+    renderTicket();
+  }
+
+  function cambiarCantidad(productoId, delta) {
+    const actual = state.carrito.get(productoId) ?? 0;
+    const nueva = actual + delta;
+    if (nueva <= 0) {
+      state.carrito.delete(productoId);
+    } else {
+      state.carrito.set(productoId, nueva);
+    }
+    renderTicket();
+  }
+
+  function renderTicket() {
+    const cont = $("ticket-items");
+    const items = Array.from(state.carrito.entries());
+    $("resultado").innerHTML = "";
+
+    if (items.length === 0) {
+      cont.innerHTML = '<p class="ticket-vacio">Elegí productos del catálogo para armar la venta.</p>';
+      $("ticket-total-monto").textContent = money(0);
+      $("cobrar-btn").disabled = true;
+      return;
+    }
+
+    let total = 0;
+    cont.innerHTML = items.map(([id, cantidad]) => {
+      const producto = state.catalogo.find((p) => p.id === id);
+      if (!producto) return "";
+      const subtotal = producto.precio * cantidad;
+      total += subtotal;
+      return `
+        <div class="ticket-item">
+          <span class="nombre">${escapeHtml(producto.nombre)}</span>
+          <span class="cantidad-control">
+            <button data-id="${id}" data-delta="-1" type="button">−</button>
+            ${cantidad}
+            <button data-id="${id}" data-delta="1" type="button">+</button>
+          </span>
+          <span class="subtotal">${money(subtotal)}</span>
+        </div>
+      `;
+    }).join("");
+
+    cont.querySelectorAll("button[data-delta]").forEach((btn) => {
+      btn.addEventListener("click", () => cambiarCantidad(btn.dataset.id, Number(btn.dataset.delta)));
+    });
+
+    $("ticket-total-monto").textContent = money(total);
+    $("cobrar-btn").disabled = false;
+  }
+
+  async function cobrar() {
+    const cuit = $("cuit").value.trim();
+    const razonSocial = $("razonSocial").value.trim();
+    const medioPago = $("medioPago").value;
+    const items = Array.from(state.carrito.entries()).map(([productoId, cantidad]) => ({ productoId, cantidad }));
+
+    const btn = $("cobrar-btn");
+    btn.disabled = true;
+    btn.textContent = "Procesando…";
+    $("resultado").innerHTML = "";
+
+    try {
+      const res = await fetch("/tpv/ventas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comercio: { cuit, razonSocial }, items, medioPago }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        mostrarError(data.error ?? "error desconocido");
+      } else {
+        mostrarExito(data);
+        state.carrito.clear();
+        renderTicket();
+      }
+    } catch (err) {
+      mostrarError("no se pudo conectar con el servidor");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Cobrar";
+    }
+  }
+
+  function mostrarExito(venta) {
+    $("resultado").innerHTML = `
+      <div class="resultado ok">
+        <strong>Venta ${venta.estado}</strong>
+        <dl>
+          ${venta.pago ? `<dt>Pago</dt><dd>confirmado (${venta.pago.movimientoId})</dd>` : ""}
+          ${venta.percepcion ? `<dt>Percepción IIBB</dt><dd>${money(venta.percepcion.montoPercepcion)}</dd>` : ""}
+          ${venta.factura ? `<dt>CAE</dt><dd>${venta.factura.cae} (vto. ${venta.factura.vencimientoCae})</dd>` : ""}
+        </dl>
+      </div>
+    `;
+  }
+
+  function mostrarError(mensaje) {
+    $("resultado").innerHTML = `<div class="resultado error"><strong>No se pudo cobrar:</strong> ${escapeHtml(mensaje)}</div>`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  $("form-producto").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nombre = $("p-nombre").value.trim();
+    const precio = Number($("p-precio").value);
+    const codigo = $("p-codigo").value.trim() || undefined;
+
+    const res = await fetch("/tpv/productos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, precio, codigo }),
+    });
+    if (res.ok) {
+      $("form-producto").reset();
+      cargarCatalogo();
+    } else {
+      const data = await res.json();
+      alert("No se pudo cargar el producto: " + (data.error ?? "error desconocido"));
+    }
+  });
+
+  $("cobrar-btn").addEventListener("click", cobrar);
+
+  cargarCatalogo();
+</script>
+</body>
+</html>
