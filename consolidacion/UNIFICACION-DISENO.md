@@ -215,12 +215,14 @@ Lista basada en la lista de verificación de UI UX Pro Max (`references/pro-rule
 
 | App | Menú y panel común | Estado |
 |---|---|---|
-| TPV David | Sí | Piloto aplicado (menú, Caja y accesibilidad); falta revisión |
-| TPV Sebastián | Sí | Pendiente |
-| ARBA Tomi | Sí | Pendiente |
-| ARBA Lucas | Sí | Pendiente |
-| Municipio Cristian | Sí | Pendiente |
-| ARCA | Sí, cuando exista la app | — |
+| TPV David | Sí | Aplicado y publicado (piloto aprobado) — [tpv-david.vercel.app](https://tpv-david.vercel.app) |
+| TPV Sebastián | Sí | Aplicado y publicado — [tpv-sebastian.vercel.app](https://tpv-sebastian.vercel.app). Código en la rama `diseno-unificado-tpv-sebastian` del repo Ecosistema-Fintech-simulado |
+| ARBA Tomi | Sí | Aplicado y publicado — [arba-tomi.vercel.app](https://arba-tomi.vercel.app) |
+| ARBA Lucas | Sí | Aplicado y publicado — [arba-lucas.vercel.app](https://arba-lucas.vercel.app) |
+| Municipio Cristian | Sí | Aplicado y publicado — [municipio-cristian.vercel.app](https://municipio-cristian.vercel.app) |
+| ARCA | Sí, cuando exista la app | Sin app todavía |
 | Billetera Lucas-M | **No** (interfaz propia; solo paleta, logos y accesibilidad) | Pendiente |
 
-El orden es aplicar el patrón primero en una app, revisarlo, y recién después replicarlo en las demás.
+El orden fue aplicar el patrón primero en una app (TPV David), revisarlo, y después replicarlo en las demás.
+
+Las apps que nacieron con tema oscuro (ARBA Tomi y TPV Sebastián) pasaron al tema claro sin reescribir cada componente: en ARBA Tomi se invirtió la escala de grises de Tailwind, y en TPV Sebastián se reemplazaron sus variables de color, que además eliminó el efecto vidrio (glassmorphism) que la guía prohíbe en paneles de trabajo. Los logos de cada módulo se usan como vienen, sin recolorear.
