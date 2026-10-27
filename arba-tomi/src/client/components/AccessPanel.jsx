@@ -23,6 +23,7 @@ export function LoginPanel({ onLogin, error }) {
     <label className="field-label" htmlFor="login-email">Correo electrónico</label><input id="login-email" name="email" type="email" autoComplete="username" required placeholder="nombre@correo.com" className={`${input} mb-4`} />
     <label className="field-label" htmlFor="login-password">Contraseña</label><input id="login-password" name="password" type="password" autoComplete="current-password" required placeholder="Ingresá tu contraseña" className={input} />
     {error && <p role="alert" className="form-error mt-4">{error}</p>}<button className={`${primary} mt-6 w-full`}>Iniciar sesión</button>
+    <div className="mt-5 grid gap-1 rounded-lg p-3 text-sm" style={{ border: '1px dashed #AF9B63', background: '#FBF8F0', color: '#14214F' }} aria-label="Datos de prueba"><strong>Usuario de prueba (ayuda memoria)</strong><span>Correo: <code className="font-bold">demo.arba.i26@gmail.com</code></span><span>Contraseña: <code className="font-bold">ArbaDemo2026</code></span></div>
     <p className="mt-6 text-center text-xs text-slate-500">Entorno académico · Información de ejemplo</p>
   </form></main>;
 }
