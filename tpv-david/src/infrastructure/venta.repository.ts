@@ -35,7 +35,7 @@ export class InMemoryVentaRepository implements VentaRepository {
 // (si el volumen de data/ está montado).
 export class FileVentaRepository implements VentaRepository {
   private readonly store = new JsonFileStore<Venta>(
-    path.join(process.cwd(), "data", "ventas.json")
+    path.join(process.env.DATA_DIR ?? path.join(process.cwd(), "data"), "ventas.json")
   );
 
   async save(venta: Venta): Promise<Venta> {
