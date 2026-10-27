@@ -1,15 +1,53 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-  }
+/* Tokens de consolidacion/UNIFICACION-DISENO.md (manual de marca ISFDyT N° 26). */
+@theme {
+  --color-brand-navy: #14214F;
+  --color-brand-gold: #89743A;
+  --color-brand-sand: #AF9B63;
+  --color-brand-blue: #3F78B6;
+  --color-brand-page: #F5F6FA;
+  --color-brand-muted: #F0F2F7;
+  --color-brand-border: #E3E6EF;
 
+  /* Los azules de las pantallas internas pasan a la escala institucional. */
+  --color-blue-50: #EEF3FA;
+  --color-blue-100: #DCE6F3;
+  --color-blue-200: #BACFE7;
+  --color-blue-300: #8FB0D7;
+  --color-blue-500: #3F78B6;
+  --color-blue-600: #3F78B6;
+  --color-blue-700: #14214F;
+  --color-blue-800: #14214F;
+  --color-blue-900: #0E1838;
+  --color-blue-950: #0A1128;
+
+  /* La guía prohíbe violeta en paneles de trabajo: se reemplaza por azul cielo. */
+  --color-violet-50: #EEF3FA;
+  --color-violet-100: #DCE6F3;
+  --color-violet-200: #BACFE7;
+  --color-violet-300: #8FB0D7;
+  --color-violet-500: #3F78B6;
+  --color-violet-600: #3F78B6;
+  --color-violet-700: #2F5F93;
+  --color-violet-800: #14214F;
+  --color-violet-900: #0E1838;
+
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-heading: "Cocomat Pro", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+@layer base {
   body {
     font-family: var(--font-sans);
-    color: #0f172a;
-    background-color: #f8fafc;
+    color: #14214F;
+    background-color: #F5F6FA;
+  }
+
+  :focus-visible {
+    outline: 3px solid #3F78B6;
+    outline-offset: 2px;
   }
 
   code, pre, .font-mono {
@@ -20,4 +58,11 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActiveTabId, HeaderGlobal } from './components/HeaderGlobal';
+import { ActiveTabId, NAV_ITEMS, SidebarNav, Topbar } from './components/HeaderGlobal';
 import { TabPadronComercios } from './components/TabPadronComercios';
 import { TabCuentasCorrientes } from './components/TabCuentasCorrientes';
 import { TabComprobantesCertificados } from './components/TabComprobantesCertificados';
@@ -30,6 +30,16 @@ export default function App() {
   const [trafficLogs, setTrafficLogs] = useState<ApiTrafficLog[]>([]);
   const [dockOpen, setDockOpen] = useState<boolean>(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
   
   useEffect(() => {
     const unsubscribe = subscribeTrafficLogs((logs) => {
@@ -110,12 +120,7 @@ export default function App() {
     await cargarEstadoInicial();
   };
 
-  const moduleBackground: Record<ActiveTabId, string> = {
-    padron: 'bg-blue-50/70',
-    cuentas: 'bg-emerald-50/70',
-    comprobantes: 'bg-violet-50/70',
-    inspector: 'bg-slate-100',
-  };
+  const activeTitle = NAV_ITEMS.find((item) => item.id === activeTab)?.label ?? 'Municipio';
 
     if (showIntro) {
   return (
@@ -133,20 +138,35 @@ export default function App() {
 }
 
   return (
-    <div id="top" className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Header Global */}
-      <HeaderGlobal
+    <div id="top" className="min-h-screen bg-brand-page text-brand-navy">
+      <a
+        href="#contenido"
+        className="absolute left-[-9999px] top-2 z-50 rounded-lg bg-white px-4 py-2.5 focus:left-2"
+      >
+        Saltar al contenido
+      </a>
+
+      <SidebarNav
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        trafficCount={trafficLogs.length}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
+
+      <div className="flex min-h-screen flex-col lg:ml-[248px]">
+      <Topbar
+        title={activeTitle}
         apiOnline={apiOnline}
         lastHealthLatency={lastHealthLatency}
-        trafficCount={trafficLogs.length}
         onPingHealth={handlePingHealth}
+        menuOpen={menuOpen}
+        onOpenMenu={() => setMenuOpen(true)}
       />
 
       {/* Context Subheader */}
-      <div className="bg-slate-50 border-b border-slate-200">
-        <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 px-4 py-3 text-xs text-slate-600 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+      <div className="border-b border-brand-border bg-white">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-4 py-3 text-xs text-slate-600 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="inline-flex min-h-8 items-center rounded-full border border-blue-200 bg-blue-50 px-3 font-semibold text-blue-900">
               Entorno de demostración
@@ -177,7 +197,7 @@ export default function App() {
       </div>
 
       {/* Main Content Viewport */}
-      <main className={`mx-auto w-full max-w-[1680px] flex-1 px-4 pb-28 pt-6 sm:px-6 lg:px-8 ${moduleBackground[activeTab]}`}>
+      <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-28 pt-6 sm:px-6">
         {activeTab === 'padron' && (
           <TabPadronComercios
             comercios={comercios}
@@ -227,6 +247,7 @@ export default function App() {
           onOpenFullTab={() => setActiveTab('inspector')}
         />
       )}
+      </div>
     </div>
   );
 }
