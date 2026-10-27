@@ -5,45 +5,46 @@
 
 :root {
   /* Paleta base neutra (Fondo claro de alto contraste) */
-  --bg-page: #f8fafc;
+  --bg-page: #F5F6FA;
   --bg-surface: #ffffff;
-  --bg-surface-subtle: #f1f5f9;
-  --bg-sidebar: #0f172a;
-  --bg-sidebar-hover: #1e293b;
-  --bg-sidebar-active: #2563eb;
+  --bg-surface-subtle: #F0F2F7;
+  --bg-sidebar: #14214F;
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --bg-sidebar-active: rgba(255, 255, 255, 0.10);
 
   /* Bordes y divisores discretos */
-  --border-light: #e2e8f0;
-  --border-subtle: #cbd5e1;
-  --border-focus: #0284c7;
+  --border-light: #E3E6EF;
+  --border-subtle: #C5CAD8;
+  --border-focus: #3F78B6;
 
   /* Textos y contraste */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #14214F;
+  --text-secondary: #4B5470;
+  --text-muted: #4B5470;
   --text-inverse: #f8fafc;
 
   /* Color de acento institucional moderado */
-  --color-accent: #0284c7;
-  --color-accent-hover: #0369a1;
-  --color-accent-subtle: #e0f2fe;
+  --color-accent: #14214F;
+  --color-accent-hover: #1E2F6B;
+  --color-accent-subtle: #EEF3FA;
 
   /* Colores semánticos */
-  --color-success: #15803d;
+  --color-success: #1E7B4F;
   --color-success-bg: #f0fdf4;
   --color-success-border: #bbf7d0;
 
-  --color-danger: #b91c1c;
-  --color-danger-hover: #991b1b;
+  --color-danger: #B42318;
+  --color-danger-hover: #932015;
   --color-danger-bg: #fef2f2;
   --color-danger-border: #fecaca;
 
-  --color-amber: #b45309;
+  --color-amber: #9A6700;
   --color-amber-bg: #fffbeb;
 
   /* Tipografías y espaciado */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-heading: "Cocomat Pro", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -54,8 +55,8 @@
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
   --shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
-  --sidebar-width: 256px;
-  --topbar-height: 56px;
+  --sidebar-width: 248px;
+  --topbar-height: 64px;
   --transition: all 0.15s ease-in-out;
 }
 
@@ -1200,3 +1201,43 @@ body {
     padding: 1rem;
   }
 }
+
+/* ==========================================================================
+   Diseño unificado de Sintegra (consolidacion/UNIFICACION-DISENO.md)
+   ========================================================================== */
+:focus-visible { outline: 3px solid #3F78B6; outline-offset: 2px; }
+
+.skip-link { position: absolute; left: -9999px; top: 8px; z-index: 100; border-radius: var(--radius-md); background: #fff; padding: 10px 14px; color: var(--text-primary); }
+.skip-link:focus { left: 8px; }
+
+.sidebar-brand { flex-direction: column; align-items: stretch; gap: 0.4rem; padding: 1.25rem 0.875rem 1rem; border-bottom: 0; }
+.brand-logo { border-radius: var(--radius-md); background: #fff; padding: 10px 12px; }
+.brand-logo img { display: block; width: 100%; height: auto; }
+.brand-caption { padding: 0 0.5rem; color: #C9CEDC; font-size: 0.8125rem; }
+.nav-group-title { color: #C9CEDC; font-size: 0.75rem; }
+.nav-item { min-height: 44px; color: #ffffff; font-size: 0.9375rem; font-weight: 400; border-left: 3px solid transparent; }
+.nav-item:hover { background-color: rgba(255, 255, 255, 0.08); }
+.nav-item.active { background-color: rgba(255, 255, 255, 0.10); border-left-color: #AF9B63; color: #ffffff; font-weight: 600; }
+.nav-icon { opacity: 1; }
+.status-text { color: #ffffff; }
+.status-sub { color: #C9CEDC; }
+.status-online { background-color: #3FB37F; box-shadow: none; }
+
+.app-topbar { padding: 0 1.5rem; }
+.breadcrumb-current { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; }
+.btn-toggle-sidebar { width: 44px; height: 44px; align-items: center; justify-content: center; border: 1px solid var(--border-light); border-radius: var(--radius-md); }
+
+@media (max-width: 1023px) {
+  .app-sidebar { position: fixed; transform: translateX(-100%); }
+  .app-sidebar.sidebar-open { transform: translateX(0); box-shadow: 0 0 0 100vmax rgba(20, 33, 79, 0.4); }
+  .btn-toggle-sidebar { display: inline-flex; }
+}
+@media (max-width: 640px) {
+  .app-sidebar { width: 100%; }
+  .app-topbar { padding: 0 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+.page-actions { flex-wrap: wrap; }

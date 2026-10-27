@@ -85,15 +85,10 @@ export default function Sidebar({ activeSection, onSelectSection, padronCount, h
     <aside className={`app-sidebar ${isOpen ? 'sidebar-open' : ''}`} id="app-sidebar">
       {/* Brand Header */}
       <div className="sidebar-brand">
-        <div className="brand-crest" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
+        <div className="brand-logo">
+          <img src="/logo-arba.png" alt="i26 ARBA · Impuestos Provinciales" />
         </div>
-        <div className="brand-text">
-          <span className="brand-title">ARBA</span>
-          <span className="brand-caption">Gestión Fiscal • IIBB</span>
-        </div>
+        <span className="brand-caption">Gestión fiscal · IIBB</span>
       </div>
 
       {/* Nav items */}

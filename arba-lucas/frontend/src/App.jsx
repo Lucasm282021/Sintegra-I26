@@ -215,6 +215,7 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      <a className="skip-link" href="#contenido">Saltar al contenido</a>
       {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}
@@ -236,7 +237,7 @@ export default function App() {
         />
 
         {/* Contenedor de Vistas */}
-        <main className="page-container">
+        <main id="contenido" tabIndex={-1} className="page-container">
           {activeSection === 'inicio' && (
             <InicioView
               stats={stats}
