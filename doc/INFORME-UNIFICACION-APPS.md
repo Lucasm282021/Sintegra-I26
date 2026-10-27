@@ -83,6 +83,7 @@ La venta y los módulos de pago externos no pueden tratarse como una transacció
 - [Municipio](AJUSTE-MUNICIPIO.md)
 - [Billetera](AJUSTE-BILLETERA.md)
 - [TPV](AJUSTE-TPV.md)
+- [Panel de control TPV para Sebastián](TPV-PANEL-CONTROL-SEBASTIAN.md)
 - [Banco](AJUSTE-BANCO.md)
 - [ARCA](AJUSTE-ARCA.md)
 

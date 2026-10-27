@@ -1,5 +1,7 @@
 # Ajuste de contrato — TPV
 
+Para requerimientos de interfaz del panel de operación, consultar [TPV-PANEL-CONTROL-SEBASTIAN.md](TPV-PANEL-CONTROL-SEBASTIAN.md).
+
 ## Estado actual
 
 `doc/sistema.md` especifica la intención: `GET /health`, `POST /tpv/ventas` con `id_venta`, `comercio_cuit`, productos `{ producto_id, cantidad }` y `medio_pago`; `GET /tpv/ventas/{id}` entrega desglose y estados. Esa documentación aclara que los precios se resuelven en servidor y que `id_venta` permite reintentar.
