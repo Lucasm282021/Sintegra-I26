@@ -60,6 +60,13 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", servicio: "tpv", modulo: "tpv", simulados });
 });
 
+app.get("/tpv/resumen", async (_req, res, next) => {
+  try {
+    res.status(200).json(await ventasService.resumen());
+  } catch (err) {
+    next(err);
+  }
+});
 app.use("/tpv/ventas", buildVentasRouter(ventasService));
 app.use("/tpv/productos", buildProductosRouter(productosService));
 
