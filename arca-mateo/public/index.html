@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Módulo Académico ARCA — Facturación Electrónica Simulada</title>
+  <link rel="icon" href="assets/logo-arca.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <section id="introScreen" class="intro-screen" aria-label="Presentación de ARCA">
+    <video id="introVideo" class="intro-video" autoplay muted playsinline preload="auto" aria-label="Animación de presentación de ARCA">
+      <source src="assets/arca-intro.mp4" type="video/mp4">
+    </video>
+    <button id="skipIntroButton" class="intro-skip" type="button">Saltar intro <span aria-hidden="true">→</span></button>
+  </section>
+
+  <!-- Banner Académico Obligatorio -->
+  <aside class="academic-banner" role="alert">
+    <strong>Simulación académica:</strong> El CAE generado es ficticio y no tiene validez fiscal ni impositiva ante organismos oficiales.
+  </aside>
+
+  <section id="authGate" class="auth-screen" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <img class="auth-logo" src="assets/logo-arca.png" alt="ARCA" width="56" height="56">
+      <p class="auth-kicker">ACCESO SEGURO · MÓDULO ACADÉMICO</p>
+      <h1 id="authTitle">ARCA <span>Control</span></h1>
+      <p class="auth-copy">Ingresá con tu cuenta del sistema para continuar.</p>
+      <div id="setupPanel" hidden>
+        <div class="setup-note"><strong>Primer acceso</strong><br>Creá la cuenta superadmin. Esta configuración solo aparece una vez.</div>
+        <form id="setupForm" class="auth-form">
+          <label for="setupEmail">Correo Gmail</label>
+          <input id="setupEmail" type="email" autocomplete="username" placeholder="nombre@gmail.com" required>
+          <label for="setupPassword">Contraseña propia de ARCA</label>
+          <input id="setupPassword" type="password" autocomplete="new-password" minlength="10" placeholder="Mínimo 10 caracteres" required>
+          <label for="setupToken">Token inicial (solo si fue configurado por el equipo)</label>
+          <input id="setupToken" type="password" autocomplete="off" placeholder="Opcional en ejecución local">
+          <button class="btn btn-primary auth-submit" type="submit">Crear superadmin y entrar</button>
+        </form>
+      </div>
+      <div id="loginPanel" hidden>
+        <form id="loginForm" class="auth-form">
+          <label for="loginEmail">Correo Gmail</label>
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="nombre@gmail.com" required>
+          <label for="loginPassword">Contraseña de ARCA</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña de ARCA" required>
+          <button class="btn btn-primary auth-submit" type="submit">Ingresar al sistema</button>
+        </form>
+      </div>
+      <div id="authMessage" class="result-area" role="status" aria-live="polite"></div>
+      <p class="auth-footnote">Usá una contraseña propia de ARCA, distinta de la contraseña de Gmail.</p>
+    </div>
+  </section>
+
+  <div id="appShell" hidden>
+
+  <header class="app-header">
+    <div class="header-container">
+      <div class="header-title">
+        <img class="header-logo" src="assets/logo-arca.png" alt="" width="40" height="40">
+        <div>
+        <h1>ARCA — Facturación Simulada</h1>
+        <p class="subtitle">Entorno de prueba académica para comprobantes electrónicos e idempotencia</p>
+        </div>
+      </div>
+      <div class="backend-status-card" id="backendStatusCard">
+        <span class="status-indicator" id="statusDot"></span>
+        <span class="status-text" id="statusText">Verificando conexión con el backend...</span>
+        <button type="button" id="btnCheckHealth" class="btn-sm" title="Reverificar estado">Reintentar</button>
+      </div>
+      <div class="account-card"><span id="accountName"></span><span id="accountRole" class="role-badge"></span><button type="button" id="changePasswordButton" class="btn-sm">Cambiar clave</button><button type="button" id="logoutButton" class="btn-sm">Cerrar sesión</button></div>
+    </div>
+  </header>
+  <div id="globalNotice" class="global-notice" role="status" aria-live="polite" hidden></div>
+
+  <main class="main-container" id="contenido">
+    <!-- Panel de Navegación / Secciones -->
+    <nav class="nav-tabs" aria-label="Navegación de módulos">
+      <button class="tab-btn active" data-tab="tab-contribuyente">1. Consultar Contribuyente</button>
+      <button class="tab-btn" data-tab="tab-emision">2. Emitir Comprobante</button>
+      <button class="tab-btn" data-tab="tab-consulta">3. Consultar Comprobante</button>
+      <button class="tab-btn admin-only" data-tab="tab-usuarios" hidden>4. Usuarios y roles</button>
+    </nav>
+
+    <!-- 1. CONSULTAR CONTRIBUYENTE -->
+    <section id="tab-contribuyente" class="tab-content active" aria-labelledby="tab-contribuyente">
+      <div class="card">
+        <h2>Consulta de Padrón de Contribuyentes</h2>
+        <p class="section-desc">Consulte la condición fiscal de un CUIT registrado en el padrón de simulación.</p>
+        
+        <form id="formContribuyente" class="form-grid" novalidate>
+          <div class="form-group">
+            <label for="cuitContribuyente">CUIT (11 dígitos sin guiones ni puntos) <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="cuitContribuyente" 
+              name="cuit" 
+              maxlength="11" 
+              placeholder="Ej: 30712345678" 
+              required
+              pattern="\d{11}"
+              autocomplete="off"
+            >
+            <small class="help-text">Debe contener exactamente 11 números.</small>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="btnConsultarContribuyente">
+              <span class="btn-text">Consultar Contribuyente</span>
+            </button>
+          </div>
+        </form>
+
+        <div id="resultadoContribuyente" class="result-area" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- 2. EMITIR COMPROBANTE -->
+    <section id="tab-emision" class="tab-content" aria-labelledby="tab-emision">
+      <div class="card">
+        <h2>Emisión de Comprobante Electrónico</h2>
+        <p class="section-desc">
+          Emite una nueva factura o prueba la <strong>idempotencia</strong> reenviando la misma solicitud sin alterar el <code>id_venta</code>.
+        </p>
+
+        <form id="formEmision" class="form-grid" novalidate>
+          <div class="form-group full-width">
+            <label for="idVenta">ID de Venta (identificador de idempotencia) <span class="required">*</span></label>
+            <div class="input-with-action">
+              <input 
+                type="text" 
+                id="idVenta" 
+                name="id_venta" 
+                placeholder="Ej: venta-demo-1" 
+                required
+                autocomplete="off"
+              >
+              <button type="button" id="btnGenerarIdVenta" class="btn btn-secondary" title="Generar un nuevo identificador único">
+                Generar nuevo ID
+              </button>
+            </div>
+            <small class="help-text">Mantén el mismo ID de venta y reenvía el formulario para comprobar la respuesta de idempotencia (código 200).</small>
+          </div>
+
+          <div class="form-group">
+            <label for="cuitEmision">CUIT Receptor (11 dígitos) <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="cuitEmision" 
+              name="cuit" 
+              maxlength="11" 
+              placeholder="Ej: 30712345678" 
+              required
+              pattern="\d{11}"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="tipoComprobante">Tipo de Comprobante <span class="required">*</span></label>
+            <select id="tipoComprobante" name="tipo_comprobante" required>
+              <option value="FACTURA_B" selected>FACTURA_B</option>
+              <option value="FACTURA_A">FACTURA_A</option>
+              <option value="FACTURA_C">FACTURA_C</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="montoTotal">Monto Total ($) <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="montoTotal" 
+              name="monto_total" 
+              step="0.01" 
+              min="0.01" 
+              placeholder="Ej: 10506.00" 
+              required
+            >
+          </div>
+
+          <div class="form-actions full-width">
+            <button type="submit" class="btn btn-primary" id="btnEmitirComprobante">
+              <span class="btn-text">Emitir Comprobante</span>
+            </button>
+          </div>
+        </form>
+
+        <div id="resultadoEmision" class="result-area" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- 3. CONSULTAR COMPROBANTE EMITIDO -->
+    <section id="tab-consulta" class="tab-content" aria-labelledby="tab-consulta">
+      <div class="card">
+        <h2>Consulta de Comprobante Emitido</h2>
+        <p class="section-desc">Busque comprobantes ya procesados por número y aplique filtros si la numeración es ambigua (HTTP 409).</p>
+
+        <form id="formConsulta" class="form-grid" novalidate>
+          <div class="form-group">
+            <label for="numeroComprobante">Número de Comprobante (8 dígitos) <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="numeroComprobante" 
+              name="numero" 
+              maxlength="8" 
+              placeholder="Ej: 00000001" 
+              required
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="filtroTipo">Tipo de Comprobante (Filtro opcional)</label>
+            <select id="filtroTipo" name="tipo_comprobante">
+              <option value="">-- Todos los tipos --</option>
+              <option value="FACTURA_A">FACTURA_A</option>
+              <option value="FACTURA_B">FACTURA_B</option>
+              <option value="FACTURA_C">FACTURA_C</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filtroPuntoVenta">Punto de Venta (Filtro opcional)</label>
+            <input 
+              type="number" 
+              id="filtroPuntoVenta" 
+              name="punto_venta" 
+              min="1" 
+              placeholder="Ej: 1" 
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-actions full-width">
+            <button type="submit" class="btn btn-primary" id="btnBuscarComprobante">
+              <span class="btn-text">Buscar Comprobante</span>
+            </button>
+          </div>
+        </form>
+
+        <div id="resultadoConsulta" class="result-area" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="tab-usuarios" class="tab-content" aria-labelledby="usersTitle" hidden>
+      <div class="card">
+        <h2 id="usersTitle">Usuarios y permisos</h2>
+        <p class="section-desc">El admin administra cuentas comunes. Solo el superadmin asigna roles y administra todas las cuentas.</p>
+        <form id="createUserForm" class="form-grid" novalidate>
+          <div class="form-group"><label for="newUserEmail">Correo Gmail <span class="required">*</span></label><input id="newUserEmail" type="email" placeholder="persona@gmail.com" required></div>
+          <div class="form-group"><label for="newUserPassword">Contraseña propia de ARCA <span class="required">*</span></label><input id="newUserPassword" type="password" minlength="10" placeholder="Mínimo 10 caracteres" required></div>
+          <div class="form-group superadmin-only" id="newRoleGroup" hidden><label for="newUserRole">Rol</label><select id="newUserRole"><option value="usuario">Usuario</option><option value="admin">Admin</option><option value="superadmin">Superadmin</option></select></div>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">Crear cuenta</button></div>
+        </form>
+        <div id="userAdminResult" class="result-area" aria-live="polite"></div>
+        <div id="usersTable" class="users-table-wrap"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>ARCA Simulado — Proyecto Educativo. Diseñado para pruebas funcionales e integración de APIs fiscales simuladas.</p>
+  </footer>
+  <dialog id="passwordDialog" class="password-dialog">
+    <form id="resetPasswordForm">
+      <h2>Restablecer contraseña</h2>
+      <p id="resetPasswordTarget" class="section-desc"></p>
+      <div id="currentPasswordGroup" hidden><label for="currentPasswordValue">Contraseña actual</label><input id="currentPasswordValue" type="password" autocomplete="current-password" placeholder="Tu contraseña actual"></div>
+      <label for="resetPasswordValue">Nueva contraseña propia de ARCA</label>
+      <input id="resetPasswordValue" type="password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="Entre 10 y 128 caracteres" required>
+      <div class="user-actions"><button type="button" id="cancelPasswordReset" class="btn btn-secondary">Cancelar</button><button type="submit" class="btn btn-primary">Guardar clave</button></div>
+    </form>
+  </dialog>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

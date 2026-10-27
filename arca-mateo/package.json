@@ -1,0 +1,14 @@
+{
+  "name": "arca-service",
+  "version": "1.0.0",
+  "description": "Servicio simulado ARCA para ecosistema fintech académico",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

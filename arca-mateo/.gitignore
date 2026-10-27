@@ -1,0 +1,9 @@
+node_modules/
+.env
+npm-debug.log*
+/data/
+*.tmp
+arca-cookies.txt
+.vercel
+
+.env*.local

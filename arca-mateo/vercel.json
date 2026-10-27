@@ -1,0 +1,12 @@
+{
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/health", "destination": "/api" },
+    { "source": "/auth/:path*", "destination": "/api" },
+    { "source": "/admin/:path*", "destination": "/api" },
+    { "source": "/arca/:path*", "destination": "/api" }
+  ]
+}

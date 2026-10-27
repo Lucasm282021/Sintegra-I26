@@ -220,7 +220,7 @@ Lista basada en la lista de verificación de UI UX Pro Max (`references/pro-rule
 | ARBA Tomi | Sí | Aplicado y publicado — [arba-tomi.vercel.app](https://arba-tomi.vercel.app) |
 | ARBA Lucas | Sí | Aplicado y publicado — [arba-lucas.vercel.app](https://arba-lucas.vercel.app) |
 | Municipio Cristian | Sí | Aplicado y publicado — [municipio-cristian.vercel.app](https://municipio-cristian.vercel.app) |
-| ARCA | Sí, cuando exista la app | Sin app todavía |
+| ARCA Mateo | Sí (barra superior y menú lateral en escritorio; pestañas en móvil) | Aplicado y publicado — [arca-mateo.vercel.app](https://arca-mateo.vercel.app) |
 | Billetera Lucas-M | **No** (interfaz propia; solo paleta, logos y accesibilidad) | Pendiente |
 
 El orden fue aplicar el patrón primero en una app (TPV David), revisarlo, y después replicarlo en las demás.
