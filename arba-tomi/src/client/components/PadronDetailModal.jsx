@@ -107,7 +107,7 @@ export function PadronDetailModal({ item, onClose, onSelectForSimulation }) {
               onSelectForSimulation(item.cuit);
               onClose();
             }}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 bg-[#14214F] hover:bg-[#1E2F6B] text-[#ffffff] rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
           >
             <span>Usar CUIT en Simulador</span>
             <ArrowUpRight className="w-3.5 h-3.5" />

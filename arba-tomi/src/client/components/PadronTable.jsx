@@ -113,7 +113,7 @@ export function PadronTable({
             type="button"
             onClick={handleDirectLookup}
             disabled={directCuitLoading}
-            className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-xs font-medium font-mono transition-colors"
+            className="px-3 py-1 bg-[#14214F] hover:bg-[#1E2F6B] text-[#ffffff] rounded text-xs font-medium font-mono transition-colors"
           >
             {directCuitLoading ? 'Consultando...' : 'Consultar CUIT'}
           </button>

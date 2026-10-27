@@ -67,7 +67,7 @@ export function ComerciosPanel({ items, onCreate, onUpdate, onDelete, isLoading,
           <h2 className="text-2xl font-bold text-white tracking-tight">Comercios y aplicaciones fiscales</h2>
           <p className="text-sm text-slate-400 mt-1">Gestioná los comercios registrados y sus módulos tributarios.</p>
         </div>
-        <button onClick={openNew} className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors shadow-lg shadow-emerald-950/30">
+        <button onClick={openNew} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#14214F] hover:bg-[#1E2F6B] px-4 py-2.5 text-sm font-semibold text-[#ffffff] transition-colors shadow-lg shadow-emerald-950/30">
           <Plus className="w-4 h-4" /> Nuevo comercio
         </button>
       </div>
@@ -149,7 +149,7 @@ export function ComerciosPanel({ items, onCreate, onUpdate, onDelete, isLoading,
             </div>
             {formError && <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{formError}</div>}
           </div>
-          <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-800 bg-slate-950/30"><button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800">Cancelar</button><button disabled={saving} type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-xs font-semibold text-white">{saving ? 'Guardando…' : 'Guardar comercio'}</button></div>
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-800 bg-slate-950/30"><button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-[#ffffff] hover:bg-slate-800">Cancelar</button><button disabled={saving} type="submit" className="px-4 py-2 rounded-lg bg-[#14214F] hover:bg-[#1E2F6B] disabled:opacity-50 text-xs font-semibold text-[#ffffff]">{saving ? 'Guardando…' : 'Guardar comercio'}</button></div>
         </form>
       </div>}
     </section>
@@ -171,5 +171,5 @@ function AppBadge({ icon: Icon, label, tone }) {
 }
 
 function AppToggle({ checked, onChange, icon: Icon, title, description }) {
-  return <label className={`flex gap-3 rounded-xl border p-3.5 cursor-pointer transition-colors ${checked ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'}`}><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" /><span className={`mt-0.5 w-8 h-8 shrink-0 rounded-lg flex items-center justify-center border ${checked ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-800 border-slate-700'}`}><Icon className="w-4 h-4" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-slate-200">{title}</span><span className="block text-[10px] leading-relaxed text-slate-500 mt-0.5">{description}</span></span><span className={`mt-1 w-8 h-[18px] rounded-full p-0.5 transition-colors ${checked ? 'bg-emerald-500' : 'bg-slate-700'}`}><span className={`block w-3.5 h-3.5 bg-white rounded-full transition-transform ${checked ? 'translate-x-3.5' : ''}`} /></span></label>;
+  return <label className={`flex gap-3 rounded-xl border p-3.5 cursor-pointer transition-colors ${checked ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'}`}><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" /><span className={`mt-0.5 w-8 h-8 shrink-0 rounded-lg flex items-center justify-center border ${checked ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-800 border-slate-700'}`}><Icon className="w-4 h-4" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-slate-200">{title}</span><span className="block text-[10px] leading-relaxed text-slate-500 mt-0.5">{description}</span></span><span className={`mt-1 w-8 h-[18px] rounded-full p-0.5 transition-colors ${checked ? 'bg-emerald-500' : 'bg-slate-700'}`}><span className={`block w-3.5 h-3.5 bg-[#ffffff] rounded-full transition-transform ${checked ? 'translate-x-3.5' : ''}`} /></span></label>;
 }
