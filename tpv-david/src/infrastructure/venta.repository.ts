@@ -8,6 +8,7 @@ import { JsonFileStore } from "./json-file-store";
 export interface VentaRepository {
   save(venta: Venta): Promise<Venta>;
   findById(id: string): Promise<Venta | null>;
+  findAll(): Promise<Venta[]>;
 }
 
 // Implementación en memoria — útil para tests rápidos o para correr sin
@@ -23,6 +24,10 @@ export class InMemoryVentaRepository implements VentaRepository {
   async findById(id: string): Promise<Venta | null> {
     return this.ventas.get(id) ?? null;
   }
+
+  async findAll(): Promise<Venta[]> {
+    return Array.from(this.ventas.values());
+  }
 }
 
 // Implementación en archivo JSON (data/ventas.json). Esta es la que usa el
@@ -30,7 +35,7 @@ export class InMemoryVentaRepository implements VentaRepository {
 // (si el volumen de data/ está montado).
 export class FileVentaRepository implements VentaRepository {
   private readonly store = new JsonFileStore<Venta>(
-    path.join(process.env.DATA_DIR ?? path.join(process.cwd(), "data"), "ventas.json")
+    path.join(process.cwd(), "data", "ventas.json")
   );
 
   async save(venta: Venta): Promise<Venta> {
@@ -40,5 +45,9 @@ export class FileVentaRepository implements VentaRepository {
 
   async findById(id: string): Promise<Venta | null> {
     return this.store.get(id);
+  }
+
+  async findAll(): Promise<Venta[]> {
+    return this.store.values();
   }
 }
