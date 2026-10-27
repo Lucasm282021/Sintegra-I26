@@ -3,418 +3,587 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TPV David · Sintegra I26</title>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<title>Sintegra i26 · TPV</title>
 <style>
-  /* Tokens de consolidacion/UNIFICACION-DISENO.md */
   :root{
+    /* Marca (manual ISFDyT N° 26) */
     --brand-navy:#14214F; --brand-gold:#89743A; --brand-gold-sand:#AF9B63; --brand-blue:#3F78B6;
+    /* Superficies */
     --bg-page:#F5F6FA; --bg-surface:#FFFFFF; --bg-muted:#F0F2F7; --border:#E3E6EF;
     --text:#14214F; --text-muted:#4B5470;
-    --ok:#1E7B4F; --ok-bg:#E8F4EE; --alerta:#9A6700; --alerta-bg:#FBF3E0; --error:#B42318; --error-bg:#FDECEA;
+    /* Estados */
+    --ok:#1E7B4F; --alerta:#9A6700; --error:#B42318; --info:#3F78B6;
+    --ok-bg:#E7F4EC; --alerta-bg:#FBF1DC; --error-bg:#FCE8E6; --info-bg:#E8F0F9;
     --font-heading:"Cocomat Pro","Segoe UI",system-ui,sans-serif;
     --font-body:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
     --radius:12px; --radius-sm:8px;
-    --shadow:0 1px 2px rgb(20 33 79 / 6%), 0 4px 12px rgb(20 33 79 / 6%);
-    --sidebar:248px;
+    --shadow:0 1px 2px rgb(20 33 79 / 6%),0 4px 12px rgb(20 33 79 / 6%);
   }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg-page); color:var(--text); font-family:var(--font-body); font-size:15px; line-height:1.5;}
-  :focus-visible{outline:3px solid var(--brand-blue); outline-offset:2px;}
-  button, select, input{font:inherit; color:inherit;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg-page);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.45;}
+  h1,h2,h3{font-family:var(--font-heading);margin:0;}
+  button,input,select{font:inherit;color:inherit;}
   button{cursor:pointer;}
-  button:disabled{cursor:not-allowed;}
+  button:disabled{cursor:not-allowed;opacity:.55;}
+  :focus-visible{outline:3px solid var(--brand-blue);outline-offset:2px;}
   .num{font-variant-numeric:tabular-nums;}
-  svg.lucide{width:20px; height:20px; stroke-width:2; flex:none;}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  .skip{position:absolute;left:8px;top:-60px;background:var(--brand-navy);color:#fff;padding:10px 16px;border-radius:var(--radius-sm);z-index:100;}
+  .skip:focus{top:8px;}
+  svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;}
 
-  .skip{position:absolute; left:-9999px; top:8px; z-index:100; background:var(--bg-surface); padding:10px 14px; border-radius:var(--radius-sm);}
-  .skip:focus{left:8px;}
+  /* ---------- Estructura ---------- */
+  .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh;}
+  .side{background:var(--brand-navy);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .brand{padding:20px 20px 16px;display:flex;gap:12px;align-items:center;border-bottom:1px solid rgb(255 255 255 / 12%);}
+  .brand svg{width:40px;height:40px;flex:none;}
+  .brand b{display:block;font-size:16px;font-family:var(--font-heading);}
+  .brand span{font-size:12px;color:#C9D0E6;}
+  nav{padding:12px;flex:1;overflow:auto;}
+  nav ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+  nav a{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;color:#fff;text-decoration:none;border-radius:var(--radius-sm);border-left:3px solid transparent;}
+  nav a:hover{background:rgb(255 255 255 / 8%);}
+  nav a[aria-current="page"]{background:rgb(255 255 255 / 10%);border-left-color:var(--brand-gold-sand);font-weight:600;}
+  nav a:focus-visible{outline-color:#fff;}
+  .side-foot{padding:16px 20px;border-top:1px solid rgb(255 255 255 / 12%);font-size:13px;color:#C9D0E6;}
+  .side-foot .chip{background:rgb(255 255 255 / 10%);color:#fff;}
+  .main-col{min-width:0;display:flex;flex-direction:column;}
+  .top{height:64px;background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 24px;position:sticky;top:0;z-index:20;}
+  .top h1{font-size:24px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .menu-btn{display:none;min-width:44px;min-height:44px;border:1px solid var(--border);background:var(--bg-surface);border-radius:var(--radius-sm);align-items:center;justify-content:center;}
+  main{padding:24px;max-width:1280px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:24px;}
+  .scrim{display:none;}
+  .close-menu{display:none;min-width:44px;min-height:44px;border:1px solid rgb(255 255 255 / 30%);background:transparent;color:#fff;border-radius:var(--radius-sm);align-items:center;justify-content:center;}
+  .close-menu:focus-visible{outline-color:#fff;}
 
-  /* ---- Menú lateral ---- */
-  .sidebar{
-    position:fixed; inset:0 auto 0 0; width:var(--sidebar); background:var(--brand-navy); color:#fff;
-    display:flex; flex-direction:column; padding:20px 14px; z-index:40;
-  }
-  .sidebar .logo{background:#fff; border-radius:var(--radius-sm); padding:10px 12px; margin:0 4px 6px;}
-  .sidebar .logo img{display:block; width:100%; height:auto;}
-  .sidebar .terminal{font-size:13px; color:#C9CEDC; margin:0 8px 22px;}
-  .nav{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px;}
-  .nav a, .nav span.item{
-    display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px;
-    border-radius:var(--radius-sm); color:#fff; text-decoration:none; border-left:3px solid transparent;
-  }
-  .nav a:hover{background:rgb(255 255 255 / 8%);}
-  .nav a[aria-current="page"]{background:rgb(255 255 255 / 10%); border-left-color:var(--brand-gold-sand); font-weight:600;}
-  .nav span.item{color:#AEB5C8;}
-  .nav .pronto{margin-left:auto; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:#C9CEDC;}
-  .sidebar .pie{margin-top:auto; padding:12px 8px 0; border-top:1px solid rgb(255 255 255 / 14%); font-size:13px; color:#C9CEDC;}
+  /* ---------- Componentes ---------- */
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;}
+  .chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;}
+  .chip.ok{background:var(--ok-bg);color:var(--ok);} .chip.alerta{background:var(--alerta-bg);color:var(--alerta);}
+  .chip.error{background:var(--error-bg);color:var(--error);} .chip.info{background:var(--info-bg);color:var(--brand-navy);}
+  .chip.info::before{background:var(--info);}
+  .card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+  .card-head h2{font-size:18px;font-weight:600;}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .kpi .label{font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
+  .kpi .valor{font-size:28px;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+  .kpi .ctx{font-size:13px;color:var(--text-muted);}
+  .kpi .ctx a{color:var(--brand-blue);}
+  .btn{min-height:40px;padding:0 16px;border-radius:var(--radius-sm);border:1px solid var(--brand-navy);background:var(--bg-surface);color:var(--brand-navy);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;}
+  .btn:hover:not(:disabled){background:var(--bg-muted);}
+  .btn.primary{background:var(--brand-navy);color:#fff;}
+  .btn.primary:hover:not(:disabled){background:#1D2E69;}
+  .btn.link{border-color:transparent;background:none;color:var(--brand-blue);padding:0 8px;}
+  .field{display:flex;flex-direction:column;gap:4px;min-width:150px;}
+  .field label{font-size:13px;font-weight:600;color:var(--text-muted);}
+  .field input,.field select{min-height:40px;padding:0 10px;border:1px solid #AEB5C9;border-radius:var(--radius-sm);background:#fff;}
+  .field .err{color:var(--error);font-size:13px;}
+  .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:var(--bg-muted);text-align:left;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;white-space:nowrap;}
+  td{padding:0 12px;height:48px;border-top:1px solid var(--border);}
+  tbody tr:hover{background:var(--bg-page);}
+  .r{text-align:right;}
+  td .rowbtn{background:none;border:none;color:var(--brand-blue);font-weight:600;min-height:44px;padding:0 4px;text-align:left;}
+  .empty,.errbox{padding:32px 16px;text-align:center;color:var(--text-muted);}
+  .errbox{color:var(--error);}
+  .errbox .btn{margin-top:12px;}
+  .skel{display:block;height:16px;border-radius:6px;background:linear-gradient(90deg,var(--bg-muted),#E6E9F2,var(--bg-muted));background-size:200% 100%;animation:sh 1.2s linear infinite;}
+  @keyframes sh{to{background-position:-200% 0;}}
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap;color:var(--text-muted);font-size:14px;}
 
-  /* ---- Barra superior y contenido ---- */
-  .app{margin-left:var(--sidebar); min-height:100vh;}
-  .topbar{
-    min-height:64px; background:var(--bg-surface); border-bottom:1px solid var(--border);
-    display:flex; align-items:center; gap:12px; padding:8px 24px; position:sticky; top:0; z-index:30;
-  }
-  .topbar h1{font-family:var(--font-heading); font-size:24px; font-weight:700; margin:0;}
-  .topbar .derecha{margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0;}
-  .menu-btn{display:none; width:44px; height:44px; border:1px solid var(--border); background:var(--bg-surface); border-radius:var(--radius-sm); align-items:center; justify-content:center;}
+  /* Gráfico por hora */
+  .bars{display:flex;align-items:flex-end;gap:6px;height:180px;min-width:520px;padding-top:20px;}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:24px;}
+  .bar i{display:block;width:100%;max-width:36px;background:var(--brand-blue);border-radius:6px 6px 0 0;min-height:2px;}
+  .bar i.cero{background:var(--border);}
+  .bar .tot{font-size:11px;font-weight:600;margin-bottom:4px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .bar .hr{font-size:12px;color:var(--text-muted);margin-top:6px;font-variant-numeric:tabular-nums;}
 
-  .chip{display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; padding:4px 10px; border-radius:999px; white-space:nowrap;}
-  .chip::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor;}
-  .chip.ok{color:var(--ok); background:var(--ok-bg);}
-  .chip.alerta{color:var(--alerta); background:var(--alerta-bg);}
-  .chip.error{color:var(--error); background:var(--error-bg);}
+  /* Caja */
+  .caja{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:start;}
+  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .prod{min-height:72px;text-align:left;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-surface);display:flex;flex-direction:column;gap:4px;}
+  .prod:hover{border-color:var(--brand-blue);background:var(--info-bg);}
+  .prod b{font-weight:600;overflow-wrap:anywhere;} .prod span{color:var(--brand-navy);font-variant-numeric:tabular-nums;}
+  .ticket-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .ticket-row .n{flex:1;min-width:0;overflow-wrap:anywhere;}
+  .qty{display:flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums;}
+  .qty button{width:44px;height:44px;border:1px solid var(--border);background:var(--bg-muted);border-radius:var(--radius-sm);font-weight:700;}
+  .qty button:hover{background:var(--border);}
+  .total-line{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0 12px;border-top:2px solid var(--brand-navy);margin-top:8px;}
+  .total-line .m{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
+  .stack{display:flex;flex-direction:column;gap:12px;}
+  .etapas{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .etapas li{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}
+  .etapas .ref{font-size:13px;color:var(--text-muted);overflow-wrap:anywhere;flex-basis:100%;margin-left:0;}
+  .aviso{padding:12px;border-radius:var(--radius-sm);margin-top:12px;font-size:14px;}
+  .aviso.ok{background:var(--ok-bg);} .aviso.error{background:var(--error-bg);color:var(--error);}
 
-  main{max-width:1280px; margin:0 auto; padding:24px;}
-  .grid{display:grid; grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr); gap:24px; align-items:start;}
-  .card{background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);}
-  .card-head{display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border);}
-  .card-head h2{font-family:var(--font-heading); font-size:18px; font-weight:600; margin:0;}
-  .card-body{padding:16px 20px;}
+  /* Detalle (panel lateral) */
+  .drawer{position:fixed;inset:0 0 0 auto;width:min(480px,100%);background:var(--bg-surface);box-shadow:-8px 0 24px rgb(20 33 79 / 18%);z-index:60;overflow:auto;padding:24px;display:none;}
+  .drawer.open{display:block;}
+  .drawer-scrim{position:fixed;inset:0;background:rgb(20 33 79 / 40%);z-index:50;display:none;}
+  .drawer-scrim.open{display:block;}
+  .drawer h2{font-size:20px;}
+  .drawer dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:16px 0;}
+  .drawer dt{color:var(--text-muted);} .drawer dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+  .linea{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
 
-  label{display:block; font-size:13px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;}
-  input, select{width:100%; min-height:44px; padding:8px 12px; border:1px solid #C5CAD8; border-radius:var(--radius-sm); background:var(--bg-surface);}
-  .campo-error{color:var(--error); font-size:13px; margin-top:6px;}
-  .campos{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px;}
-
-  .buscador{position:relative; margin-bottom:16px;}
-  .buscador svg{position:absolute; left:12px; top:12px; color:var(--text-muted);}
-  .buscador input{padding-left:40px;}
-
-  .catalogo{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px;}
-  .producto{
-    text-align:left; min-height:88px; padding:14px; background:var(--bg-surface);
-    border:1px solid var(--border); border-radius:var(--radius-sm); transition:border-color .15s, background .15s;
-    display:flex; flex-direction:column; justify-content:space-between; gap:8px;
-  }
-  .producto:hover{border-color:var(--brand-blue); background:#F7F9FD;}
-  .producto .nombre{font-weight:600;}
-  .producto .precio{color:var(--brand-blue); font-weight:600;}
-  .vacio{color:var(--text-muted); padding:16px 0;}
-
-  .alta{display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:12px; align-items:end;}
-
-  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 18px; border-radius:var(--radius-sm); font-weight:600; border:1px solid transparent; transition:background .15s, border-color .15s;}
-  .btn-primario{background:var(--brand-navy); color:#fff;}
-  .btn-primario:hover:not(:disabled){background:#1E2F6B;}
-  .btn-primario:disabled{background:#9AA2B8;}
-  .btn-secundario{background:var(--bg-surface); color:var(--brand-navy); border-color:var(--brand-navy);}
-  .btn-secundario:hover{background:var(--bg-muted);}
-  .btn-ancho{width:100%; min-height:52px; font-size:16px;}
-
-  .ticket-lista{list-style:none; margin:0; padding:0;}
-  .ticket-lista li{display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);}
-  .cantidad{display:flex; align-items:center; gap:4px;}
-  .cantidad button{width:44px; height:44px; border:1px solid var(--border); background:var(--bg-surface); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center;}
-  .cantidad button:hover{background:var(--bg-muted);}
-  .cantidad span{min-width:28px; text-align:center; font-weight:600;}
-  .subtotal{min-width:88px; text-align:right;}
-  .total{display:flex; justify-content:space-between; align-items:baseline; padding:16px 0;}
-  .total .monto{font-size:28px; font-weight:700;}
-
-  .resultado{margin-top:16px; border-radius:var(--radius-sm); padding:16px; border:1px solid var(--border);}
-  .resultado.ok{background:var(--ok-bg); border-color:#BFDFCD;}
-  .resultado.error{background:var(--error-bg); border-color:#F2C4BE; color:var(--error);}
-  .etapas{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:8px;}
-  .etapas li{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .etapas .detalle{color:var(--text-muted); font-size:13px;}
-
+  @media (max-width:1279px){ .kpis{grid-template-columns:repeat(2,1fr);} }
   @media (max-width:1023px){
-    .sidebar{transform:translateX(-100%); transition:transform .2s;}
-    .sidebar.abierto{transform:none; box-shadow:0 0 0 100vmax rgb(20 33 79 / 40%);}
-    .app{margin-left:0;}
-    .menu-btn{display:inline-flex;}
-    .grid{grid-template-columns:1fr;}
+    .app{grid-template-columns:1fr;}
+    .side{position:fixed;left:0;top:0;width:248px;transform:translateX(-100%);z-index:70;visibility:hidden;}
+    .side.open{transform:none;visibility:visible;}
+    .scrim.open{display:block;position:fixed;inset:0;background:rgb(20 33 79 / 40%);z-index:65;}
+    .menu-btn,.close-menu{display:inline-flex;}
+    .caja{grid-template-columns:1fr;}
   }
-  @media (max-width:640px){
-    .sidebar{width:100%;}
-    .campos, .alta{grid-template-columns:1fr;}
-    main{padding:16px;}
-    .topbar{padding:8px 16px;}
-    .topbar h1{font-size:20px;}
-    .chip-detalle{display:none;}
+  @media (max-width:639px){
+    .side.open{width:100%;}
+    main{padding:16px;} .top{padding:0 16px;}
+    .kpis{grid-template-columns:1fr;}
+    .top h1{font-size:20px;}
   }
-  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important;} }
 </style>
 </head>
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
 
-<aside class="sidebar" id="sidebar" aria-label="Menú principal">
-  <div class="logo"><img src="/logo-tpv.png" alt="i26 TPV · Punto de Venta"></div>
-  <div class="terminal">Terminal · TPV David</div>
-  <nav>
-    <ul class="nav">
-      <li><span class="item" aria-disabled="true"><i data-lucide="layout-dashboard"></i>Resumen<span class="pronto">Pronto</span></span></li>
-      <li><a href="/" aria-current="page"><i data-lucide="shopping-cart"></i>Caja</a></li>
-      <li><span class="item" aria-disabled="true"><i data-lucide="receipt"></i>Ventas<span class="pronto">Pronto</span></span></li>
-      <li><span class="item" aria-disabled="true"><i data-lucide="package"></i>Productos<span class="pronto">Pronto</span></span></li>
-      <li><span class="item" aria-disabled="true"><i data-lucide="store"></i>Comercios<span class="pronto">Pronto</span></span></li>
-      <li><span class="item" aria-disabled="true"><i data-lucide="plug"></i>Conexiones<span class="pronto">Pronto</span></span></li>
-    </ul>
-  </nav>
-  <div class="pie">Sintegra I26 · Ecosistema fintech simulado</div>
-</aside>
-
 <div class="app">
-  <header class="topbar">
-    <button class="menu-btn" id="menu-btn" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><i data-lucide="menu"></i></button>
-    <h1>Caja</h1>
-    <div class="derecha" id="estado-api"><span class="chip alerta">Verificando API…</span></div>
-  </header>
-
-  <main id="contenido" tabindex="-1">
-    <div class="grid">
-      <section class="card" aria-labelledby="t-catalogo">
-        <div class="card-head"><i data-lucide="package"></i><h2 id="t-catalogo">Catálogo</h2></div>
-        <div class="card-body">
-          <div class="buscador">
-            <i data-lucide="search"></i>
-            <label for="buscar" class="visually-hidden" style="position:absolute;left:-9999px">Buscar producto</label>
-            <input id="buscar" type="search" placeholder="Buscar por nombre o código">
-          </div>
-          <div id="catalogo" class="catalogo" aria-live="polite"></div>
-        </div>
-        <div class="card-body" style="border-top:1px solid var(--border)">
-          <form id="form-producto" class="alta" novalidate>
-            <div><label for="p-nombre">Nombre</label><input id="p-nombre" required></div>
-            <div><label for="p-precio">Precio</label><input id="p-precio" type="number" min="0.01" step="0.01" inputmode="decimal" required></div>
-            <div><label for="p-codigo">Código</label><input id="p-codigo" placeholder="Opcional"></div>
-            <button type="submit" class="btn btn-secundario"><i data-lucide="plus"></i>Agregar</button>
-          </form>
-          <p id="error-producto" class="campo-error" role="alert" hidden></p>
-        </div>
-      </section>
-
-      <section class="card" aria-labelledby="t-venta">
-        <div class="card-head"><i data-lucide="shopping-cart"></i><h2 id="t-venta">Venta actual</h2></div>
-        <div class="card-body">
-          <div class="campos" style="grid-template-columns:1fr 1fr">
-            <div>
-              <label for="cuit">CUIT del comercio</label>
-              <input id="cuit" inputmode="numeric" maxlength="11" value="20345678901" aria-describedby="error-cuit">
-              <p id="error-cuit" class="campo-error" hidden>El CUIT tiene que tener 11 dígitos, sin puntos ni guiones.</p>
-            </div>
-            <div>
-              <label for="razonSocial">Razón social</label>
-              <input id="razonSocial" value="Kiosco Don José">
-            </div>
-          </div>
-          <div style="margin-top:16px">
-            <label for="medioPago">Medio de pago</label>
-            <select id="medioPago">
-              <option value="efectivo">Efectivo</option>
-              <option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option>
-              <option value="billetera_virtual">Billetera virtual</option>
-            </select>
-          </div>
-
-          <ul id="ticket" class="ticket-lista" style="margin-top:16px" aria-live="polite"></ul>
-          <div class="total"><span class="label" style="margin:0">Total</span><span id="total" class="monto num">$0</span></div>
-          <button id="cobrar" class="btn btn-primario btn-ancho" disabled><i data-lucide="credit-card"></i><span>Cobrar</span></button>
-          <div id="resultado" aria-live="polite"></div>
-        </div>
-      </section>
+  <aside class="side" id="side" aria-label="Menú principal">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" role="img" aria-label="Logo Sintegra i26">
+        <circle cx="24" cy="24" r="22" fill="#fff"/>
+        <rect x="11" y="28" width="5" height="8" rx="1.5" fill="#3F78B6"/>
+        <rect x="18" y="23" width="5" height="13" rx="1.5" fill="#3F78B6"/>
+        <rect x="25" y="18" width="5" height="18" rx="1.5" fill="#89743A"/>
+        <rect x="32" y="12" width="5" height="24" rx="1.5" fill="#14214F"/>
+      </svg>
+      <div style="flex:1"><b>i26 TPV</b><span>TPV David</span></div>
+      <button class="close-menu" id="close-menu" type="button" aria-label="Cerrar menú"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
-  </main>
+    <nav>
+      <ul id="nav"></ul>
+    </nav>
+    <div class="side-foot">
+      <span id="api-chip-side" class="chip alerta">Verificando API…</span>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main-col">
+    <header class="top">
+      <button class="menu-btn" id="menu-btn" type="button" aria-label="Abrir menú" aria-controls="side" aria-expanded="false">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 id="titulo">Resumen</h1>
+      <span id="api-chip" class="chip alerta">Verificando API…</span>
+    </header>
+    <main id="contenido" tabindex="-1"></main>
+  </div>
 </div>
 
+<div class="drawer-scrim" id="drawer-scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-titulo"></aside>
+
 <script>
-  const state = { catalogo: [], carrito: new Map(), simulados: [] };
+(() => {
+  // ---------- Utilidades ----------
   const $ = (id) => document.getElementById(id);
-  const money = (n) => "$" + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const icons = () => window.lucide && lucide.createIcons();
+  const esc = (s) => { const d = document.createElement("div"); d.textContent = String(s ?? ""); return d.innerHTML; };
+  const money = (n) => "$" + Number(n).toLocaleString("es-AR", { maximumFractionDigits: 2 });
+  const moneyCorto = (n) => n === 0 ? "" : "$" + new Intl.NumberFormat("es-AR", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+  const fechaHora = (iso) => new Date(iso).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short" });
+  const hoyISO = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = String(str ?? "");
-    return div.innerHTML;
+  const ICONOS = {
+    resumen:'<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>',
+    caja:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+    ventas:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+    productos:'<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/>',
+    comercios:'<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/>',
+    conexiones:'<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>'
+  };
+  const icono = (k) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONOS[k]}</svg>`;
+
+  const ESTADOS = {
+    completada:{t:"Completada",c:"ok"}, error:{t:"Error",c:"error"}, pendiente_cobro:{t:"Pendiente",c:"alerta"},
+    cobrada:{t:"Cobrada",c:"info"}, percibida:{t:"Percibida",c:"info"}, facturada:{t:"Facturada",c:"info"}
+  };
+  const chipEstado = (e) => { const x = ESTADOS[e] ?? {t:e,c:"info"}; return `<span class="chip ${x.c}">${esc(x.t)}</span>`; };
+  const MEDIOS = { efectivo:"Efectivo", tarjeta:"Tarjeta", transferencia:"Transferencia", billetera_virtual:"Billetera virtual" };
+
+  async function api(url, opts) {
+    const res = await fetch(url, opts);
+    let data = null;
+    try { data = await res.json(); } catch {}
+    if (!res.ok) throw new Error((data && data.error) || `error ${res.status}`);
+    return data;
+  }
+  const skeleton = (n = 4) => Array.from({ length: n }, () => '<span class="skel" style="margin:14px 0"></span>').join("");
+  const errorBox = (msg, accion) => `<div class="errbox" role="alert"><p>${esc(msg)}</p><button class="btn" type="button" data-accion="${accion}">Reintentar</button></div>`;
+
+  // ---------- Estado ----------
+  const SECCIONES = [
+    ["resumen","Resumen"],["caja","Caja"],["ventas","Ventas"],
+    ["productos","Productos"],["comercios","Comercios"],["conexiones","Conexiones"]
+  ];
+  const state = {
+    catalogo: [], busqueda: "", carrito: new Map(),
+    comercio: { cuit: "20345678901", razonSocial: "Kiosco Don José" }, medioPago: "efectivo",
+    cobrando: false, resultado: null,
+    ventas: { page: 1, filtros: { desde: "", hasta: "", estado: "", medioPago: "" } },
+    drawerOrigen: null
+  };
+
+  // ---------- Navegación ----------
+  $("nav").innerHTML = SECCIONES.map(([k, t]) =>
+    `<li><a href="#${k}" data-k="${k}">${icono(k)}<span>${t}</span></a></li>`).join("");
+
+  function abrirMenu(abrir) {
+    $("side").classList.toggle("open", abrir);
+    $("scrim").classList.toggle("open", abrir);
+    $("menu-btn").setAttribute("aria-expanded", String(abrir));
+  }
+  $("menu-btn").addEventListener("click", () => abrirMenu(!$("side").classList.contains("open")));
+  $("scrim").addEventListener("click", () => abrirMenu(false));
+  $("close-menu").addEventListener("click", () => { abrirMenu(false); $("menu-btn").focus(); });
+
+  function ir() {
+    const k = (location.hash || "#resumen").slice(1);
+    const sec = SECCIONES.find(([x]) => x === k) ?? SECCIONES[0];
+    document.querySelectorAll("#nav a").forEach((a) =>
+      a.dataset.k === sec[0] ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+    $("titulo").textContent = sec[1];
+    document.title = `${sec[1]} · Sintegra i26 TPV`;
+    abrirMenu(false);
+    VISTAS[sec[0]]();
+  }
+  window.addEventListener("hashchange", () => { ir(); $("contenido").focus({ preventScroll: true }); });
+
+  // ---------- Estado de la API ----------
+  async function chequearApi() {
+    const poner = (txt, cls) => ["api-chip", "api-chip-side"].forEach((id) => { const e = $(id); e.className = "chip " + cls; e.textContent = txt; });
+    try { await api("/health"); poner("API conectada", "ok"); } catch { poner("Sin conexión", "error"); }
   }
 
-  async function verificarApi() {
-    const caja = $("estado-api");
+  // ---------- Resumen ----------
+  async function vistaResumen() {
+    const c = $("contenido");
+    c.innerHTML = `<div class="kpis">${[1,2,3,4].map(() => `<div class="card">${skeleton(3)}</div>`).join("")}</div><div class="card">${skeleton(5)}</div>`;
     try {
-      const res = await fetch("/health");
-      const data = await res.json();
-      if (!res.ok) throw new Error();
-      state.simulados = data.simulados ?? [];
-      caja.innerHTML = '<span class="chip ok">API conectada</span>' +
-        (state.simulados.length ? `<span class="chip alerta" title="${state.simulados.map(nombreServicio).join(", ")} simulados">Modo demo<span class="chip-detalle"> · ${state.simulados.map(nombreServicio).join(", ")} simulados</span></span>` : "");
-    } catch {
-      caja.innerHTML = '<span class="chip error">Sin conexión con el servidor</span>';
+      const r = await api("/tpv/resumen");
+      const dif = r.ventasHoy - r.ventasAyer;
+      const max = Math.max(...r.ventasPorHora.map((h) => h.total), 1);
+      const horas = r.ventasPorHora.filter((h) => (h.hora >= 8 && h.hora <= 22) || h.total > 0);
+      c.innerHTML = `
+        <div class="kpis">
+          <div class="card kpi"><div class="label">Ventas de hoy</div><div class="valor">${r.ventasHoy}</div><div class="ctx">vs. ayer: ${dif > 0 ? "+" : ""}${dif}</div></div>
+          <div class="card kpi"><div class="label">Total cobrado hoy</div><div class="valor">${money(r.totalCobradoHoy)}</div><div class="ctx">Ticket promedio: ${money(r.ticketPromedioHoy)}</div></div>
+          <div class="card kpi"><div class="label">Ventas con error</div><div class="valor">${r.ventasConError}</div><div class="ctx">${r.ventasConError ? '<a href="#ventas" data-filtro-error>Requieren reintento</a>' : "Todo en orden"}</div></div>
+          <div class="card kpi"><div class="label">Producto más vendido</div><div class="valor" style="font-size:20px">${r.productoMasVendido ? esc(r.productoMasVendido.descripcion) : "—"}</div><div class="ctx">${r.productoMasVendido ? r.productoMasVendido.unidades + " unidades (7 días)" : "Sin ventas en 7 días"}</div></div>
+        </div>
+        <section class="card" aria-labelledby="h-hora">
+          <div class="card-head"><h2 id="h-hora">Ventas por hora (hoy)</h2><span class="chip info">Actualizado ${fechaHora(r.actualizadoEn)}</span></div>
+          <div class="table-wrap">
+            <div class="bars" role="img" aria-label="Total vendido por hora hoy. ${r.ventasHoy} ventas, ${money(r.totalCobradoHoy)} en total.">
+              ${horas.map((h) => `<div class="bar"><span class="tot">${moneyCorto(h.total)}</span><i class="${h.total ? "" : "cero"}" style="height:${h.total ? Math.max(4, (h.total / max) * 120) : 2}px"></i><span class="hr">${String(h.hora).padStart(2, "0")}</span></div>`).join("")}
+            </div>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="h-ult">
+          <div class="card-head"><h2 id="h-ult">Últimas 5 ventas</h2><a class="btn link" href="#ventas">Ver todas</a></div>
+          ${tablaVentas(r.ultimasVentas)}
+        </section>`;
+    } catch (e) {
+      c.innerHTML = `<div class="card">${errorBox("No se pudo cargar el resumen: " + e.message, "recargar")}</div>`;
     }
   }
 
-  const nombreServicio = (s) => ({ banco: "Banco", arba: "ARBA", arca: "ARCA" }[s] ?? s);
+  function tablaVentas(lista) {
+    if (!lista.length) return '<div class="empty">Todavía no hay ventas. Hacé la primera desde <a href="#caja">Caja</a>.</div>';
+    return `<div class="table-wrap"><table>
+      <thead><tr><th scope="col">Fecha</th><th scope="col">N° de venta</th><th scope="col">Comercio</th><th scope="col">Medio de pago</th><th scope="col" class="r">Total</th><th scope="col">Estado</th></tr></thead>
+      <tbody>${lista.map((v) => `<tr>
+        <td>${fechaHora(v.createdAt)}</td>
+        <td><button class="rowbtn num" type="button" data-venta="${esc(v.id)}" aria-label="Ver detalle de la venta ${esc(v.id)}">${esc(v.id.slice(0, 8))}</button></td>
+        <td>${esc(v.comercio.razonSocial)} <span class="num" style="color:var(--text-muted)">${esc(v.comercio.cuit)}</span></td>
+        <td>${esc(MEDIOS[v.medioPago] ?? v.medioPago)}</td>
+        <td class="r num">${money(v.total)}</td>
+        <td>${chipEstado(v.estado)}</td></tr>`).join("")}</tbody></table></div>`;
+  }
 
+  // ---------- Ventas ----------
+  async function vistaVentas() {
+    const f = state.ventas.filtros;
+    $("contenido").innerHTML = `
+      <section class="card" aria-labelledby="h-fil">
+        <h2 id="h-fil" class="sr-only">Filtros</h2>
+        <form class="filters" id="form-filtros">
+          <div class="field"><label for="f-desde">Desde</label><input id="f-desde" type="date" value="${esc(f.desde)}"></div>
+          <div class="field"><label for="f-hasta">Hasta</label><input id="f-hasta" type="date" value="${esc(f.hasta)}"></div>
+          <div class="field"><label for="f-estado">Estado</label><select id="f-estado"><option value="">Todos</option>
+            ${Object.entries(ESTADOS).filter(([k]) => k !== "facturada").map(([k, x]) => `<option value="${k}" ${f.estado === k ? "selected" : ""}>${x.t}</option>`).join("")}</select></div>
+          <div class="field"><label for="f-medio">Medio de pago</label><select id="f-medio"><option value="">Todos</option>
+            ${Object.entries(MEDIOS).map(([k, t]) => `<option value="${k}" ${f.medioPago === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+          <button class="btn primary" type="submit">Filtrar</button>
+          <button class="btn" type="button" id="limpiar">Limpiar</button>
+        </form>
+      </section>
+      <section class="card" aria-labelledby="h-lista" aria-live="polite">
+        <div class="card-head"><h2 id="h-lista">Ventas</h2><span id="cant" class="chip info"></span></div>
+        <div id="lista">${skeleton(5)}</div>
+      </section>`;
+    $("form-filtros").addEventListener("submit", (e) => {
+      e.preventDefault();
+      state.ventas.filtros = { desde: $("f-desde").value, hasta: $("f-hasta").value, estado: $("f-estado").value, medioPago: $("f-medio").value };
+      state.ventas.page = 1; cargarVentas();
+    });
+    $("limpiar").addEventListener("click", () => {
+      state.ventas.filtros = { desde: "", hasta: "", estado: "", medioPago: "" }; state.ventas.page = 1; vistaVentas();
+    });
+    cargarVentas();
+  }
+
+  async function cargarVentas() {
+    const { page, filtros } = state.ventas;
+    const q = new URLSearchParams({ page, limit: 10 });
+    Object.entries(filtros).forEach(([k, v]) => v && q.set(k, v));
+    try {
+      const d = await api("/tpv/ventas?" + q);
+      $("cant").textContent = `${d.total} resultado${d.total === 1 ? "" : "s"}`;
+      const paginas = Math.max(1, Math.ceil(d.total / d.limit));
+      $("lista").innerHTML = tablaVentas(d.ventas) + (d.total > d.limit ? `
+        <div class="pager"><span>Página ${d.page} de ${paginas}</span><span>
+          <button class="btn" type="button" data-pag="-1" ${d.page <= 1 ? "disabled" : ""}>Anterior</button>
+          <button class="btn" type="button" data-pag="1" ${d.page >= paginas ? "disabled" : ""}>Siguiente</button></span></div>` : "");
+    } catch (e) {
+      $("lista").innerHTML = errorBox("No se pudieron cargar las ventas: " + e.message, "recargar-ventas");
+    }
+  }
+
+  // ---------- Detalle de venta ----------
+  function etapas(v) {
+    const err = v.estado === "error";
+    const lista = [
+      { n: "Pago (Banco)", ok: !!v.pago, ref: v.pago ? `Movimiento ${v.pago.movimientoId}` : "" },
+      { n: "Percepción IIBB (ARBA)", ok: !!v.percepcion, ref: v.percepcion ? `${money(v.percepcion.montoPercepcion)} · alícuota ${(v.percepcion.alicuotaAplicada * 100).toFixed(2)}%` : "" },
+      { n: "Comprobante (ARCA)", ok: !!v.factura, ref: v.factura ? `CAE ${v.factura.cae} · vto. ${v.factura.vencimientoCae}` : "" }
+    ];
+    let fallo = false;
+    return lista.map((e) => {
+      if (e.ok) return { ...e, chip: '<span class="chip ok">Confirmado</span>' };
+      if (err && !fallo) { fallo = true; return { ...e, chip: '<span class="chip error">Falló</span>' }; }
+      return { ...e, chip: '<span class="chip alerta">Pendiente</span>' };
+    });
+  }
+
+  async function abrirDetalle(id, origen) {
+    state.drawerOrigen = origen ?? document.activeElement;
+    const d = $("drawer");
+    d.innerHTML = `<h2 id="drawer-titulo">Detalle de venta</h2>${skeleton(6)}`;
+    d.classList.add("open"); $("drawer-scrim").classList.add("open");
+    try {
+      const v = await api("/tpv/ventas/" + encodeURIComponent(id));
+      const perc = v.percepcion?.montoPercepcion ?? 0;
+      d.innerHTML = `
+        <div class="card-head"><h2 id="drawer-titulo">Venta ${esc(v.id.slice(0, 8))}</h2>
+          <button class="btn" type="button" id="cerrar-drawer" aria-label="Cerrar detalle">Cerrar</button></div>
+        <p>${chipEstado(v.estado)}</p>
+        <dl><dt>N° de venta</dt><dd>${esc(v.id)}</dd><dt>Fecha</dt><dd>${fechaHora(v.createdAt)}</dd>
+          <dt>Comercio</dt><dd>${esc(v.comercio.razonSocial)}</dd><dt>CUIT</dt><dd>${esc(v.comercio.cuit)}</dd>
+          <dt>Medio de pago</dt><dd>${esc(MEDIOS[v.medioPago] ?? v.medioPago)}</dd></dl>
+        <h3>Productos</h3>
+        ${v.items.map((i) => `<div class="linea"><span>${i.cantidad} × ${esc(i.descripcion)}</span><span class="num">${money(i.cantidad * i.precioUnitario)}</span></div>`).join("")}
+        <dl><dt>Subtotal</dt><dd>${money(v.total)}</dd><dt>Percepción IIBB</dt><dd>${v.percepcion ? money(perc) : "—"}</dd>
+          <dt><b>Total</b></dt><dd><b>${money(v.total + perc)}</b></dd></dl>
+        <h3>Etapas</h3>
+        <ul class="etapas">${etapas(v).map((e) => `<li>${e.chip}<span>${e.n}</span>${e.ref ? `<span class="ref">${esc(e.ref)}</span>` : ""}</li>`).join("")}</ul>
+        ${v.errorDetalle ? `<div class="aviso error" role="alert">${esc(v.errorDetalle)}</div>` : ""}
+        ${v.estado === "error" ? `<p><button class="btn primary" type="button" id="reintentar" data-id="${esc(v.id)}">Reintentar</button></p>
+          <p style="font-size:13px;color:var(--text-muted)">Repite solo la etapa que falló. Nunca vuelve a cobrar una venta ya cobrada.</p>` : ""}
+        <div id="msg-reintento" aria-live="polite"></div>`;
+    } catch (e) {
+      d.innerHTML = `<div class="card-head"><h2 id="drawer-titulo">Detalle de venta</h2><button class="btn" type="button" id="cerrar-drawer">Cerrar</button></div><div class="errbox" role="alert">${esc(e.message)}</div>`;
+    }
+    $("cerrar-drawer")?.focus();
+  }
+  function cerrarDetalle() {
+    $("drawer").classList.remove("open"); $("drawer-scrim").classList.remove("open");
+    state.drawerOrigen?.focus?.();
+  }
+  $("drawer-scrim").addEventListener("click", cerrarDetalle);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("drawer").classList.contains("open")) cerrarDetalle(); });
+
+  async function reintentar(id, btn) {
+    btn.disabled = true; btn.textContent = "Reintentando…";
+    try {
+      await api(`/tpv/ventas/${encodeURIComponent(id)}/reintentar`, { method: "POST" });
+      await abrirDetalle(id, state.drawerOrigen);
+      $("msg-reintento").innerHTML = '<div class="aviso ok">La venta se completó.</div>';
+      if ((location.hash || "#resumen") === "#ventas") cargarVentas();
+    } catch (e) {
+      await abrirDetalle(id, state.drawerOrigen);
+      $("msg-reintento").innerHTML = `<div class="aviso error" role="alert">Sigue fallando: ${esc(e.message)}</div>`;
+    }
+  }
+
+  // ---------- Caja ----------
   async function cargarCatalogo() {
-    const cont = $("catalogo");
-    cont.innerHTML = '<p class="vacio">Cargando productos…</p>';
-    try {
-      const res = await fetch("/tpv/productos?limit=100");
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      state.catalogo = data.productos ?? [];
-      renderCatalogo();
-    } catch {
-      cont.innerHTML = '<p class="vacio" style="color:var(--error)">No se pudo cargar el catálogo. Revisá la conexión con el servidor y volvé a intentar.</p>';
-    }
+    try { state.catalogo = (await api("/tpv/productos?limit=100")).productos ?? []; return null; }
+    catch (e) { return e.message; }
+  }
+
+  async function vistaCaja() {
+    $("contenido").innerHTML = `<div class="card">${skeleton(5)}</div>`;
+    const err = await cargarCatalogo();
+    if (err) { $("contenido").innerHTML = `<div class="card">${errorBox("No se pudo cargar el catálogo: " + err, "recargar")}</div>`; return; }
+    $("contenido").innerHTML = `
+      <div class="caja">
+        <section class="card" aria-labelledby="h-cat">
+          <div class="card-head"><h2 id="h-cat">Catálogo</h2>
+            <div class="field"><label for="busca">Buscar producto</label><input id="busca" type="search" value="${esc(state.busqueda)}" placeholder="Nombre o código"></div></div>
+          <div id="cat" class="cat-grid"></div>
+        </section>
+        <section class="card" aria-labelledby="h-tk">
+          <h2 id="h-tk" style="font-size:18px;margin-bottom:12px">Venta actual</h2>
+          <div class="stack">
+            <div class="field"><label for="cuit">CUIT del comercio</label><input id="cuit" inputmode="numeric" maxlength="11" value="${esc(state.comercio.cuit)}"><span class="err" id="cuit-err"></span></div>
+            <div class="field"><label for="rs">Razón social</label><input id="rs" value="${esc(state.comercio.razonSocial)}"></div>
+            <div class="field"><label for="medio">Medio de pago</label><select id="medio">${Object.entries(MEDIOS).map(([k, t]) => `<option value="${k}" ${state.medioPago === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+          </div>
+          <div id="ticket" style="margin-top:12px"></div>
+          <div id="resultado" aria-live="polite"></div>
+        </section>
+      </div>`;
+    renderCatalogo(); renderTicket(); renderResultado();
+    $("busca").addEventListener("input", (e) => { state.busqueda = e.target.value; renderCatalogo(); });
+    $("cuit").addEventListener("input", (e) => { state.comercio.cuit = e.target.value.replace(/\D/g, ""); e.target.value = state.comercio.cuit; });
+    $("rs").addEventListener("input", (e) => { state.comercio.razonSocial = e.target.value; });
+    $("medio").addEventListener("change", (e) => { state.medioPago = e.target.value; });
   }
 
   function renderCatalogo() {
-    const cont = $("catalogo");
-    const q = $("buscar").value.trim().toLowerCase();
+    const q = state.busqueda.trim().toLowerCase();
     const lista = state.catalogo.filter((p) => !q || p.nombre.toLowerCase().includes(q) || (p.codigo ?? "").toLowerCase().includes(q));
-    if (state.catalogo.length === 0) {
-      cont.innerHTML = '<p class="vacio">Todavía no hay productos. Cargá el primero con el formulario de abajo.</p>';
-      return;
-    }
-    if (lista.length === 0) {
-      cont.innerHTML = '<p class="vacio">Ningún producto coincide con la búsqueda.</p>';
-      return;
-    }
-    cont.innerHTML = lista.map((p) => `
-      <button class="producto" data-id="${escapeHtml(p.id)}" aria-label="Agregar ${escapeHtml(p.nombre)}, ${money(p.precio)}">
-        <span class="nombre">${escapeHtml(p.nombre)}</span>
-        <span class="precio num">${money(p.precio)}</span>
-      </button>`).join("");
-    cont.querySelectorAll(".producto").forEach((b) => b.addEventListener("click", () => cambiarCantidad(b.dataset.id, 1)));
-  }
-
-  function cambiarCantidad(id, delta) {
-    const nueva = (state.carrito.get(id) ?? 0) + delta;
-    if (nueva <= 0) state.carrito.delete(id); else state.carrito.set(id, nueva);
-    $("resultado").innerHTML = "";
-    renderTicket();
+    $("cat").innerHTML = !state.catalogo.length
+      ? '<div class="empty" style="grid-column:1/-1">Todavía no hay productos. Cargá el primero en <a href="#productos">Productos</a>.</div>'
+      : !lista.length ? '<div class="empty" style="grid-column:1/-1">Ningún producto coincide con la búsqueda.</div>'
+      : lista.map((p) => `<button class="prod" type="button" data-prod="${esc(p.id)}"><b>${esc(p.nombre)}</b><span>${money(p.precio)}</span></button>`).join("");
   }
 
   function renderTicket() {
-    const ul = $("ticket");
-    const items = [...state.carrito.entries()];
-    if (items.length === 0) {
-      ul.innerHTML = '<li class="vacio" style="display:block">Elegí productos del catálogo para armar la venta.</li>';
-      $("total").textContent = money(0);
-      $("cobrar").disabled = true;
-      return;
-    }
-    let total = 0;
-    ul.innerHTML = items.map(([id, cantidad]) => {
-      const p = state.catalogo.find((x) => x.id === id);
-      if (!p) return "";
-      const sub = p.precio * cantidad;
-      total += sub;
-      return `<li>
-        <span>${escapeHtml(p.nombre)}</span>
-        <span class="cantidad">
-          <button type="button" data-id="${escapeHtml(id)}" data-delta="-1" aria-label="Quitar uno de ${escapeHtml(p.nombre)}"><i data-lucide="minus"></i></button>
-          <span class="num" aria-label="Cantidad">${cantidad}</span>
-          <button type="button" data-id="${escapeHtml(id)}" data-delta="1" aria-label="Agregar uno de ${escapeHtml(p.nombre)}"><i data-lucide="plus"></i></button>
-        </span>
-        <span class="subtotal num">${money(sub)}</span>
-      </li>`;
-    }).join("");
-    ul.querySelectorAll("button[data-delta]").forEach((b) => b.addEventListener("click", () => cambiarCantidad(b.dataset.id, Number(b.dataset.delta))));
-    $("total").textContent = money(total);
-    $("cobrar").disabled = false;
-    icons();
+    const filas = [...state.carrito.entries()].map(([id, cant]) => [state.catalogo.find((p) => p.id === id), cant, id]).filter(([p]) => p);
+    const total = filas.reduce((a, [p, c]) => a + p.precio * c, 0);
+    $("ticket").innerHTML = (filas.length ? filas.map(([p, c, id]) => `
+      <div class="ticket-row"><span class="n">${esc(p.nombre)}</span>
+        <span class="qty"><button type="button" data-q="${esc(id)}" data-d="-1" aria-label="Quitar uno de ${esc(p.nombre)}">−</button><span aria-label="Cantidad">${c}</span><button type="button" data-q="${esc(id)}" data-d="1" aria-label="Agregar uno de ${esc(p.nombre)}">+</button></span>
+        <span class="num" style="min-width:76px;text-align:right">${money(p.precio * c)}</span></div>`).join("")
+      : '<div class="empty">Elegí productos del catálogo para armar la venta.</div>') + `
+      <div class="total-line"><span>Total <span class="chip info" style="font-size:12px">Estimado</span></span><span class="m">${money(total)}</span></div>
+      <button class="btn primary" type="button" id="cobrar" style="width:100%;min-height:48px" ${filas.length && !state.cobrando ? "" : "disabled"}>${state.cobrando ? "Procesando…" : "Cobrar"}</button>`;
   }
 
-  function cuitValido() {
-    const ok = /^[0-9]{11}$/.test($("cuit").value.trim());
-    $("error-cuit").hidden = ok;
-    $("cuit").setAttribute("aria-invalid", String(!ok));
-    return ok;
+  function renderResultado() {
+    const r = state.resultado, el = $("resultado");
+    if (!el) return;
+    if (!r) { el.innerHTML = ""; return; }
+    if (r.error) { el.innerHTML = `<div class="aviso error" role="alert"><b>No se pudo cobrar:</b> ${esc(r.error)}</div>`; return; }
+    const v = r.venta;
+    el.innerHTML = `<div class="aviso ok"><b>Venta ${esc(ESTADOS[v.estado]?.t ?? v.estado)}</b>
+      <ul class="etapas">${etapas(v).map((e) => `<li>${e.chip}<span>${e.n}</span>${e.ref ? `<span class="ref">${esc(e.ref)}</span>` : ""}</li>`).join("")}</ul></div>`;
   }
 
   async function cobrar() {
-    if (!cuitValido()) { $("cuit").focus(); return; }
-    const btn = $("cobrar");
-    btn.disabled = true;
-    btn.querySelector("span").textContent = "Procesando…";
-    $("resultado").innerHTML = "";
+    if (state.cobrando) return;
+    if (!/^\d{11}$/.test(state.comercio.cuit)) { $("cuit-err").textContent = "El CUIT debe tener 11 dígitos, sin puntos ni guiones."; $("cuit").focus(); return; }
+    $("cuit-err").textContent = "";
+    state.cobrando = true; state.resultado = null; renderTicket(); renderResultado();
     const items = [...state.carrito.entries()].map(([productoId, cantidad]) => ({ productoId, cantidad }));
     try {
-      const res = await fetch("/tpv/ventas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comercio: { cuit: $("cuit").value.trim(), razonSocial: $("razonSocial").value.trim() }, items, medioPago: $("medioPago").value }),
-      });
-      const data = await res.json();
-      if (!res.ok) mostrarError(data.error ?? "error desconocido");
-      else { mostrarResultado(data); state.carrito.clear(); renderTicket(); }
-    } catch {
-      mostrarError("no se pudo conectar con el servidor");
-    } finally {
-      btn.querySelector("span").textContent = "Cobrar";
-      btn.disabled = state.carrito.size === 0;
-    }
+      const v = await api("/tpv/ventas", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comercio: state.comercio, items, medioPago: state.medioPago }) });
+      state.resultado = { venta: v }; state.carrito.clear();
+    } catch (e) { state.resultado = { error: e.message }; }
+    state.cobrando = false; renderTicket(); renderResultado();
   }
 
-  function etapa(nombre, servicio, ok, detalle) {
-    const simulado = state.simulados.includes(servicio);
-    const chip = ok ? `<span class="chip ok">Confirmado</span>` : `<span class="chip error">Pendiente</span>`;
-    return `<li><strong>${nombre}</strong>${chip}${simulado ? '<span class="chip alerta">Simulado</span>' : ""}<span class="detalle">${detalle ?? ""}</span></li>`;
-  }
-
-  function mostrarResultado(v) {
-    $("resultado").innerHTML = `<div class="resultado ok">
-      <strong>Venta ${escapeHtml(v.estado)} · <span class="num">${money(v.total)}</span></strong>
-      <ul class="etapas">
-        ${etapa("Pago", "banco", !!v.pago, v.pago ? escapeHtml(v.pago.movimientoId) : "")}
-        ${etapa("Percepción IIBB", "arba", !!v.percepcion, v.percepcion ? money(v.percepcion.montoPercepcion) : "")}
-        ${etapa("Factura", "arca", !!v.factura, v.factura ? `CAE ${escapeHtml(v.factura.cae)} · vence ${escapeHtml(v.factura.vencimientoCae)}` : "")}
-      </ul>
-    </div>`;
-  }
-
-  function mostrarError(mensaje) {
-    $("resultado").innerHTML = `<div class="resultado error" role="alert"><strong>No se pudo cobrar:</strong> ${escapeHtml(mensaje)}</div>`;
-  }
-
-  $("form-producto").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const err = $("error-producto");
-    const nombre = $("p-nombre").value.trim();
-    const precio = Number($("p-precio").value);
-    if (!nombre || !(precio > 0)) {
-      err.textContent = "Completá el nombre y un precio mayor a 0.";
-      err.hidden = false;
-      return;
-    }
-    err.hidden = true;
-    const res = await fetch("/tpv/productos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, precio, codigo: $("p-codigo").value.trim() || undefined }),
+  // ---------- Productos ----------
+  async function vistaProductos() {
+    $("contenido").innerHTML = `<div class="card">${skeleton(5)}</div>`;
+    const err = await cargarCatalogo();
+    if (err) { $("contenido").innerHTML = `<div class="card">${errorBox("No se pudo cargar el catálogo: " + err, "recargar")}</div>`; return; }
+    $("contenido").innerHTML = `
+      <section class="card" aria-labelledby="h-alta">
+        <div class="card-head"><h2 id="h-alta">Cargar producto</h2></div>
+        <form id="form-prod" class="filters">
+          <div class="field"><label for="p-n">Nombre</label><input id="p-n" required></div>
+          <div class="field"><label for="p-p">Precio</label><input id="p-p" type="number" min="0" step="0.01" required></div>
+          <div class="field"><label for="p-c">Código (opcional)</label><input id="p-c"></div>
+          <button class="btn primary" type="submit">Agregar al catálogo</button>
+        </form>
+        <div id="p-msg" aria-live="polite"></div>
+      </section>
+      <section class="card" aria-labelledby="h-prods">
+        <div class="card-head"><h2 id="h-prods">Catálogo</h2><span class="chip info">${state.catalogo.length} producto${state.catalogo.length === 1 ? "" : "s"}</span></div>
+        ${state.catalogo.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Código</th><th scope="col">Nombre</th><th scope="col" class="r">Precio</th></tr></thead>
+          <tbody>${state.catalogo.map((p) => `<tr><td class="num">${esc(p.codigo ?? "—")}</td><td>${esc(p.nombre)}</td><td class="r num">${money(p.precio)}</td></tr>`).join("")}</tbody></table></div>`
+          : '<div class="empty">Todavía no hay productos. Cargá el primero arriba.</div>'}
+      </section>`;
+    $("form-prod").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const b = e.submitter; b.disabled = true;
+      try {
+        await api("/tpv/productos", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: $("p-n").value.trim(), precio: Number($("p-p").value), codigo: $("p-c").value.trim() || undefined }) });
+        vistaProductos();
+      } catch (er) { $("p-msg").innerHTML = `<div class="aviso error" role="alert">${esc(er.message)}</div>`; b.disabled = false; }
     });
-    if (res.ok) { $("form-producto").reset(); cargarCatalogo(); }
-    else {
-      const data = await res.json().catch(() => ({}));
-      err.textContent = "No se pudo cargar el producto: " + (data.error ?? "error desconocido");
-      err.hidden = false;
+  }
+
+  // ---------- Secciones en construcción ----------
+  const enConstruccion = (titulo, texto) => () => {
+    $("contenido").innerHTML = `<section class="card"><div class="empty"><h2 style="font-size:18px;color:var(--text);margin-bottom:8px">${titulo}</h2><p>${texto}</p></div></section>`;
+  };
+
+  const VISTAS = {
+    resumen: vistaResumen, caja: vistaCaja, ventas: vistaVentas, productos: vistaProductos,
+    comercios: enConstruccion("Comercios", "Esta sección todavía no está disponible. Va a mostrar los comercios que venden con esta terminal y su habilitación municipal."),
+    conexiones: enConstruccion("Conexiones", "Esta sección todavía no está disponible. Va a mostrar el estado de Municipio, ARBA, Banco, Billetera y ARCA.")
+  };
+
+  // ---------- Eventos globales ----------
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button,a");
+    if (!t) return;
+    if (t.dataset.venta) abrirDetalle(t.dataset.venta, t);
+    else if (t.id === "cerrar-drawer") cerrarDetalle();
+    else if (t.id === "reintentar") reintentar(t.dataset.id, t);
+    else if (t.dataset.prod) { state.carrito.set(t.dataset.prod, (state.carrito.get(t.dataset.prod) ?? 0) + 1); state.resultado = null; renderTicket(); renderResultado(); }
+    else if (t.dataset.q) {
+      const n = (state.carrito.get(t.dataset.q) ?? 0) + Number(t.dataset.d);
+      n <= 0 ? state.carrito.delete(t.dataset.q) : state.carrito.set(t.dataset.q, n);
+      renderTicket();
     }
+    else if (t.id === "cobrar") cobrar();
+    else if (t.dataset.pag) { state.ventas.page += Number(t.dataset.pag); cargarVentas(); }
+    else if (t.dataset.accion === "recargar") ir();
+    else if (t.dataset.accion === "recargar-ventas") cargarVentas();
+    else if (t.hasAttribute("data-filtro-error")) { state.ventas.filtros = { desde: "", hasta: "", estado: "error", medioPago: "" }; state.ventas.page = 1; }
   });
 
-  $("buscar").addEventListener("input", renderCatalogo);
-  $("cuit").addEventListener("blur", cuitValido);
-  $("cobrar").addEventListener("click", cobrar);
-  $("menu-btn").addEventListener("click", () => {
-    const abierto = $("sidebar").classList.toggle("abierto");
-    $("menu-btn").setAttribute("aria-expanded", String(abierto));
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && $("sidebar").classList.contains("abierto")) {
-      $("sidebar").classList.remove("abierto");
-      $("menu-btn").setAttribute("aria-expanded", "false");
-      $("menu-btn").focus();
-    }
-  });
-
-  icons();
-  renderTicket();
-  verificarApi();
-  cargarCatalogo();
+  chequearApi(); setInterval(chequearApi, 30000);
+  ir();
+})();
 </script>
 </body>
 </html>
+
+
+
