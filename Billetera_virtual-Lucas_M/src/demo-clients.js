@@ -1,6 +1,15 @@
 // Datos ficticios para probar la billetera localmente. No pertenecen a clientes reales.
 module.exports = [
   {
+    codigo: 'catedra-demo',
+    titular: 'Cátedra I26 (Demo)',
+    cuit: '20268326074',
+    alias: 'catedra.prueba',
+    contrasena_demo: 'demo1234',
+    saldo_inicial: 100000,
+    perfil: 'Cuenta de la cátedra para demostraciones',
+  },
+  {
     codigo: 'ana-demo',
     titular: 'Ana Gómez (Demo)',
     cuit: '30000000001',

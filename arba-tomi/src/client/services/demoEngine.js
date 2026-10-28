@@ -9,6 +9,7 @@ const USERS_KEY = 'arba_demo_usuarios_v1';
 const AUDIT_KEY = 'arba_demo_auditoria_v1';
 const DEMO_USERS = [
   { id: 1, nombre: 'Administración demo', email: 'admin@arba.demo', password: 'demo-admin-123', rol: 'admin', activo: true },
+  { id: 3, nombre: 'Cátedra', email: 'demo.arba.i26@gmail.com', password: 'ArbaDemo2026', rol: 'admin', activo: true },
   { id: 2, nombre: 'Usuario demo', email: 'usuario@arba.demo', password: 'demo-user-123', rol: 'convencional', activo: true },
 ];
 const loadJson = (key, fallback) => { try { const value = JSON.parse(localStorage.getItem(key) || 'null'); return value ?? fallback; } catch { return fallback; } };

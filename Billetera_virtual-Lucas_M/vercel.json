@@ -1,4 +1,10 @@
 {
   "framework": null,
-  "outputDirectory": "public"
+  "installCommand": "npm ci",
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/health", "destination": "/api" },
+    { "source": "/billetera/:path*", "destination": "/api" }
+  ]
 }

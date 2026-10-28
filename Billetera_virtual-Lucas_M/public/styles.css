@@ -311,3 +311,6 @@ input, button { min-width: 0; }
 .qr-art svg { display: block; width: 100%; height: 100%; }
 .qr-generated .text-button { margin-top: 5px; padding: 8px; }
 .qr-disclaimer { margin-bottom: 0; }
+
+.demo-hint { display: grid; gap: .25rem; margin-top: 1rem; padding: .75rem .9rem; border: 1px dashed #AF9B63; border-radius: 10px; background: #FBF8F0; color: #14214F; font-size: .82rem; line-height: 1.45; }
+.demo-hint code { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }

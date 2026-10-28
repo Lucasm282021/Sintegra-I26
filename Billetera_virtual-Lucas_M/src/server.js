@@ -319,6 +319,10 @@ app.use((error, _req, res, _next) => {
   return fail(res, 500, 'error interno del servidor');
 });
 
-app.listen(PORT, () => {
-  console.log(`Billetera Virtual escuchando en http://localhost:${PORT}`);
-});
+// En Vercel la app corre como función (api/index.js); localmente escucha en PORT.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Billetera Virtual escuchando en http://localhost:${PORT}`);
+  });
+}
+module.exports = app;

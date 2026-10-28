@@ -15,7 +15,7 @@ export function App() {
   const [authError, setAuthError] = useState('');
   // Modo explícito seleccionado por el usuario ('api' | 'demo')
   const [mode, setMode] = useState(() => {
-    return localStorage.getItem('arba_app_mode') || 'demo';
+    return localStorage.getItem('arba_app_mode') || 'api';
   });
 
   const [apiBaseUrl, setApiBaseUrl] = useState(() => {
