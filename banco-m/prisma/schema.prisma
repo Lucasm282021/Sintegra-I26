@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cuenta {
+  id             String   @id @default(cuid())
+  cuit           String   @unique
+  cbu            String   @unique
+  alias          String   @unique
+  titularNombre  String
+  saldo          Decimal  @default(0) @db.Decimal(15, 2)
+  activa         Boolean  @default(true)
+  creadaEn       DateTime @default(now())
+  actualizadaEn  DateTime @updatedAt
+
+  movimientos             Movimiento[]
+  transferenciasEnviadas  Transferencia[] @relation("Origen")
+  transferenciasRecibidas Transferencia[] @relation("Destino")
+}
+
+model Movimiento {
+  id            String         @id @default(cuid())
+  cuentaId      String
+  tipo          TipoMovimiento
+  monto         Decimal        @db.Decimal(15, 2)
+  descripcion   String?
+  referencia    String?
+  origen        String?
+  saldoAntes    Decimal        @db.Decimal(15, 2)
+  saldoDespues  Decimal        @db.Decimal(15, 2)
+  creadoEn      DateTime       @default(now())
+
+  cuenta Cuenta @relation(fields: [cuentaId], references: [id])
+}
+
+model Transferencia {
+  id          String              @id @default(cuid())
+  origenId    String
+  destinoId   String
+  monto       Decimal             @db.Decimal(15, 2)
+  descripcion String?
+  estado      EstadoTransferencia @default(PENDIENTE)
+  creadaEn    DateTime            @default(now())
+
+  origen  Cuenta @relation("Origen",  fields: [origenId],  references: [id])
+  destino Cuenta @relation("Destino", fields: [destinoId], references: [id])
+}
+
+enum TipoMovimiento {
+  CREDITO
+  DEBITO
+}
+
+enum EstadoTransferencia {
+  PENDIENTE
+  COMPLETADA
+  RECHAZADA
+}
