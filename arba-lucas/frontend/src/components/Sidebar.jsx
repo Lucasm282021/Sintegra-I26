@@ -1,6 +1,7 @@
 import React from 'react';
 
-export default function Sidebar({ activeSection, onSelectSection, padronCount, historialCount, status, isOpen }) {
+export default function Sidebar({ activeSection, onSelectSection, padronCount, historialCount, status, mode, isOpen, currentUser }) {
+  const isDemo = mode === 'demo';
   const navItems = [
     {
       id: 'inicio',
@@ -114,11 +115,22 @@ export default function Sidebar({ activeSection, onSelectSection, padronCount, h
 
       {/* Footer Status */}
       <div className="sidebar-footer">
+        {currentUser && (
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-avatar">{currentUser.nombre.charAt(0).toUpperCase()}</span>
+            <div className="sidebar-user-meta">
+              <span className="sidebar-user-name">{currentUser.nombre}</span>
+              <span className="sidebar-user-role">{currentUser.rol === 'admin' ? 'Administrador' : 'Operador'}</span>
+            </div>
+          </div>
+        )}
         <div className="system-status-indicator">
-          <span className={`status-dot ${status.online ? 'status-online' : 'status-offline'}`} />
+          <span className={`status-dot ${isDemo ? 'status-demo' : status.online ? 'status-online' : 'status-offline'}`} />
           <div className="status-meta">
-            <span className="status-text">{status.online ? 'Servicio conectado' : 'Desconectado'}</span>
-            <span className="status-sub">Módulo en línea</span>
+            <span className="status-text">
+              {isDemo ? 'Modo demo' : status.online ? 'Servicio conectado' : 'Desconectado'}
+            </span>
+            <span className="status-sub">{isDemo ? 'Simulación en el navegador' : 'API REST ARBA'}</span>
           </div>
         </div>
       </div>

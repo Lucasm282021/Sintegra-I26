@@ -1,11 +1,13 @@
 const http = require('http');
+// Las pruebas usan almacenamiento en memoria para no modificar data/db.json
+process.env.DB_PATH = ':memory:';
 const app = require('./src/index.js');
 
 const PORT = 3099; // Puerto aislado para ejecución de pruebas
 const server = app.listen(PORT, async () => {
   console.log(`[Tests ARBA] Servidor de prueba levantado en puerto ${PORT}`);
 
-  function request(path, method = 'GET', body = null) {
+  function request(path, method = 'GET', body = null, extraHeaders = {}) {
     return new Promise((resolve, reject) => {
       const dataStr = body ? JSON.stringify(body) : null;
       const req = http.request(
@@ -17,6 +19,7 @@ const server = app.listen(PORT, async () => {
           headers: {
             'Content-Type': 'application/json',
             ...(dataStr ? { 'Content-Length': Buffer.byteLength(dataStr) } : {}),
+            ...extraHeaders,
           },
         },
         (res) => {
@@ -38,8 +41,10 @@ const server = app.listen(PORT, async () => {
   }
 
   let failures = 0;
+  let total = 0;
 
   function assert(condition, testName) {
+    total++;
     if (condition) {
       console.log(`  ✓ ${testName}`);
     } else {
@@ -134,11 +139,117 @@ const server = app.listen(PORT, async () => {
     });
     assert(r10.status === 400 && r10.data.error, 'POST /arba/percepciones con payload inválido devuelve 400');
 
+    console.log('\n--- Contrato unificado /api/v1/arba ---');
+
+    // 11. Consulta de inscripción v1 con tasa versionada
+    const r11 = await request('/api/v1/arba/padron/30712345678');
+    assert(
+      r11.status === 200 &&
+        r11.data.data.rate === 0.03 &&
+        r11.data.data.jurisdiccion === 'PBA' &&
+        typeof r11.data.data.valid_from === 'string' &&
+        r11.data.data.source,
+      'GET /api/v1/arba/padron/:cuit devuelve { data } con rate, jurisdicción y vigencia'
+    );
+
+    // 12. Percepción v1 en centavos con Idempotency-Key
+    const saleId = `VENTA-V1-${Date.now()}`;
+    const v1Body = { cuit: '30712345678', base_amount_minor: 1020000, currency: 'ARS' };
+    const r12 = await request('/api/v1/arba/percepciones', 'POST', v1Body, { 'Idempotency-Key': saleId });
+    assert(
+      r12.status === 201 &&
+        r12.data.data.sale_id === saleId &&
+        r12.data.data.tax_amount_minor === 30600 &&
+        r12.data.data.base_amount_minor === 1020000 &&
+        r12.data.data.status === 'calculated' &&
+        r12.data.data.idempotent_replay === false,
+      'POST /api/v1/arba/percepciones calcula en centavos (1020000 → 30600) con 201'
+    );
+
+    // 13. Reintento v1 idéntico usando sale_id en el body
+    const r13 = await request('/api/v1/arba/percepciones', 'POST', { ...v1Body, sale_id: saleId });
+    assert(
+      r13.status === 200 && r13.data.data.idempotent_replay === true && r13.data.data.perception_id === r12.data.data.perception_id,
+      'POST /api/v1/arba/percepciones reintento idéntico devuelve 200 sin duplicar'
+    );
+
+    // 14. Conflicto v1 con distinto importe
+    const r14 = await request('/api/v1/arba/percepciones', 'POST', { ...v1Body, sale_id: saleId, base_amount_minor: 999 });
+    assert(r14.status === 409 && r14.data.error, 'POST /api/v1/arba/percepciones mismo sale_id con otro importe devuelve 409');
+
+    // 15. Compatibilidad cruzada: una venta legada es visible e idempotente en v1
+    const r15 = await request('/api/v1/arba/percepciones', 'POST', {
+      sale_id: testIdVenta,
+      cuit: '30712345678',
+      base_amount_minor: 1020000,
+    });
+    assert(r15.status === 200 && r15.data.data.sale_id === testIdVenta, 'id_venta legado y sale_id v1 comparten la misma idempotencia');
+
+    // 16. Validaciones v1
+    const r16 = await request('/api/v1/arba/percepciones', 'POST', { sale_id: 'x', cuit: '30712345678', base_amount_minor: 10.5 });
+    const r16b = await request('/api/v1/arba/percepciones', 'POST', { sale_id: 'a', id_venta: 'b', cuit: '30712345678', monto_venta: 10 });
+    assert(r16.status === 400 && r16b.status === 400, 'v1 rechaza importes no enteros y sale_id/id_venta contradictorios (400)');
+
+    // 17. Historial por CUIT
+    const r17 = await request('/arba/percepciones/30712345678');
+    assert(r17.status === 200 && r17.data.total >= 2, 'GET /arba/percepciones/:cuit devuelve el historial del contribuyente');
+
+    console.log('\n--- Autenticación y Usuarios (/auth) ---');
+
+    // 18. Login exitoso con usuario semilla
+    const r18 = await request('/auth/login', 'POST', {
+      email: 'admin@arba.demo',
+      password: 'admin123',
+    });
+    assert(
+      r18.status === 200 && r18.data.user?.rol === 'admin' && typeof r18.data.token === 'string',
+      'POST /auth/login con credenciales válidas devuelve 200, usuario y token'
+    );
+
+    // 19. Login fallido por contraseña incorrecta
+    const r19 = await request('/auth/login', 'POST', {
+      email: 'admin@arba.demo',
+      password: 'clave-incorrecta',
+    });
+    assert(r19.status === 401 && r19.data.error, 'POST /auth/login con clave incorrecta devuelve 401 Unauthorized');
+
+    // 20. Registro de nuevo usuario con rol
+    const testEmail = `nuevo-${Date.now()}@arba.demo`;
+    const r20 = await request('/auth/register', 'POST', {
+      nombre: 'Profesor Evaluador',
+      email: testEmail,
+      password: 'password123',
+      rol: 'admin',
+    });
+    assert(
+      r20.status === 201 &&
+        r20.data.user?.email === testEmail &&
+        r20.data.user?.rol === 'admin' &&
+        typeof r20.data.token === 'string',
+      'POST /auth/register crea nuevo usuario con 201 y token'
+    );
+
+    // 21. Registro duplicado
+    const r21 = await request('/auth/register', 'POST', {
+      nombre: 'Intento Duplicado',
+      email: testEmail,
+      password: 'password123',
+      rol: 'operador',
+    });
+    assert(r21.status === 409 && r21.data.error, 'POST /auth/register con email ya existente devuelve 409 Conflict');
+
+    // 22. Perfil autenticado GET /auth/me
+    const r22 = await request('/auth/me', 'GET', null, { Authorization: `Bearer ${r20.data.token}` });
+    assert(
+      r22.status === 200 && r22.data.user?.email === testEmail,
+      'GET /auth/me con Bearer token devuelve los datos del usuario autenticado'
+    );
+
     console.log('\n--- Resumen de pruebas ---');
     if (failures === 0) {
-      console.log('✓ 10/10 pruebas pasaron exitosamente.\n');
+      console.log(`✓ ${total}/${total} pruebas pasaron exitosamente.\n`);
     } else {
-      console.error(`✗ ${failures} pruebas fallaron.\n`);
+      console.error(`✗ ${failures}/${total} pruebas fallaron.\n`);
     }
   } catch (error) {
     console.error('Error fatal durante la prueba:', error);

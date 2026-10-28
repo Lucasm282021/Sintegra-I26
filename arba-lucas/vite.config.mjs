@@ -12,7 +12,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/health': 'http://localhost:3003',
+      '/auth': 'http://localhost:3003',
       '/arba': 'http://localhost:3003',
+      '/api/v1': 'http://localhost:3003',
     },
   },
 });

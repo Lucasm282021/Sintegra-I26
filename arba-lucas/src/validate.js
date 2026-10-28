@@ -27,6 +27,11 @@ function validarActividad(actividad) {
   return typeof actividad === 'string' && actividad.trim().length > 0;
 }
 
+// Importe en unidad menor (centavos): entero estrictamente mayor a 0
+function validarMontoMinor(monto) {
+  return Number.isSafeInteger(monto) && monto > 0;
+}
+
 // Redondeo exacto a 2 decimales para importes monetarios
 function round2(valor) {
   return Math.round((valor + Number.EPSILON) * 100) / 100;
@@ -38,5 +43,6 @@ module.exports = {
   validarIdVenta,
   validarAlicuota,
   validarActividad,
+  validarMontoMinor,
   round2,
 };

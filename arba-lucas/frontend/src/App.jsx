@@ -12,12 +12,21 @@ import ModalCreatePadron from './components/ModalCreatePadron';
 import ModalEditPadron from './components/ModalEditPadron';
 import ModalDeletePadron from './components/ModalDeletePadron';
 import ModalViewPadron from './components/ModalViewPadron';
-import { apiUrl } from './apiUrl';
+import IntroOverlay, { shouldShowIntro } from './components/IntroOverlay';
+import AuthView from './components/AuthView';
+import { arbaService, getMode, setMode, getSession, MODES } from './services/arbaService';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    const s = getSession();
+    return s?.user || null;
+  });
+
   const [activeSection, setActiveSection] = useState('inicio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [healthStatus, setHealthStatus] = useState({ online: false });
+  const [mode, setModeState] = useState(getMode);
+  const [healthStatus, setHealthStatus] = useState({ online: false, checked: false });
+  const [showIntro, setShowIntro] = useState(shouldShowIntro);
 
   // Datos
   const [stats, setStats] = useState({
@@ -47,155 +56,136 @@ export default function App() {
 
   // Health check
   const checkHealth = useCallback(async () => {
-    try {
-      const res = await fetch(apiUrl('/health'));
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'ok') {
-          setHealthStatus({ online: true });
-          return;
-        }
-      }
-      setHealthStatus({ online: false });
-    } catch {
-      setHealthStatus({ online: false });
-    }
+    const r = await arbaService.health();
+    setHealthStatus({ online: r.ok && r.data?.status === 'ok', checked: true });
   }, []);
 
   // Carga de Estadísticas
   const loadStats = useCallback(async () => {
-    try {
-      const res = await fetch(apiUrl('/arba/stats'));
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (err) {
-      console.error('Error cargando estadísticas:', err);
-    }
+    const r = await arbaService.stats();
+    if (r.ok) setStats(r.data);
   }, []);
 
   // Carga de Padrón
   const loadPadron = useCallback(async () => {
-    try {
-      const res = await fetch(apiUrl('/arba/padron?page=1&limit=100'));
-      if (res.ok) {
-        const data = await res.json();
-        setPadron(data.items || []);
-      }
-    } catch (err) {
-      console.error('Error cargando padrón:', err);
-      addToast('No se pudo conectar con el padrón fiscal', 'error');
+    const r = await arbaService.listPadron(1, 100);
+    if (r.ok) {
+      setPadron(r.data.items || []);
+    } else if (r.networkError) {
+      setPadron([]);
+      addToast('No se pudo conectar con el padrón fiscal. Podés activar el Modo Demo.', 'error');
     }
   }, [addToast]);
 
   // Carga de Percepciones
   const loadHistory = useCallback(async () => {
-    try {
-      const res = await fetch(apiUrl('/arba/percepciones?page=1&limit=100'));
-      if (res.ok) {
-        const data = await res.json();
-        setPercepciones(data.items || []);
-      }
-    } catch (err) {
-      console.error('Error cargando historial:', err);
-    }
+    const r = await arbaService.listPercepciones(1, 100);
+    if (r.ok) setPercepciones(r.data.items || []);
+    else if (r.networkError) setPercepciones([]);
   }, []);
 
-  // Inicialización
+  // Inicialización y recarga completa al cambiar de modo o de usuario
   useEffect(() => {
     checkHealth();
-    loadStats();
-    loadPadron();
-    loadHistory();
+    if (currentUser) {
+      loadStats();
+      loadPadron();
+      loadHistory();
+    }
     const timer = setInterval(checkHealth, 15000);
     return () => clearInterval(timer);
-  }, [checkHealth, loadStats, loadPadron, loadHistory]);
+  }, [mode, currentUser, checkHealth, loadStats, loadPadron, loadHistory]);
+
+  const handleChangeMode = (nextMode) => {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setModeState(nextMode);
+    addToast(
+      nextMode === MODES.DEMO
+        ? 'Modo Demo activo: los datos y autenticación se simulan en este navegador'
+        : 'Modo API activo: conectando con el servicio ARBA',
+      'info'
+    );
+  };
+
+  // Manejadores de Autenticación
+  const handleAuth = async (action, payload) => {
+    const res = action === 'register' ? await arbaService.register(payload) : await arbaService.login(payload);
+    if (res.ok && res.data?.user) {
+      setCurrentUser(res.data.user);
+      addToast(`Bienvenido/a, ${res.data.user.nombre} (${res.data.user.rol === 'admin' ? 'Administrador' : 'Operador'})`, 'success');
+      loadStats();
+      loadPadron();
+      loadHistory();
+    }
+    return res;
+  };
+
+  const handleLogout = async () => {
+    await arbaService.logout();
+    setCurrentUser(null);
+    addToast('Sesión cerrada correctamente', 'info');
+  };
 
   // Manejadores CRUD
   const handleCreateTaxpayer = async (newTaxpayer, callback) => {
-    try {
-      const res = await fetch(apiUrl('/arba/padron'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTaxpayer),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 409) {
-          callback('Este CUIT ya se encuentra registrado en el padrón fiscal.');
-        } else {
-          callback(data.error || 'Error al guardar contribuyente.');
-        }
-        return;
-      }
-
-      addToast(`Contribuyente ${newTaxpayer.cuit} incorporado con éxito`, 'success');
-      loadPadron();
-      loadStats();
-      callback(null);
-    } catch {
-      callback('Error de conexión con el servidor.');
+    const r = await arbaService.createPadron(newTaxpayer);
+    if (r.networkError) return callback('Error de conexión con el servidor.');
+    if (!r.ok) {
+      return callback(
+        r.status === 409
+          ? 'Este CUIT ya se encuentra registrado en el padrón fiscal.'
+          : r.data.error || 'Error al guardar contribuyente.'
+      );
     }
+    addToast(`Contribuyente ${newTaxpayer.cuit} incorporado con éxito`, 'success');
+    loadPadron();
+    loadStats();
+    callback(null);
   };
 
   const handleUpdateTaxpayer = async (cuit, updates) => {
-    try {
-      const res = await fetch(apiUrl(`/arba/padron/${cuit}`), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        addToast(data.error || 'Error al actualizar contribuyente', 'error');
-        return;
-      }
-
-      addToast(`Contribuyente ${cuit} actualizado con éxito`, 'success');
-      loadPadron();
-      loadStats();
-    } catch {
-      addToast('Error de red al actualizar contribuyente', 'error');
+    const r = await arbaService.updatePadron(cuit, updates);
+    if (!r.ok) {
+      addToast(r.networkError ? 'Error de red al actualizar contribuyente' : r.data.error || 'Error al actualizar contribuyente', 'error');
+      return;
     }
+    addToast(`Contribuyente ${cuit} actualizado con éxito`, 'success');
+    loadPadron();
+    loadStats();
   };
 
   const handleDeleteTaxpayer = async (cuit) => {
-    try {
-      const res = await fetch(apiUrl(`/arba/padron/${cuit}`), { method: 'DELETE' });
-      const data = await res.json();
-
-      if (!res.ok) {
-        addToast(data.error || 'Error al eliminar contribuyente', 'error');
-        return;
-      }
-
-      addToast(`Contribuyente ${cuit} eliminado del padrón`, 'success');
-      loadPadron();
-      loadStats();
-    } catch {
-      addToast('Error de red al eliminar contribuyente', 'error');
+    if (currentUser?.rol !== 'admin') {
+      addToast('Solo los administradores pueden dar de baja contribuyentes del padrón', 'error');
+      return;
     }
+    const r = await arbaService.deletePadron(cuit);
+    if (!r.ok) {
+      addToast(r.networkError ? 'Error de red al eliminar contribuyente' : r.data.error || 'Error al eliminar contribuyente', 'error');
+      return;
+    }
+    addToast(`Contribuyente ${cuit} eliminado del padrón`, 'success');
+    loadPadron();
+    loadStats();
   };
 
   const handleResetSeed = async () => {
-    if (!confirm('¿Desea restablecer el padrón a la semilla determinista inicial (5 contribuyentes) y reiniciar el historial?')) {
+    if (currentUser?.rol !== 'admin') {
+      addToast('Solo los administradores pueden restablecer la base de datos', 'error');
       return;
     }
-    try {
-      const res = await fetch(apiUrl('/arba/seed/reset'), { method: 'POST' });
-      if (res.ok) {
-        addToast('Padrón restablecido a la semilla inicial', 'success');
-        loadPadron();
-        loadStats();
-        loadHistory();
-      } else {
-        addToast('Error al restablecer datos', 'error');
-      }
-    } catch {
-      addToast('Error de red al restablecer datos', 'error');
+    if (!confirm('¿Desea restablecer el padrón a la semilla determinista inicial y reiniciar el historial?')) {
+      return;
+    }
+    const r = await arbaService.resetSeed();
+    if (r.ok) {
+      addToast('Padrón restablecido a la semilla inicial', 'success');
+      loadPadron();
+      loadStats();
+      loadHistory();
+    } else {
+      addToast(r.networkError ? 'Error de red al restablecer datos' : 'Error al restablecer datos', 'error');
     }
   };
 
@@ -213,6 +203,22 @@ export default function App() {
     }
   };
 
+  // Si no está autenticado, el login es OBLIGATORIO
+  if (!currentUser) {
+    return (
+      <div className="auth-wrapper">
+        <AuthView
+          onLoginSuccess={handleAuth}
+          mode={mode}
+          onChangeMode={handleChangeMode}
+          status={healthStatus}
+        />
+        <ToastContainer toasts={toasts} />
+        {showIntro && <IntroOverlay onClose={() => setShowIntro(false)} />}
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
       <a className="skip-link" href="#contenido">Saltar al contenido</a>
@@ -226,7 +232,9 @@ export default function App() {
         padronCount={padron.length}
         historialCount={percepciones.length}
         status={healthStatus}
+        mode={mode}
         isOpen={sidebarOpen}
+        currentUser={currentUser}
       />
 
       <div className="app-main">
@@ -234,6 +242,12 @@ export default function App() {
         <Topbar
           activeSection={activeSection}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+          mode={mode}
+          onChangeMode={handleChangeMode}
+          status={healthStatus}
+          onShowIntro={() => setShowIntro(true)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Contenedor de Vistas */}
@@ -252,7 +266,13 @@ export default function App() {
               padron={padron}
               onOpenCreate={() => setIsCreateOpen(true)}
               onOpenEdit={(taxpayer) => setEditingTaxpayer(taxpayer)}
-              onOpenDelete={(taxpayer) => setDeletingTaxpayer(taxpayer)}
+              onOpenDelete={(taxpayer) => {
+                if (currentUser.rol !== 'admin') {
+                  addToast('Acción restringida: solo administradores pueden eliminar contribuyentes', 'error');
+                  return;
+                }
+                setDeletingTaxpayer(taxpayer);
+              }}
               onOpenView={(taxpayer) => setViewingTaxpayer(taxpayer)}
               onRefresh={loadPadron}
             />
@@ -261,6 +281,7 @@ export default function App() {
           {activeSection === 'simulador' && (
             <SimuladorView
               padron={padron}
+              mode={mode}
               onExecutePercepcion={handlePercepcionExecuted}
             />
           )}
@@ -280,7 +301,7 @@ export default function App() {
           )}
 
           {activeSection === 'admin' && (
-            <AdminView onResetSeed={handleResetSeed} />
+            <AdminView onResetSeed={handleResetSeed} mode={mode} />
           )}
         </main>
       </div>
@@ -315,6 +336,9 @@ export default function App() {
 
       {/* Notificaciones Toast */}
       <ToastContainer toasts={toasts} />
+
+      {/* Intro institucional */}
+      {showIntro && <IntroOverlay onClose={() => setShowIntro(false)} />}
     </div>
   );
 }

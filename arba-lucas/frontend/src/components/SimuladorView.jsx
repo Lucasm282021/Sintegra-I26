@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { apiUrl } from '../apiUrl';
+import { arbaService } from '../services/arbaService';
 import { formatCurrency, formatPercent, formatDecimal, formatCuit, generateSaleId } from '../utils/formatters';
 
-export default function SimuladorView({ padron, onExecutePercepcion }) {
+export default function SimuladorView({ padron, mode, onExecutePercepcion }) {
   const [idVenta, setIdVenta] = useState(generateSaleId());
   const [cuit, setCuit] = useState('');
   const [montoVenta, setMontoVenta] = useState('');
@@ -28,18 +28,16 @@ export default function SimuladorView({ padron, onExecutePercepcion }) {
       setVerifiedTaxpayer(null);
       return;
     }
-    try {
-      const res = await fetch(apiUrl(`/arba/padron/${cuitToVerify}`));
-      if (res.status === 200) {
-        const data = await res.json();
-        setVerifiedTaxpayer(data);
-        setCuitStatus({ valid: true, text: `✓ Contribuyente en padrón: ${data.actividad} (${formatPercent(data.alicuota)})` });
-      } else {
-        setVerifiedTaxpayer(null);
-        setCuitStatus({ valid: false, text: '✗ CUIT no registrado en el padrón (Devolverá 404 Not Found)' });
-      }
-    } catch {
+    const r = await arbaService.getPadron(cuitToVerify);
+    if (r.status === 200) {
+      setVerifiedTaxpayer(r.data);
+      setCuitStatus({ valid: true, text: `✓ Contribuyente en padrón: ${r.data.actividad} (${formatPercent(r.data.alicuota)})` });
+    } else if (r.networkError) {
+      setVerifiedTaxpayer(null);
       setCuitStatus({ valid: false, text: 'Error al verificar CUIT con el servidor' });
+    } else {
+      setVerifiedTaxpayer(null);
+      setCuitStatus({ valid: false, text: '✗ CUIT no registrado en el padrón (Devolverá 404 Not Found)' });
     }
   };
 
@@ -67,30 +65,28 @@ export default function SimuladorView({ padron, onExecutePercepcion }) {
   };
 
   const runPercepcion = async (payload) => {
-    setApiResponse({ status: 'Procesando...', body: 'Enviando petición POST /arba/percepciones...' });
-    try {
-      const res = await fetch(apiUrl('/arba/percepciones'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      const statusText =
-        res.status === 201 ? '201 Created (Nueva percepción)' :
-        res.status === 200 ? '200 OK (Idempotente)' :
-        res.status === 409 ? '409 Conflict' :
-        res.status === 404 ? '404 Not Found' : `${res.status} Error`;
+    const origen = mode === 'demo' ? 'Modo Demo (navegador)' : 'API';
+    setApiResponse({ status: 'Procesando...', body: `Enviando petición POST /arba/percepciones → ${origen}...` });
+    const r = await arbaService.crearPercepcion(payload);
 
-      setApiResponse({
-        status: statusText,
-        statusCode: res.status,
-        body: JSON.stringify(data, null, 2),
-      });
-
-      if (onExecutePercepcion) onExecutePercepcion(res.status, data);
-    } catch (err) {
-      setApiResponse({ status: 'Error de red', statusCode: 500, body: JSON.stringify({ error: err.message }, null, 2) });
+    if (r.networkError) {
+      setApiResponse({ status: 'Error de red', statusCode: 500, body: JSON.stringify(r.data, null, 2) });
+      return;
     }
+
+    const statusText =
+      r.status === 201 ? '201 Created (Nueva percepción)' :
+      r.status === 200 ? '200 OK (Idempotente)' :
+      r.status === 409 ? '409 Conflict' :
+      r.status === 404 ? '404 Not Found' : `${r.status} Error`;
+
+    setApiResponse({
+      status: `${statusText} · ${r.origin}`,
+      statusCode: r.status,
+      body: JSON.stringify(r.data, null, 2),
+    });
+
+    if (onExecutePercepcion) onExecutePercepcion(r.status, r.data);
   };
 
   const montoNum = parseFloat(montoVenta) || 0;

@@ -64,7 +64,30 @@ npm install
 | `npm run dev` | Inicia el backend con reinicio automático ante cambios (`nodemon`). |
 | `npm run build` | Compila el frontend React con Vite hacia la carpeta `dist/`. |
 | `npm run client` | Inicia el servidor de desarrollo de Vite con recarga rápida (HMR) y proxy a la API en el puerto 3003. |
-| `npm test` | Ejecuta la suite de pruebas unitarias y de integración de cátedra (**10/10 tests pasando**). |
+| `npm test` | Ejecuta la suite de pruebas automatizadas (**22/22 tests pasando**: 10 contrato legado + 7 contrato v1 + 5 autenticación y usuarios). |
+
+---
+
+## 3.1. Modos de Operación y Funcionalidades Nuevas
+
+### A. Autenticación Obligatoria y Registro con Selector de Rol
+- **Acceso obligatorio:** La consola requiere iniciar sesión antes de ingresar a los paneles de administración y simulación.
+- **Formulario de Registro:** Permite a nuevos usuarios registrarse eligiendo explícitamente su rol:
+  - **Operador:** Consulta de padrón, simulación de percepciones y consulta de historial.
+  - **Administrador:** Control total, alta/baja de contribuyentes y restablecimiento de datos.
+- **Accesos Rápidos Demo:** Dos botones de un solo clic para ingresar como `admin@arba.demo` o `operador@arba.demo`.
+- **Protección de rutas:** Contraseñas protegidas mediante hash criptográfico con `scrypt` nativo.
+
+### B. Selector de Modo (API vs Demo)
+El encabezado (**Topbar**) cuenta con un selector explícito entre:
+- **Modo API:** Consume la API REST en `http://localhost:3003` o la función serverless de Vercel. Si el servicio no responde, el indicador muestra `API desconectada` y ofrece pasar al Modo Demo con un clic (sin inventar datos en silencio).
+- **Modo Demo:** Simulación 100% en el navegador (`services/demoEngine.js` y `localStorage`). Replica exactamente las mismas validaciones, cálculo en centavos, idempotencia (`201`, `200`, `409`) y errores `404` sin necesidad de backend.
+
+### C. Intro Institucional ARBA
+- Al ingresar por primera vez a la aplicación, se reproduce un video de presentación institucional (`intro-arba.mp4`).
+- Se reproduce silenciado por defecto para cumplir con las políticas de autoplay de los navegadores, con controles para activar sonido, omitir con tecla `Esc` / `Enter` o botón *"Entrar al módulo"*.
+- Respeta la preferencia del sistema de movimiento reducido (`prefers-reduced-motion`).
+- La visualización se guarda en `sessionStorage` para no interrumpir recargas; se puede volver a ver en cualquier momento con el botón **"Ver intro"** del Topbar.
 
 ---
 
