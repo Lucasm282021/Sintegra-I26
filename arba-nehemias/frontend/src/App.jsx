@@ -15,6 +15,7 @@ export default function App() {
   const [setupRequired, setSetupRequired] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [introComplete, setIntroComplete] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -81,53 +82,104 @@ export default function App() {
 
   const isAdmin = ['admin', 'superadmin'].includes(user.role);
   const tabs = [
-    { id: 'padron', label: 'Padrón Público' },
-    ...(isAdmin ? [{ id: 'comercios', label: 'Administración de Comercios' }] : []),
-    { id: 'percepciones', label: 'Registrar Percepción' },
-    { id: 'historial', label: 'Historial de Percepciones' },
-    ...(user.role === 'superadmin' ? [{ id: 'usuarios', label: 'Usuarios' }] : []),
+    { id: 'padron', label: 'Padrón público', icon: 'search', group: 'Consultas' },
+    ...(isAdmin ? [{ id: 'comercios', label: 'Comercios', icon: 'store', group: 'Gestión' }] : []),
+    { id: 'percepciones', label: 'Registrar percepción', icon: 'receipt', group: 'Operaciones' },
+    { id: 'historial', label: 'Historial', icon: 'history', group: 'Operaciones' },
+    ...(user.role === 'superadmin' ? [{ id: 'usuarios', label: 'Usuarios', icon: 'users', group: 'Administración' }] : []),
   ];
+  const activePage = tabs.find((tab) => tab.id === activeTab) || tabs[0];
+  const groups = [...new Set(tabs.map((tab) => tab.group))];
 
   return (
     <div className="app-container">
-      <header>
-        <div>
-          <div className="brand-title">Sintegra I26 — Módulo ARBA</div>
-          <div className="brand-subtitle">Simulador Académico de Percepción de Ingresos Brutos</div>
+      <a className="skip-link" href="#main-content">Saltar al contenido</a>
+      <button
+        className="mobile-menu-toggle"
+        type="button"
+        aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+        aria-expanded={menuOpen}
+        aria-controls="app-sidebar"
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <NavIcon name={menuOpen ? 'close' : 'menu'} />
+      </button>
+      {menuOpen && <button className="sidebar-backdrop" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} />}
+
+      <aside id="app-sidebar" className={`app-sidebar ${menuOpen ? 'is-open' : ''}`} aria-label="Menú principal">
+        <div className="sidebar-brand">
+          <div><strong>Sintegra I26</strong><span>Módulo ARBA</span></div>
         </div>
-        <div className="health-status">
-          <span className={`dot ${health.status === 'online' ? 'online' : 'offline'}`}></span>
-          <span>{health.message}</span>
-          <button
-            onClick={checkHealth}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.75rem' }}
-          >
-            Reintentar
+        <nav className="sidebar-nav" aria-label="Secciones del módulo">
+          {groups.map((group) => (
+            <div className="nav-group" key={group}>
+              <h2>{group}</h2>
+              {tabs.filter((tab) => tab.group === group).map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`sidebar-link ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => { setActiveTab(tab.id); setMenuOpen(false); }}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                >
+                  <NavIcon name={tab.icon} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div className={`sidebar-api ${health.status}`}>
+            <span className={`dot ${health.status === 'online' ? 'online' : health.status === 'offline' ? 'offline' : 'checking'}`} />
+            <span>{health.status === 'online' ? 'API conectada' : health.status === 'offline' ? 'Sin conexión' : 'Conectando API'}</span>
+          </div>
+          <button className="sidebar-link signout-link" onClick={logout}>
+            <NavIcon name="logout" /><span>Cerrar sesión</span>
           </button>
         </div>
-        <div className="session-status">
-          <span>{user.name} · {roleLabels[user.role]}</span>
-          <button className="btn btn-outline" onClick={logout}>Salir</button>
-        </div>
-      </header>
+      </aside>
 
-      <nav className="nav-tabs">
-        {tabs.map((tab) => (
-          <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <div className="workspace">
+        <header className="topbar">
+          <div className="topbar-heading">
+            <h1>{activePage.label}</h1>
+            <p>Simulador académico de Ingresos Brutos</p>
+          </div>
+          <div className="topbar-actions">
+            <div className={`health-status ${health.status}`} role="status" aria-live="polite">
+              <span className={`dot ${health.status === 'online' ? 'online' : health.status === 'offline' ? 'offline' : 'checking'}`} />
+              <span>{health.status === 'online' ? 'API conectada' : health.status === 'offline' ? 'Sin conexión' : 'Conectando…'}</span>
+              <button className="text-button" onClick={checkHealth} disabled={health.status === 'checking'}>Reintentar</button>
+            </div>
+            <div className="user-chip"><span>{user.name}</span><span className="user-role">{roleLabels[user.role]}</span></div>
+          </div>
+        </header>
 
-      <main>
-        {activeTab === 'padron' && <PadronView />}
-        {activeTab === 'comercios' && <ComerciosView />}
-        {activeTab === 'percepciones' && <PercepcionesView />}
-        {activeTab === 'historial' && <HistorialView />}
-        {activeTab === 'usuarios' && user.role === 'superadmin' && <UsersView />}
-      </main>
+        <main id="main-content" className="workspace-main" tabIndex="-1">
+          {activeTab === 'padron' && <PadronView />}
+          {activeTab === 'comercios' && isAdmin && <ComerciosView />}
+          {activeTab === 'percepciones' && <PercepcionesView />}
+          {activeTab === 'historial' && <HistorialView />}
+          {activeTab === 'usuarios' && user.role === 'superadmin' && <UsersView />}
+        </main>
+      </div>
     </div>
   );
+}
+
+function NavIcon({ name }) {
+  const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+  const paths = {
+    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
+    store: <><path d="M3 10h18l-1.5-6h-15L3 10Z" /><path d="M5 10v10h14V10M9 20v-6h6v6M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" /></>,
+    receipt: <><path d="M4 3h16v18l-3-2-3 2-2-2-3 2-2-2-3 2V3Z" /><path d="M8 8h8M8 12h8M8 16h4" /></>,
+    history: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5M12 7v5l3 2" /></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></>,
+    logout: <><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7" /></>,
+    menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
+    close: <><path d="m18 6-12 12M6 6l12 12" /></>,
+  };
+  return <svg {...common}>{paths[name]}</svg>;
 }
 
 // -------------------------------------------------------------
@@ -144,6 +196,7 @@ function PadronView() {
   // Búsqueda puntual
   const [searchCuit, setSearchCuit] = useState('');
   const [searchResult, setSearchResult] = useState(null);
+  const pageCount = Math.max(1, Math.ceil(total / limit));
 
   const fetchPadron = async (targetPage) => {
     setLoading(true);
@@ -190,6 +243,23 @@ function PadronView() {
 
   return (
     <div>
+      <section className="kpi-grid" aria-label="Resumen del padrón">
+        <article className="kpi-card">
+          <span className="kpi-label">Comercios en el padrón</span>
+          <strong className="kpi-value">{loading && total === 0 ? '—' : total.toLocaleString('es-AR')}</strong>
+          <span className="kpi-context">Total disponible para consulta</span>
+        </article>
+        <article className="kpi-card">
+          <span className="kpi-label">Registros visibles</span>
+          <strong className="kpi-value">{loading ? '—' : items.length.toLocaleString('es-AR')}</strong>
+          <span className="kpi-context">En esta página</span>
+        </article>
+        <article className="kpi-card">
+          <span className="kpi-label">Página actual</span>
+          <strong className="kpi-value">{page} <span className="kpi-divider">/</span> {pageCount}</strong>
+          <span className="kpi-context">Resultados paginados</span>
+        </article>
+      </section>
       <div className="card">
         <h2 className="card-title">Consultar CUIT Específico</h2>
         <form onSubmit={handleSearch} className="form-grid form-grid-3">
