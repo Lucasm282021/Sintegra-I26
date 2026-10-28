@@ -1,10 +1,9 @@
 {
   "framework": null,
-  "installCommand": "npm ci",
   "buildCommand": "",
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/health", "destination": "/api" },
-    { "source": "/billetera/:path*", "destination": "/api" }
+    { "source": "/health", "destination": "https://sintegra-backend.vercel.app/health" },
+    { "source": "/billetera/:path*", "destination": "https://sintegra-backend.vercel.app/billetera/:path*" }
   ]
 }

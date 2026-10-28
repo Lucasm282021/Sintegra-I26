@@ -1,0 +1,22 @@
+{
+  "name": "sintegra-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend único del ecosistema Sintegra I26 (Banco, Billetera, ARBA, ARCA, padrón)",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "migrar": "node scripts/migrar.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16"
+  }
+}
