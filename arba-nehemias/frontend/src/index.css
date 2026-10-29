@@ -83,10 +83,9 @@ button:disabled { cursor: not-allowed; }
   background: var(--brand-navy);
   color: #fff;
 }
-.sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; }
-.sidebar-brand strong, .sidebar-brand span { display: block; }
-.sidebar-brand strong { font-size: 15px; font-weight: 700; }
-.sidebar-brand span { color: #fff; font-size: 13px; opacity: .84; }
+.sidebar-brand { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 0 8px 24px; }
+.sidebar-brand img { display: block; width: 100%; height: auto; border: 1px solid rgb(255 255 255 / 35%); border-radius: var(--radius-sm); background: #fff; }
+.sidebar-brand span { color: #fff; font-size: 13px; font-weight: 600; text-align: center; }
 .sidebar-nav { display: grid; gap: 20px; }
 .nav-group h2 {
   margin: 0 8px 6px;

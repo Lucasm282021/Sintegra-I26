@@ -108,7 +108,8 @@ export default function App() {
 
       <aside id="app-sidebar" className={`app-sidebar ${menuOpen ? 'is-open' : ''}`} aria-label="Menú principal">
         <div className="sidebar-brand">
-          <div><strong>Sintegra I26</strong><span>Módulo ARBA</span></div>
+          <img src="/logo-arba.jpeg" alt="Logo i26 ARBA — Impuestos Provinciales" />
+          <span>Módulo ARBA</span>
         </div>
         <nav className="sidebar-nav" aria-label="Secciones del módulo">
           {groups.map((group) => (
