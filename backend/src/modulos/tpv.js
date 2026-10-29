@@ -6,6 +6,7 @@ const { query, tx } = require('../db');
 const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('../http');
 const { transferir } = require('./banco');
 const { pagar: pagarBilletera } = require('./billetera');
+const { registrarEvento, entregarEvento } = require('./webhooks');
 
 const router = express.Router();
 const pad = (n, width) => String(n).padStart(width, '0');
@@ -68,8 +69,8 @@ router.post('/productos', ruta(async (req) => {
     throw falla(400, 'terminal_id, comercio_cuit, nombre y precio positivo son obligatorios');
   }
   const { rows } = await query(`insert into tpv.productos(terminal_id,comercio_cuit,codigo,nombre,categoria,precio,stock,activo)
-    select $1,$2,$3,$4,$5,$6,$7,$8 where exists(select 1 from tpv.terminales where id=$1)
-      and exists(select 1 from padron.contribuyentes where cuit=$2)
+    select $1,$2::padron.cuit,$3,$4,$5,$6,$7,$8 where exists(select 1 from tpv.terminales where id=$1)
+      and exists(select 1 from padron.contribuyentes where cuit=$2::padron.cuit)
     returning *`, [b.terminal_id, b.comercio_cuit, b.codigo || null, String(b.nombre).trim(), b.categoria||'General',b.precio,
     b.stock === undefined ? null : b.stock,b.activo!==false]);
   if (!rows[0]) throw falla(404, 'terminal o comercio no encontrado');
@@ -112,19 +113,22 @@ router.post('/ventas', ruta(async (req) => {
   const idVenta = b.id_venta || b.id || crypto.randomUUID();
   const comercioCuit = b.comercio?.cuit || b.comercio_cuit || b.cuit;
   const terminal = b.terminal_id || b.terminalId || 'david';
+  const puntoVenta = Number(b.punto_venta ?? 1);
   const medio = String(b.medio_pago || b.medioPago || 'banco').toLowerCase();
   const items = b.items;
   if (!idValido(idVenta) || !cuitValido(comercioCuit) || !Array.isArray(items) || !items.length) throw falla(400, 'id_venta, CUIT del comercio e items son obligatorios');
+  if (!Number.isInteger(puntoVenta) || puntoVenta < 1 || puntoVenta > 99999) throw falla(400, 'punto_venta inválido');
   if (!['banco', 'billetera', 'billetera_virtual', 'efectivo', 'tarjeta', 'transferencia'].includes(medio)) throw falla(400, 'medio_pago inválido');
   for (const i of items) if (!idValido(i.producto_id || i.productoId) || !Number.isInteger(i.cantidad) || i.cantidad <= 0) throw falla(400, 'cada item requiere productoId y cantidad entera positiva');
-  const payloadHash = hash({ terminal, comercioCuit, medio, cliente: b.cuit_cliente || b.cuitComprador || b.cuit_pagador || null,
+  const payloadHash = hash({ terminal, comercioCuit, medio, puntoVenta, cliente: b.cuit_cliente || b.cuitComprador || b.cuit_pagador || null,
     items: items.map((i) => ({ id: i.producto_id || i.productoId, cantidad: i.cantidad })) });
-  return tx(async (c) => {
+  const result = await tx(async (c) => {
     const anterior = (await c.query('select * from tpv.ventas where id_venta=$1 for update', [idVenta])).rows[0];
     if (anterior) {
       if (anterior.payload_hash !== payloadHash) throw falla(409, 'id_venta ya se utilizó con otros datos');
       if (anterior.estado !== 'completada') throw falla(409, `venta existente en estado ${anterior.estado}`);
-      return { status: 200, body: { ...anterior, subtotal: num(anterior.subtotal), percepcion: num(anterior.percepcion), total: num(anterior.total), repetida: true } };
+      const event=(await c.query(`select id from tpv.webhook_eventos where terminal_id=$1 and id_venta=$2 and evento='payment.confirmed'`,[terminal,idVenta])).rows[0];
+      return { status: 200, body: { ...anterior, subtotal: num(anterior.subtotal), percepcion: num(anterior.percepcion), total: num(anterior.total), repetida: true, _webhookEventId:event?.id||null } };
     }
     const terminalExiste = (await c.query('select 1 from tpv.terminales where id=$1', [terminal])).rows[0];
     if (!terminalExiste) throw falla(404, 'terminal TPV no encontrada');
@@ -155,7 +159,7 @@ router.post('/ventas', ruta(async (req) => {
     let pagoId;
     if (medio.includes('billetera')) {
       if (!cuitValido(b.cuit_cliente || b.cuitComprador || b.cuit_pagador)) throw falla(400, 'cuit_cliente es obligatorio para pagar con billetera');
-      const pago = await pagarBilletera(c, { id_venta: `tpv:${idVenta}`, origenCuit: b.cuit_cliente || b.cuitComprador || b.cuit_pagador, destinoCuit: comercioCuit, monto: total, op: 'pago', exigirDestino: false });
+      const pago = await pagarBilletera(c, { id_venta: `tpv:${idVenta}`, origenCuit: b.cuit_cliente || b.cuitComprador || b.cuit_pagador, destinoCuit: comercioCuit, monto: total, op: 'pago', exigirDestino: false, liquidarBanco: true });
       pagoId = pago.body.movimiento.id;
     } else {
       const cuentaDestino = (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [comercioCuit])).rows[0]?.id;
@@ -172,16 +176,25 @@ router.post('/ventas', ruta(async (req) => {
       percepcionId = p.id;
     }
     const tipo = tipos[comercio.condicion_iva] || 'FACTURA_C';
-    await c.query(`insert into arca.puntos_venta(emisor_cuit,punto_venta,tipo_comprobante) values($1,1,$2) on conflict do nothing`, [comercioCuit, tipo]);
+    await c.query(`insert into arca.puntos_venta(emisor_cuit,punto_venta,tipo_comprobante) values($1,$2,$3) on conflict do nothing`, [comercioCuit,puntoVenta,tipo]);
     const numero = (await c.query(`update arca.puntos_venta set ultimo_numero=ultimo_numero+1
-      where emisor_cuit=$1 and punto_venta=1 and tipo_comprobante=$2 returning ultimo_numero`, [comercioCuit, tipo])).rows[0].ultimo_numero;
+      where emisor_cuit=$1 and punto_venta=$2 and tipo_comprobante=$3 returning ultimo_numero`, [comercioCuit,puntoVenta,tipo])).rows[0].ultimo_numero;
     const cae = Array.from(crypto.randomBytes(14), (byte) => byte % 10).join('');
     const comprobante = (await c.query(`insert into arca.comprobantes(id_venta,emisor_cuit,punto_venta,tipo_comprobante,numero,subtotal,percepcion,monto_total,cae,cae_vencimiento,payload_hash)
-      values($1,$2,1,$3,$4,$5,$6,$7,$8,current_date+10,$9) returning id`, [idVenta,comercioCuit,tipo,numero,subtotal,percepcion,total,cae,hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta:1,receptor:null })])).rows[0];
+      values($1,$2,$3,$4,$5,$6,$7,$8,$9,current_date+10,$10) returning id`, [idVenta,comercioCuit,puntoVenta,tipo,numero,subtotal,percepcion,total,cae,hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta,receptor:null })])).rows[0];
     const out = (await c.query(`update tpv.ventas set estado='completada',percepcion=$2,total=$3,ref_percepcion=$4,ref_pago=$5,ref_comprobante=$6
       where id_venta=$1 returning *`, [idVenta,percepcion,total,percepcionId,pagoId,comprobante.id])).rows[0];
-    return { status: 201, body: { ...out, subtotal: num(out.subtotal), percepcion: num(out.percepcion), total: num(out.total), repetida: false } };
+    const webhookEventId=await registrarEvento(c,{terminal_id:terminal,id_venta:idVenta,payload:{
+      event_type:'payment.confirmed',id_venta:idVenta,terminal_id:terminal,cuit_comercio:comercioCuit,
+      cuit_pagador:medio.includes('billetera')?(b.cuit_cliente||b.cuitComprador||b.cuit_pagador):null,
+      monto:total,subtotal,percepcion,moneda:'ARS',medio_pago:medio,estado:'confirmado',
+      pago_id:pagoId,percepcion_id:percepcionId,comprobante_id:comprobante.id,
+      punto_venta:puntoVenta,tipo_comprobante:tipo,
+    }});
+    return { status: 201, body: { ...out, subtotal: num(out.subtotal), percepcion: num(out.percepcion), total: num(out.total), repetida: false,_webhookEventId:webhookEventId } };
   });
+  if (result.body._webhookEventId) { result.body.webhook=await entregarEvento(result.body._webhookEventId); delete result.body._webhookEventId; }
+  return result;
 }));
 
 module.exports = router;

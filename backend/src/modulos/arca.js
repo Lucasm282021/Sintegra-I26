@@ -30,6 +30,42 @@ router.get('/contribuyentes/:cuit', ruta(async (req) => {
   return { body: { cuit: c.cuit, razon_social: c.razon_social, condicion_fiscal: CONDICION[c.condicion_iva], condicion_iva: c.condicion_iva, estado: c.estado } };
 }));
 
+router.get('/puntos-venta', ruta(async (req) => {
+  const cuit = req.query.cuit;
+  if (!cuitValido(cuit)) throw falla(400, 'cuit es obligatorio y debe tener 11 dígitos');
+  const { rows } = await query(`select punto_venta,
+      array_agg(tipo_comprobante order by tipo_comprobante) as tipos_comprobante,
+      max(ultimo_numero) as ultimo_numero
+    from arca.puntos_venta where emisor_cuit=$1 group by punto_venta order by punto_venta`, [cuit]);
+  return { body: rows.map((r) => ({ punto_venta: r.punto_venta, numero: pad(r.punto_venta, 5),
+    tipos_comprobante: r.tipos_comprobante, ultimo_numero: r.ultimo_numero })) };
+}));
+
+router.post('/puntos-venta', ruta(async (req) => {
+  const b = req.body || {};
+  const cuit = String(b.cuit || b.emisor_cuit || '');
+  const puntoVenta = Number(b.punto_venta);
+  if (!cuitValido(cuit)) throw falla(400, 'cuit del emisor debe tener 11 dígitos');
+  if (!Number.isInteger(puntoVenta) || puntoVenta < 1 || puntoVenta > 99999) throw falla(400, 'punto_venta debe estar entre 1 y 99999');
+  const emisor = (await query('select condicion_iva from padron.contribuyentes where cuit=$1', [cuit])).rows[0];
+  if (!emisor) throw falla(404, 'contribuyente no encontrado en el padrón');
+  const predeterminado = emisor.condicion_iva === 'responsable_inscripto' ? ['FACTURA_A','FACTURA_B'] : ['FACTURA_C'];
+  const tipos = b.tipos_comprobante === undefined ? predeterminado : b.tipos_comprobante;
+  if (!Array.isArray(tipos) || !tipos.length || tipos.some((t) => !Object.values(TIPOS).includes(TIPOS[t] || t))) {
+    throw falla(400, 'tipos_comprobante debe contener FACTURA_A, FACTURA_B o FACTURA_C');
+  }
+  const unicos = [...new Set(tipos.map((t) => TIPOS[t] || t))];
+  const out = await tx(async (c) => {
+    for (const tipo of unicos) await c.query(`insert into arca.puntos_venta(emisor_cuit,punto_venta,tipo_comprobante)
+      values($1,$2,$3) on conflict do nothing`, [cuit,puntoVenta,tipo]);
+    const { rows } = await c.query(`select punto_venta,array_agg(tipo_comprobante order by tipo_comprobante) tipos_comprobante,
+      max(ultimo_numero) ultimo_numero from arca.puntos_venta where emisor_cuit=$1 and punto_venta=$2 group by punto_venta`, [cuit,puntoVenta]);
+    return rows[0];
+  });
+  return { status: 201, body: { emisor_cuit:cuit, punto_venta:out.punto_venta, numero:pad(out.punto_venta,5),
+    tipos_comprobante:out.tipos_comprobante, ultimo_numero:out.ultimo_numero } };
+}));
+
 // POST /arca/comprobantes — `cuit` es el emisor (el comercio). Acepta
 // `monto` (TPV de David) o `monto_total` (guía / ARCA de Mateo).
 router.post('/comprobantes', ruta(async (req) => {

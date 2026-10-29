@@ -3,6 +3,7 @@
 const express = require('express');
 const { query, tx } = require('../db');
 const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('../http');
+const { registrarEvento, entregarEvento } = require('./webhooks');
 
 const router = express.Router();
 
@@ -100,7 +101,8 @@ router.post('/pagos', ruta(async (req) => {
   if (!idValido(id_venta)) throw falla(400, 'id_venta es obligatorio');
   if (!cuitValido(b.cuit)) throw falla(400, 'cuit debe tener 11 dígitos, sin puntos ni guiones');
   if (!montoValido(monto)) throw falla(400, 'monto debe ser un número positivo de hasta dos decimales');
-  return tx(async (c) => {
+  if (b.terminal_id !== undefined && !idValido(b.terminal_id)) throw falla(400, 'terminal_id inválido');
+  const result = await tx(async (c) => {
     const destino = b.cuenta_destino || (await cuentaPorCuit(c, b.cuit))?.id;
     if (!destino) throw falla(404, 'el comercio no tiene cuenta en el banco');
     const origen = b.cuenta_origen || 'cuenta-mostrador';
@@ -108,15 +110,24 @@ router.post('/pagos', ruta(async (req) => {
       id_operacion: `venta:${id_venta}`, tipo: 'venta', origen, destino, monto,
       payload: { medio_pago: b.medio_pago ?? b.medioPago ?? null },
     });
+    const webhookEventId = await registrarEvento(c, { terminal_id: b.terminal_id, id_venta,
+      payload: { event_type: 'payment.confirmed', id_venta, terminal_id: b.terminal_id,
+        cuit_comercio: b.cuit, monto: num(movimiento.monto), moneda: 'ARS', medio_pago: b.medio_pago ?? b.medioPago ?? 'banco',
+        estado: 'confirmado', banco_movimiento_id: movimiento.id } });
     return {
       status: repetido ? 200 : 201,
       body: {
         id: movimiento.id, id_venta, cuit: b.cuit, monto: num(movimiento.monto),
         cuenta_origen: movimiento.cuenta_origen, cuenta_destino: movimiento.cuenta_destino,
-        estado: movimiento.estado, confirmadoEn: new Date(movimiento.creado_en).toISOString(),
+        estado: movimiento.estado, confirmadoEn: new Date(movimiento.creado_en).toISOString(), _webhookEventId: webhookEventId,
       },
     };
   });
+  if (result.body._webhookEventId) {
+    result.body.webhook = await entregarEvento(result.body._webhookEventId);
+    delete result.body._webhookEventId;
+  }
+  return result;
 }));
 
 module.exports = { router, transferir, cuentaPorCuit };

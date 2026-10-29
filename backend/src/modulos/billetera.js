@@ -2,9 +2,11 @@
 // Si la billetera está vinculada a una cuenta del Banco, cada carga debita
 // esa cuenta y acredita la custodia de la Billetera (banco.movimientos).
 const express = require('express');
+const QRCode = require('qrcode');
 const { query, tx } = require('../db');
 const { falla, cuitValido, idValido, montoValido, uuidValido, num, hash, ruta } = require('../http');
 const { transferir } = require('./banco');
+const { registrarEvento, entregarEvento } = require('./webhooks');
 
 const router = express.Router();
 const CUENTA_CUSTODIA = 'cuenta-billetera';
@@ -24,7 +26,8 @@ const filaBilletera = (b) => ({
 });
 const filaMovimiento = (m) => ({
   id: m.id, tipo: m.tipo, monto: num(m.monto), contraparte: m.contraparte || m.contraparte_cuit || null,
-  saldo_resultante: num(m.saldo_resultante), fecha: new Date(m.creado_en).toISOString(),
+  saldo_resultante: num(m.saldo_resultante), banco_movimiento_id: m.banco_movimiento_id || null,
+  fecha: new Date(m.creado_en).toISOString(),
 });
 
 const porCuit = async (c, cuit, lock = false) =>
@@ -187,7 +190,7 @@ router.post('/cargas', ruta(async (req) => {
 }));
 
 // Debita una billetera y, si el destino también tiene billetera, la acredita.
-async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDestino }) {
+async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDestino, liquidarBanco = false, terminal_id, webhook_id_venta = id_venta }) {
   const payload_hash = hash({ op, origenCuit, destinoCuit, monto });
   // Bloquear siempre en el mismo orden evita bloqueos cruzados.
   const [primero, segundo] = [origenCuit, destinoCuit].sort();
@@ -199,14 +202,25 @@ async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDe
   if (!destino && exigirDestino) throw falla(404, 'el QR no corresponde a una billetera existente');
   const ya = await previo(c, id_venta, origen, payload_hash);
   if (ya) {
-    return { status: 200, body: { ...filaBilletera(origen), id_venta, movimiento: filaMovimiento(ya), saldo_resultante: num(ya.saldo_resultante), estado: 'confirmado' } };
+    const event = terminal_id ? (await c.query(`select id from tpv.webhook_eventos where terminal_id=$1 and id_venta=$2 and evento='payment.confirmed'`, [terminal_id,id_venta])).rows[0] : null;
+    return { status: 200, body: { ...filaBilletera(origen), id_venta, movimiento: filaMovimiento(ya), saldo_resultante: num(ya.saldo_resultante), estado: 'confirmado', _webhookEventId:event?.id||null } };
   }
   if (num(origen.saldo) < monto) throw falla(400, 'saldo insuficiente');
   const saldoOrigen = num(origen.saldo) - monto;
   await c.query('update billetera.cuentas set saldo = $2 where id = $1', [origen.id, saldoOrigen]);
+  let bancoMovimiento = null;
+  if (!destino && liquidarBanco) {
+    const cuentaDestino = (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [destinoCuit])).rows[0];
+    if (!cuentaDestino) throw falla(404, 'el comercio no tiene billetera ni cuenta bancaria para recibir el pago');
+    bancoMovimiento = (await transferir(c, {
+      id_operacion: `billetera:${id_venta}`, tipo: 'transferencia', origen: CUENTA_CUSTODIA,
+      destino: cuentaDestino.id, monto, payload: { billetera_pago: id_venta, cuit_origen: origenCuit, cuit_destino: destinoCuit },
+    })).movimiento;
+  }
   const m = await movimiento(c, {
     id_operacion: id_venta, cuenta: origen, tipo: 'pago', monto, saldo: saldoOrigen, payload_hash,
     contraparte: destino ? `Pago a ${destino.alias}` : `Pago a comercio ${destinoCuit}`, contraparte_cuit: destinoCuit,
+    banco_movimiento_id: bancoMovimiento?.id,
   });
   if (destino) {
     const saldoDestino = num(destino.saldo) + monto;
@@ -216,29 +230,111 @@ async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDe
       contraparte: `Cobro de ${origen.alias}`, contraparte_cuit: origenCuit,
     });
   }
+  const webhookEventId = await registrarEvento(c, { terminal_id, id_venta:webhook_id_venta, payload: {
+    event_type: 'payment.confirmed', id_venta:webhook_id_venta, terminal_id, cuit_comercio: destinoCuit,
+    cuit_pagador: origenCuit, monto, moneda: 'ARS', medio_pago: 'billetera', estado: 'confirmado',
+    billetera_movimiento_id: m.id, banco_movimiento_id: bancoMovimiento?.id || null,
+  } });
   return {
     status: 201,
-    body: { ...filaBilletera({ ...origen, saldo: saldoOrigen }), id_venta, movimiento: filaMovimiento(m), saldo_resultante: saldoOrigen, estado: 'confirmado' },
+    body: { ...filaBilletera({ ...origen, saldo: saldoOrigen }), id_venta, movimiento: filaMovimiento(m),
+      banco_movimiento_id: bancoMovimiento?.id || null, saldo_resultante: saldoOrigen, estado: 'confirmado', _webhookEventId: webhookEventId },
   };
 }
 
+router.post('/qr/generar', ruta(async (req) => {
+  const { id_venta, cuit_destino, monto, terminal_id } = req.body || {};
+  if (!idValido(id_venta)) throw falla(400, 'id_venta es obligatorio');
+  if (!cuitValido(cuit_destino)) throw falla(400, 'cuit_destino debe tener 11 dígitos');
+  if (!montoValido(monto)) throw falla(400, 'monto debe ser positivo y tener hasta dos decimales');
+  if (terminal_id !== undefined && !idValido(terminal_id)) throw falla(400, 'terminal_id inválido');
+  if (terminal_id && !(await query('select 1 from tpv.terminales where id=$1',[terminal_id])).rows[0]) throw falla(404, 'terminal TPV no encontrada');
+  const destino = (await query('select 1 from billetera.cuentas where cuit=$1 union select 1 from banco.cuentas where cuit=$1 limit 1', [cuit_destino])).rows[0];
+  if (!destino) throw falla(404, 'el CUIT destino no tiene una billetera ni cuenta bancaria');
+  const payload_hash = hash({ cuit_destino, monto, terminal_id: terminal_id || null });
+  let solicitud = (await query('select * from billetera.solicitudes_qr where id_venta=$1', [id_venta])).rows[0];
+  if (solicitud && solicitud.payload_hash !== payload_hash) throw falla(409, 'id_venta ya fue utilizada con otros datos');
+  if (!solicitud) {
+    const id = require('node:crypto').randomUUID();
+    const payload = `SINTEGRA-PAGO:${id}`;
+    const inserted = (await query(`insert into billetera.solicitudes_qr(id,id_venta,payload,cuit_destino,monto,payload_hash,vence_en,terminal_id)
+      values($1,$2,$3,$4,$5,$6,now()+interval '5 minutes',$7) on conflict(id_venta) do nothing returning *`,
+      [id,id_venta,payload,cuit_destino,monto,payload_hash,terminal_id||null])).rows[0];
+    solicitud = inserted || (await query('select * from billetera.solicitudes_qr where id_venta=$1',[id_venta])).rows[0];
+    if (solicitud.payload_hash !== payload_hash) throw falla(409, 'id_venta ya fue utilizada con otros datos');
+  }
+  if (solicitud.estado !== 'pendiente') throw falla(409, `el QR está ${solicitud.estado}`);
+  if (new Date(solicitud.vence_en).getTime() <= Date.now()) {
+    await query("update billetera.solicitudes_qr set estado='vencida' where id=$1", [solicitud.id]);
+    throw falla(410, 'el QR venció; generá uno nuevo');
+  }
+  const qr_data_url = await QRCode.toDataURL(solicitud.payload, { errorCorrectionLevel: 'M', margin: 2, width: 320 });
+  return { status: 201, body: { id: solicitud.id, id_venta, payload: solicitud.payload, qr_data_url,
+    cuit_destino: solicitud.cuit_destino, terminal_id:solicitud.terminal_id, monto: num(solicitud.monto), estado: solicitud.estado,
+    vence_en: new Date(solicitud.vence_en).toISOString() } };
+}));
+
+router.post('/qr/confirmar', ruta(async (req) => {
+  const { payload, cuit_origen } = req.body || {};
+  if (typeof payload !== 'string' || !payload.startsWith('SINTEGRA-PAGO:')) throw falla(400, 'payload QR inválido');
+  if (!cuitValido(cuit_origen)) throw falla(400, 'cuit_origen debe tener 11 dígitos');
+  const id = payload.slice('SINTEGRA-PAGO:'.length);
+  if (!uuidValido(id)) throw falla(400, 'identificador QR inválido');
+  const result = await tx(async (c) => {
+    const solicitud = (await c.query('select * from billetera.solicitudes_qr where id=$1 and payload=$2 for update', [id,payload])).rows[0];
+    if (!solicitud) throw falla(404, 'QR no encontrado');
+    if (solicitud.estado === 'pagada') {
+      if (solicitud.cuit_origen !== cuit_origen) throw falla(409, 'el QR ya fue pagado por otro titular');
+      const previoPago = (await c.query("select * from billetera.movimientos where id_operacion=$1 and tipo='pago'", [`qr:${id}`])).rows[0];
+      const event = solicitud.terminal_id ? (await c.query(`select id from tpv.webhook_eventos where terminal_id=$1 and id_venta=$2 and evento='payment.confirmed'`, [solicitud.terminal_id,solicitud.id_venta])).rows[0] : null;
+      return { status: 200, body: { estado: 'pagada', repetida: true, id_venta: solicitud.id_venta,
+        movimiento: previoPago ? filaMovimiento(previoPago) : null, monto: num(solicitud.monto), cuit_destino: solicitud.cuit_destino, _webhookEventId:event?.id||null } };
+    }
+    if (solicitud.estado !== 'pendiente') throw falla(409, `el QR está ${solicitud.estado}`);
+    if (new Date(solicitud.vence_en).getTime() <= Date.now()) {
+      await c.query("update billetera.solicitudes_qr set estado='vencida' where id=$1", [id]);
+      throw falla(410, 'el QR venció; solicitá uno nuevo');
+    }
+    const pago = await pagar(c, { id_venta: `qr:${id}`, origenCuit: cuit_origen, destinoCuit: solicitud.cuit_destino,
+      monto: num(solicitud.monto), op: 'qr', exigirDestino: false, liquidarBanco: true,
+      terminal_id:solicitud.terminal_id,webhook_id_venta:solicitud.id_venta });
+    const bancoMovimientoId = pago.body.banco_movimiento_id || pago.body.movimiento?.banco_movimiento_id || null;
+    await c.query(`update billetera.solicitudes_qr set estado='pagada',cuit_origen=$2,
+      billetera_movimiento_id=$3,banco_movimiento_id=$4,pagado_en=now() where id=$1`,
+      [id,cuit_origen,pago.body.movimiento?.id || null,bancoMovimientoId]);
+    return { status: 201, body: { ...pago.body, repetida:false, id_venta:solicitud.id_venta,
+      cuit_origen,cuit_destino:solicitud.cuit_destino,monto:num(solicitud.monto),estado:'pagada' } };
+  });
+  if (result.body._webhookEventId) {
+    result.body.webhook = await entregarEvento(result.body._webhookEventId);
+    delete result.body._webhookEventId;
+  }
+  return result;
+}));
+
 router.post('/pagos', ruta(async (req) => {
-  const { id_venta, cuit, monto, comercio_cuit } = req.body || {};
+  const { id_venta, cuit, monto, comercio_cuit, terminal_id } = req.body || {};
   if (!idValido(id_venta)) throw falla(400, 'id_venta es obligatorio');
   if (!cuitValido(cuit)) throw falla(400, 'cuit debe ser un string de 11 dígitos, sin puntos ni guiones');
   if (!montoValido(monto)) throw falla(400, 'monto debe ser un número positivo de hasta dos decimales');
   if (!cuitValido(comercio_cuit)) throw falla(400, 'comercio_cuit debe ser un string de 11 dígitos');
   if (cuit === comercio_cuit) throw falla(400, 'no podés pagarte a vos mismo');
-  return tx((c) => pagar(c, { id_venta, origenCuit: cuit, destinoCuit: comercio_cuit, monto, op: 'pago', exigirDestino: false }));
+  if (terminal_id !== undefined && !idValido(terminal_id)) throw falla(400, 'terminal_id inválido');
+  const result = await tx((c) => pagar(c, { id_venta, origenCuit: cuit, destinoCuit: comercio_cuit, monto, op: 'pago', exigirDestino: false, liquidarBanco: true, terminal_id }));
+  if (result.body._webhookEventId) { result.body.webhook=await entregarEvento(result.body._webhookEventId); delete result.body._webhookEventId; }
+  return result;
 }));
 
 router.post('/qr/pagos', ruta(async (req) => {
-  const { id_venta, cuit_origen, cuit_destino, monto } = req.body || {};
+  const { id_venta, cuit_origen, cuit_destino, monto, terminal_id } = req.body || {};
   if (!idValido(id_venta)) throw falla(400, 'id_venta es obligatorio');
   if (!cuitValido(cuit_origen) || !cuitValido(cuit_destino)) throw falla(400, 'el QR debe identificar dos CUIL de 11 dígitos');
   if (!montoValido(monto)) throw falla(400, 'monto debe ser un número positivo de hasta dos decimales');
   if (cuit_origen === cuit_destino) throw falla(400, 'no podés pagarte a vos mismo');
-  return tx((c) => pagar(c, { id_venta, origenCuit: cuit_origen, destinoCuit: cuit_destino, monto, op: 'qr', exigirDestino: true }));
+  if (terminal_id !== undefined && !idValido(terminal_id)) throw falla(400, 'terminal_id inválido');
+  const result = await tx((c) => pagar(c, { id_venta, origenCuit: cuit_origen, destinoCuit: cuit_destino, monto, op: 'qr', exigirDestino: false, liquidarBanco: true, terminal_id }));
+  if (result.body._webhookEventId) { result.body.webhook=await entregarEvento(result.body._webhookEventId); delete result.body._webhookEventId; }
+  return result;
 }));
 
 module.exports = { router, pagar };

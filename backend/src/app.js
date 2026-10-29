@@ -11,8 +11,8 @@ app.use(express.json({ limit: '100kb' }));
 // cookies de sesión en este backend, así que se permite cualquier origen.
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Sintegra-Admin-Token');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   return next();
 });
@@ -32,6 +32,7 @@ app.use('/billetera', require('./modulos/billetera').router);
 app.use('/arba', require('./modulos/arba').router);
 app.use('/arca', require('./modulos/arca').router);
 app.use('/municipio', require('./modulos/municipio'));
+app.use('/tpv', require('./modulos/webhooks').router);
 app.use('/tpv', require('./modulos/tpv'));
 
 app.use((_req, res) => res.status(404).json({ error: 'ruta no encontrada' }));

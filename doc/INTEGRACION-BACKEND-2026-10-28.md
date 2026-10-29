@@ -62,6 +62,8 @@ Es una simulación académica. Los cobros se reflejan entre cuentas ficticias; l
 - Brisa y Sebastián usan terminales distintas (`brisa`, `sebastian`) y catálogos propios en `tpv.productos`; ambos liquidan sus ventas contra las mismas cuentas, percepciones y comprobantes.
 - El portal agrega el acceso `TPV · Brisa`; Banco M en `/banco/` identifica clientes por CUIT y consulta conjuntamente cuenta bancaria y billetera virtual.
 - Banco M permite crear billetera para un CUIT del padrón, consultar saldo/movimientos y cargar saldo desde su cuenta vinculada. La carga conserva la operación bancaria y el saldo de billetera en una transacción compartida.
+- Los pagos con QR de Billetera pueden liquidar en la cuenta bancaria del comercio cuando no tiene billetera. El QR se genera con un payload opaco, vence en cinco minutos y es de un solo pago.
+- Banco, Billetera y TPV generan eventos `payment.confirmed` por `terminal_id`; el backend común entrega un callback HMAC al dominio Vercel de Brisa, Sebastián o David y guarda el estado/los intentos del envío en `tpv.webhook_eventos`.
 
 ## Estado de cada solución
 
@@ -73,7 +75,7 @@ Es una simulación académica. Los cobros se reflejan entre cuentas ficticias; l
 
 ## Verificación / publicación
 
-Las migraciones `20261028000006_tpv_brisa_banco_m.sql`, `20261028000007_seed_tpv_brisa.sql` y `20261028000008_seed_tpv_sebastian.sql` crean los esquemas de compatibilidad y agregan catálogos demo idempotentes. API común, portal y frontend `tpv-sebastian` publicados. En producción se verificaron `/health`, los catálogos de Brisa y Sebastián por terminal, la ficha consolidada Banco/Billetera por CUIT y las rutas estáticas `/brisa/` y `/banco/`. La suite local de integración ahora tiene 8 pruebas aprobadas, incluida una venta completa de Sebastián y verificación del detalle de comprobante.
+Las migraciones `20261028000006_tpv_brisa_banco_m.sql` a `20261028000010_webhooks_tpv.sql` están aplicadas. Backend común, portal, TPV Sebastián, TPV David y sus callbacks están publicados. Se verificaron en producción `/health`, la lista de terminales y los tres receptores (firma inválida rechazada con HTTP 401). La suite local ampliada pasó 13 pruebas: QR con liquidación a Banco, alta de punto de venta, venta TPV con percepción/factura, pago entre billeteras, recaudación municipal y entrega HMAC a receptor local. No se crearon transacciones QA en producción.
 
 ## Pendientes de fase 2
 
