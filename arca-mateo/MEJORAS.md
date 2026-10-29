@@ -11,9 +11,16 @@ ARCA está publicada en <https://arca-mateo.vercel.app> y ya tiene el diseño un
 
 Está muy bien resuelto el ingreso, los roles y la emisión idempotente. Lo que falta es todo lo que pasa **antes** de facturar: en la ARCA real nadie puede emitir una factura sin estar inscripto.
 
-## El cambio de fondo: ARCA es la dueña del padrón
+## El cambio de fondo: ARCA es la dueña del padrón **fiscal**
 
-En el ecosistema, **ARCA es quien da de alta a los contribuyentes**. Los demás sistemas consultan ese padrón:
+> **Actualización 29/10:** este documento se corrigió para alinearlo con el [prompt maestro del ecosistema](../doc/PROMPT-MAESTRO-ECOSISTEMA.md). Antes decía que ARCA daba de alta a los comercios: no es así.
+
+Hay que separar dos cosas:
+
+- **La identidad del comercio** (quién es, sus sucursales, sus usuarios) la registra **una sola vez** el **CORE de comercios** del ecosistema, en el portal: <https://sintegrai26.vercel.app/comercios/>. ARCA **no** tiene que tener un formulario de alta de comercios: eso crearía una identidad paralela.
+- **La situación fiscal** (CUIT, condición frente al IVA, régimen, actividades, puntos de venta, comprobantes) es de **ARCA**. Eso es lo que ustedes construyen.
+
+El CORE le pregunta a ARCA por cada comercio y muestra el resultado (verificado, observado, no disponible) con fecha y evidencia. Los demás sistemas también dependen del padrón fiscal de ARCA:
 
 - **ARBA** inscribe en Ingresos Brutos a quien ya tiene CUIT.
 - **Banco** abre cuentas solo a CUIT existentes.
@@ -24,9 +31,9 @@ Por eso el padrón no puede vivir dentro de la app de ARCA. Vive en la base comp
 
 ## Qué falta, sección por sección
 
-### 1. Alta de contribuyente (inscripción y CUIT)
+### 1. Inscripción de contribuyente (CUIT)
 
-Es la pantalla principal que falta. Pide:
+Es la pantalla principal que falta. Es la **inscripción fiscal** ante ARCA, no el alta del comercio: un comercio registrado en el CORE que todavía no figura en ARCA aparece como "observado" hasta que ARCA lo inscribe. Pide:
 
 | Persona humana | Persona jurídica |
 |---|---|
@@ -104,6 +111,8 @@ Resumen para el administrador: altas del mes, contribuyentes por régimen, compr
 Estos endpoints **ya existen** en <https://sintegra-backend.vercel.app> y leen la base compartida:
 
 - `GET /arca/contribuyentes/{cuit}` → condición fiscal
+- `POST /arca/contribuyentes` → inscripción en el padrón fiscal sandbox (`cuit` con dígito verificador válido, `razon_social`, `condicion_iva`, `tipo_persona`, `domicilio_fiscal`). Recibe el CUIT ya calculado: la generación del CUIT la hace la pantalla de ustedes.
+- `GET /arca/puntos-venta?cuit=` y `POST /arca/puntos-venta` → listar y dar de alta puntos de venta (`cuit`, `punto_venta`, `tipos_comprobante` opcional)
 - `POST /arca/comprobantes` → emite (acepta `id_venta`, `cuit` emisor, `monto_total`, `tipo_comprobante`, `receptor_cuit`, `punto_venta`)
 - `GET /arca/comprobantes?cuit=` → comprobantes de un emisor
 - `GET /padron/contribuyentes/{cuit}` → ficha con lo que sabe cada sistema (ARBA, Banco, Municipio, Billetera)
@@ -112,13 +121,12 @@ Estos son los que **faltan** y va a agregar la cátedra. Si necesitan otros camp
 
 | Método y ruta | Para qué |
 |---|---|
-| `POST /arca/contribuyentes` | Alta: genera el CUIT y lo guarda en el padrón |
 | `GET /arca/contribuyentes?buscar=&estado=&regimen=&page=` | Listado del padrón |
 | `PATCH /arca/contribuyentes/{cuit}` | Modificar datos |
 | `POST /arca/contribuyentes/{cuit}/estado` | Suspender, dar de baja o reactivar |
 | `POST /arca/contribuyentes/{cuit}/regimen` | Inscripción, recategorización o cambio de régimen |
 | `GET /arca/contribuyentes/{cuit}/constancia` | Datos de la constancia de inscripción |
-| `GET` / `POST /arca/contribuyentes/{cuit}/puntos-venta` | Puntos de venta |
+| `DELETE /arca/puntos-venta/{cuit}/{pv}` | Baja de un punto de venta |
 | `POST /arca/comprobantes/{id}/nota-credito` | Nota de crédito sobre una factura |
 | `GET /arca/comprobantes?receptor=` | Comprobantes recibidos |
 
@@ -133,7 +141,7 @@ Estos son los que **faltan** y va a agregar la cátedra. Si necesitan otros camp
 ## Orden sugerido
 
 1. Validación de CUIT con dígito verificador (sirve para todo lo demás).
-2. Alta de contribuyente y constancia de inscripción.
+2. Inscripción fiscal del CUIT y constancia de inscripción.
 3. Gestión del padrón y estados.
 4. Régimen: monotributo, responsable inscripto y exento.
 5. Puntos de venta por contribuyente.
@@ -152,7 +160,7 @@ consulta de comprobantes. Ya tiene el diseño unificado del ecosistema.
 Quiero que funcione como la ARCA real, en versión simulada. Agregá estas
 pantallas sin rehacer lo que ya funciona:
 
-1. Alta de contribuyente (persona humana o jurídica) con generación de CUIT:
+1. Inscripción fiscal (persona humana o jurídica) con generación de CUIT:
    prefijo 20/27/23/30/33 + DNI o número asignado + dígito verificador por
    módulo 11 (pesos 5 4 3 2 7 6 5 4 3 2; 11 → 0; 10 → prefijo 23 y recalcular).
    Validá el dígito verificador en todos los campos de CUIT.
@@ -172,12 +180,16 @@ pantallas sin rehacer lo que ya funciona:
 7. Mis comprobantes (emitidos y recibidos) y panel de inicio con resumen.
 
 Reglas:
-- El padrón vive en el backend único de la cátedra
+- No construyas un alta de comercios: la identidad del comercio la registra
+  el CORE del ecosistema (portal /comercios). ARCA hace la inscripción
+  fiscal del CUIT y todo lo fiscal.
+- El padrón fiscal vive en el backend único de la cátedra
   (https://sintegra-backend.vercel.app), no en esta app. Usá
-  GET /arca/contribuyentes/{cuit}, POST y GET /arca/comprobantes y
-  GET /padron/contribuyentes/{cuit}, que ya existen. Para lo que falta
-  (alta, listado, modificación, estado, régimen, constancia, puntos de venta,
-  notas de crédito, comprobantes recibidos), armá la pantalla contra el
+  GET y POST /arca/contribuyentes, GET y POST /arca/puntos-venta,
+  POST y GET /arca/comprobantes y GET /padron/contribuyentes/{cuit}, que ya
+  existen. Para lo que falta (listado, modificación, estado, régimen,
+  constancia, baja de puntos de venta, notas de crédito, comprobantes
+  recibidos), armá la pantalla contra el
   contrato de MEJORAS.md con datos de ejemplo detrás de una sola capa de
   servicios (public/api.js), así después solo cambiamos la URL.
 - Contrato común: JSON, snake_case, CUIT string de 11 dígitos, errores
