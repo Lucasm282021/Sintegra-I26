@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  CONCEPTOS_MUNICIPALES,
   crearComercio,
   emitirCertificadoLibreDeuda,
   getHealth,
@@ -13,6 +12,7 @@ import {
   resetSeedData,
   setSimulatedLatencyMs,
   validarCuit,
+  validarCuitChecksum,
   validarPeriodo,
 } from './municipioService';
 
@@ -22,6 +22,11 @@ test('municipioService: validación estricta de CUIT (11 dígitos numéricos sin
   assert.equal(validarCuit('3071234567').valido, false);
   assert.equal(validarCuit('307123456789').valido, false);
   assert.equal(validarCuit('3071234567A').valido, false);
+});
+
+test('municipioService: valida el dígito de control en una solicitud de alta', () => {
+  assert.equal(validarCuitChecksum('30755443324').valido, true);
+  assert.equal(validarCuitChecksum('30755443322').valido, false);
 });
 
 test('municipioService: validación de períodos municipales YYYY-MM', () => {
@@ -63,12 +68,12 @@ test('Seed Data inicial incluye 1 comercio sin deuda y 1 comercio con deuda', as
   assert.ok(conDeuda.deuda_total > 0);
 });
 
-test('POST /municipio/comercios crea comercio en 201 Created con 3 períodos pendientes y rechaza duplicado con 409 Conflict', async () => {
+test('POST /municipio/comercios crea solicitud pendiente sin aprobar ni inventar tasas y rechaza duplicado', async () => {
   setSimulatedLatencyMs(0);
   resetSeedData();
 
   const payload = {
-    cuit: '30755443322',
+    cuit: '30755443324',
     razon_social: 'Panificadora Austral S.A.',
     condicion_fiscal: 'Responsable Inscripto',
     direccion: 'Av. Belgrano 1240',
@@ -78,27 +83,24 @@ test('POST /municipio/comercios crea comercio en 201 Created con 3 períodos pen
 
   const alta = await crearComercio(payload);
   assert.equal(alta.status, 201);
-  assert.equal(alta.data?.comercio.estado, 'habilitado');
-  assert.equal(alta.data?.tributos_generados.length, 3);
-
-  const periodos = alta.data?.tributos_generados.map((t) => t.periodo);
-  assert.deepEqual(periodos, ['2026-07', '2026-08', '2026-09']);
-
-  for (const trib of alta.data!.tributos_generados) {
-    assert.equal(trib.estado, 'pendiente');
-    const conceptos = trib.desglose.map((d) => d.concepto);
-    assert.ok(conceptos.includes(CONCEPTOS_MUNICIPALES.TISH));
-    assert.ok(conceptos.includes(CONCEPTOS_MUNICIPALES.VIA_PUBLICA));
-  }
+  assert.equal(alta.data?.comercio.estado, 'pendiente');
+  assert.deepEqual(alta.data?.tributos_generados, []);
+  assert.match(alta.data?.mensaje || '', /resolución municipal/i);
 
   // Intentar registrar el mismo CUIT debe retornar 409 Conflict
   const duplicado = await crearComercio(payload);
   assert.equal(duplicado.status, 409);
 
   // Obtener comercio por CUIT
-  const consulta = await obtenerComercioPorCuit('30755443322');
+  const consulta = await obtenerComercioPorCuit('30755443324');
   assert.equal(consulta.status, 200);
   assert.equal(consulta.data?.razon_social, 'Panificadora Austral S.A.');
+  const obligaciones = await obtenerTributosPorCuit('30755443324');
+  assert.equal(obligaciones.status, 200);
+  assert.deepEqual(obligaciones.data?.tributos, []);
+
+  const certificadoPendiente = await emitirCertificadoLibreDeuda('30755443324');
+  assert.equal(certificadoPendiente.status, 409);
 
   // CUIT inexistente retorna 404 Not Found
   const noExiste = await obtenerComercioPorCuit('30999999999');

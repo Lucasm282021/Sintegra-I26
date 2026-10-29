@@ -66,6 +66,20 @@ export function validarCuit(cuit: unknown): { valido: boolean; mensaje?: string 
   return { valido: true };
 }
 
+/** Valida el dígito de control; no consulta si ARCA emitió la CUIT ni su estado. */
+export function validarCuitChecksum(cuit: unknown): { valido: boolean; mensaje?: string } {
+  const formato = validarCuit(cuit);
+  if (!formato.valido || typeof cuit !== 'string') return formato;
+  const limpio = cuit.trim();
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const suma = pesos.reduce((total, peso, i) => total + Number(limpio[i]) * peso, 0);
+  const resto = suma % 11;
+  const verificador = resto === 0 ? 0 : resto === 1 ? 9 : 11 - resto;
+  return Number(limpio[10]) === verificador
+    ? { valido: true }
+    : { valido: false, mensaje: 'El dígito verificador de la CUIT no es válido.' };
+}
+
 /**
  * Valida que el período municipal respete el formato "YYYY-MM".
  */
@@ -424,21 +438,21 @@ export async function listarComercios(): Promise<ApiResponse<ComercioConResumen[
 /**
  * POST /municipio/comercios
  * Body: { cuit, razon_social, condicion_fiscal, direccion, rubro_principal, rubro_secundario }
- * Regla: Si el CUIT ya existe, retornar 409. Si se crea exitosamente, guarda el comercio como
- * "habilitado" y genera automáticamente 3 tributos pendientes de pago ("2026-07", "2026-08", "2026-09").
+ * Regla: Si el CUIT ya existe, retornar 409. El alta crea una solicitud municipal
+ * pendiente; no aprueba la habilitación ni liquida tasas automáticamente.
  */
 export async function crearComercio(
   payload: NuevoComercioPayload
-): Promise<ApiResponse<{ comercio: Comercio; tributos_generados: TributoPeriodo[] }>> {
+): Promise<ApiResponse<{ comercio: Comercio; tributos_generados: TributoPeriodo[]; mensaje: string }>> {
   return simularRequest('POST', '/municipio/comercios', payload, () => {
-    const validacionCuit = validarCuit(payload?.cuit);
+    const validacionCuit = validarCuitChecksum(payload?.cuit);
     if (!validacionCuit.valido) {
       return {
         status: 400,
         error: {
           codigo: 'CUIT_INVALIDO',
           mensaje: validacionCuit.mensaje || 'Formato de CUIT inválido.',
-          detalles: 'El campo cuit requiere exactamente 11 dígitos numéricos sin guiones ni puntos.',
+          detalles: 'El campo cuit requiere 11 dígitos numéricos y un dígito verificador correcto.',
         },
       };
     }
@@ -478,20 +492,19 @@ export async function crearComercio(
       direccion,
       rubro_principal,
       rubro_secundario: rubro_secundario || 'Sin rubro secundario declarado',
-      estado: 'habilitado',
+      estado: 'pendiente',
       fecha_alta: new Date().toISOString().slice(0, 10),
     };
 
-    const tributosIniciales = construirTributosPorDefecto(cuit, 'pendiente', 96800.0, 32400.5);
-
     store.comercios.set(cuit, nuevoComercio);
-    store.tributosPorCuit.set(cuit, tributosIniciales);
+    store.tributosPorCuit.set(cuit, []);
 
     return {
       status: 201,
       data: {
         comercio: nuevoComercio,
-        tributos_generados: tributosIniciales,
+        tributos_generados: [],
+        mensaje: 'Solicitud registrada. La habilitación requiere revisión y resolución municipal.',
       },
     };
   });
@@ -798,6 +811,16 @@ export async function emitirCertificadoLibreDeuda(
     const tributos = store.tributosPorCuit.get(cuitLimpio) || [];
     const pendientes = tributos.filter((t) => t.estado === 'pendiente');
     const deudaTotal = redondearArs(pendientes.reduce((acc, t) => acc + t.importe, 0));
+
+    if (comercio.estado !== 'habilitado') {
+      return {
+        status: 409,
+        error: {
+          codigo: 'HABILITACION_NO_VIGENTE',
+          mensaje: 'No se puede emitir el certificado: la habilitación municipal todavía no está vigente.',
+        },
+      };
+    }
 
     if (deudaTotal > 0 || pendientes.length > 0) {
       return {

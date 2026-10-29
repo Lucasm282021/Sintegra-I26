@@ -42,7 +42,7 @@ const EJEMPLOS_ALTA: NuevoComercioPayload[] = [
     rubro_secundario: 'Transporte Refrigerado y Depósito',
   },
   {
-    cuit: '20345678901',
+    cuit: '20345678906',
     razon_social: 'Farmacia Central del Valle S.C.S.',
     condicion_fiscal: 'Responsable Inscripto',
     direccion: 'Av. 9 de Julio 412, Microcentro',
@@ -50,7 +50,7 @@ const EJEMPLOS_ALTA: NuevoComercioPayload[] = [
     rubro_secundario: 'Perfumería y Artículos de Ortopedia',
   },
   {
-    cuit: '30799887766',
+    cuit: '30799887769',
     razon_social: 'Tecnología Agrícola del Litoral S.R.L.',
     condicion_fiscal: 'Monotributista',
     direccion: 'Callejón Los Álamos 190, Parque Tecnológico',
@@ -140,8 +140,8 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
         setFeedback({
           type: 'success',
           httpStatus: response.status,
-          title: `HTTP ${response.statusText} — Comercio Empadronado`,
-          message: `Se registró "${response.data.comercio.razon_social}" (CUIT ${nuevoCuit}) en estado "${response.data.comercio.estado}" y se liquidaron automáticamente 3 períodos pendientes (2026-07, 2026-08, 2026-09).`,
+          title: `HTTP ${response.statusText} — Solicitud municipal registrada`,
+          message: `Se registró "${response.data.comercio.razon_social}" (CUIT ${nuevoCuit}). La habilitación queda pendiente de resolución; no se liquidaron tasas automáticamente.`,
           createdCuit: nuevoCuit,
         });
         setFormData({
@@ -410,7 +410,7 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
                 Regla de Empadronamiento Municipal:
               </div>
               <p>
-                Al dar de alta un nuevo CUIT se asigna estado <span className="font-mono font-medium text-slate-900">habilitado</span> y se liquidan automáticamente 3 períodos pendientes (<span className="font-mono">2026-07</span>, <span className="font-mono">2026-08</span>, <span className="font-mono">2026-09</span>) integrando TISH y Conservación de la Vía Pública.
+                El registro inicia una solicitud con estado <span className="font-mono font-medium text-amber-800">pendiente</span>. La autoridad municipal debe revisar y resolver la habilitación. Las tasas se liquidan cuando la jurisdicción determina conceptos, períodos y montos; no se crean automáticamente al registrar.
               </p>
             </div>
 
@@ -566,7 +566,7 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
                             {comercio.cuit}
                           </div>
                           <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-                            <span className="capitalize font-medium text-emerald-700">
+                            <span className={`capitalize font-medium ${comercio.estado === 'habilitado' ? 'text-emerald-700' : comercio.estado === 'pendiente' ? 'text-amber-700' : 'text-slate-600'}`}>
                               {comercio.estado}
                             </span>
                             <span aria-hidden="true">·</span>

@@ -1,4 +1,4 @@
-export type EstadoComercio = 'habilitado' | 'suspendido' | 'baja';
+export type EstadoComercio = 'pendiente' | 'habilitado' | 'suspendido' | 'baja';
 
 export type CondicionFiscal =
   | 'Responsable Inscripto'

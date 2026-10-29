@@ -27,7 +27,7 @@
     <span class="badge">Solicitud + documentación</span><span class="badge">ARCA + ARBA</span><span class="badge">TSyH</span><span class="badge">Documento de diseño</span>
   </header>
 
-  <div class="notice"><strong>Alcance del proyecto:</strong> esta página describe el proceso de la actividad y sirve como referencia para evolucionar el módulo. El servicio actual permite dar de alta un comercio y registrar/consultar tasas; todavía no gestiona solicitudes, adjuntos ni revisión documental. Los requisitos se toman de la consigna de la cátedra y no representan una lista legal completa para todos los municipios.</div>
+  <div class="notice"><strong>Alcance del proyecto:</strong> actividad académica con datos sintéticos. El alta actual crea una solicitud municipal en estado <code>pendiente</code>; no concede habilitación ni genera tasas al azar. No hay carga de adjuntos, revisión documental, aprobación con roles ni conexión a un municipio real. Los requisitos dependen de la jurisdicción y esta lista no es universal.</div>
 
   <section>
     <h2>Requisitos para iniciar el trámite</h2>
@@ -44,12 +44,12 @@
   <section>
     <h2>Flujo propuesto</h2>
     <ol class="flow">
-      <li><strong>Iniciar solicitud</strong>El comerciante informa CUIT, razón social, rubro, domicilio y ubicación del local. El sistema crea una solicitud en estado <code>borrador</code>.</li>
+      <li><strong>Iniciar solicitud</strong>El comerciante informa CUIT, razón social, rubro, domicilio y ubicación del local. La API actual registra el caso en <code>pendiente</code>; el flujo completo de borrador/edición aún es una propuesta.</li>
       <li><strong>Presentar documentación</strong>Adjunta la nota, el plano/ubicación y las constancias de inscripción en ARCA y ARBA. El sistema registra nombre, tipo y estado de cada documento.</li>
       <li><strong>Revisar requisitos</strong>El Municipio comprueba que la documentación esté completa y revisa la solicitud. Si falta algo, la marca <code>observada</code> y registra qué debe corregirse.</li>
       <li><strong>Registrar el pago de TSyH</strong>Se asocia el comprobante de pago al CUIT, período e importe. El pago es por período; no se cobra como parte de cada venta del TPV.</li>
-      <li><strong>Resolver la solicitud</strong>Cuando los requisitos documentales y el pago estén verificados, la autoridad simulada aprueba la solicitud y el comercio pasa a <code>activo</code>. Si no corresponde, registra el motivo de rechazo.</li>
-      <li><strong>Consultar habilitación</strong>El TPV u otro consumidor consulta el CUIT. Solo un comercio con habilitación aprobada puede operar en el flujo de ventas.</li>
+      <li><strong>Resolver la solicitud</strong>La autoridad competente revisa y resuelve el trámite fuera del flujo actual. Hasta una resolución explícita, el estado permanece <code>pendiente</code>; la API no ofrece una aprobación pública automática.</li>
+      <li><strong>Consultar habilitación</strong>El sistema consumidor consulta el estado del establecimiento. La integración transversal TPV↔Municipio por sucursal/jurisdicción está pendiente de completar.</li>
     </ol>
   </section>
 
@@ -58,11 +58,12 @@
     <div class="scroll"><table>
       <thead><tr><th>Estado</th><th>Significado</th><th>Acción siguiente</th></tr></thead>
       <tbody>
-        <tr><td><code>borrador</code></td><td>Solicitud en preparación; todavía puede editarse.</td><td>Completar datos y adjuntar requisitos.</td></tr>
-        <tr><td><code>presentada</code></td><td>El comerciante envió la solicitud para revisión.</td><td>Verificar documentación y TSyH.</td></tr>
-        <tr><td><code>observada</code></td><td>Hay documentación faltante o que requiere corrección.</td><td>Informar observaciones y permitir subsanación.</td></tr>
-        <tr><td><code>aprobada</code></td><td>Requisitos verificados; habilitación concedida en la simulación.</td><td>Activar el comercio para el flujo de TPV.</td></tr>
-        <tr><td><code>rechazada</code></td><td>Solicitud no aprobada; se conserva un motivo.</td><td>Informar el resultado al comerciante.</td></tr>
+        <tr><td><code>pendiente</code></td><td>Alta registrada; todavía no hay resolución municipal.</td><td>Completar el proceso de revisión de la autoridad.</td></tr>
+        <tr><td><code>borrador</code></td><td>Estado futuro para una solicitud que el usuario todavía edita.</td><td>Propuesta; no implementado.</td></tr>
+        <tr><td><code>presentada</code></td><td>La documentación completa fue enviada a revisión.</td><td>Propuesta; no implementado.</td></tr>
+        <tr><td><code>observada</code></td><td>Hay documentación faltante o que requiere corrección.</td><td>Propuesta; no implementado.</td></tr>
+        <tr><td><code>activa</code></td><td>Habilitación vigente; existen filas demo anteriores en este estado.</td><td>En un sistema real, requiere resolución, jurisdicción y vigencia verificables.</td></tr>
+        <tr><td><code>rechazada</code></td><td>Solicitud no aprobada; se debe conservar motivo y evidencia.</td><td>Propuesta; no implementado.</td></tr>
       </tbody>
     </table></div>
   </section>
@@ -71,7 +72,7 @@
     <h2>Información mínima de la solicitud</h2>
     <p class="sub">Estructura orientativa para el diseño de la API. Los archivos adjuntos pueden almacenarse fuera de la base de datos; se persiste su referencia y metadatos.</p>
     <pre><code>{
-  "cuit": "30712345678",
+  "cuit": "20123456786",
   "razon_social": "Comercio Demo",
   "rubro": "Alimentos",
   "domicilio": "Av. Ejemplo 123",
@@ -95,10 +96,10 @@
     <div class="scroll"><table>
       <thead><tr><th>Estado</th><th>Ruta</th><th>Uso</th></tr></thead>
       <tbody>
-        <tr><td><span class="status">Implementada</span></td><td><code>POST /municipio/comercios</code></td><td>Alta simple de comercio. Hoy lo crea directamente como activo; no verifica adjuntos.</td></tr>
-        <tr><td><span class="status">Implementada</span></td><td><code>GET /municipio/comercios/{cuit}</code></td><td>Consulta el registro del comercio.</td></tr>
-        <tr><td><span class="status">Implementada</span></td><td><code>POST /municipio/tributos/pagos</code></td><td>Registra un pago TSyH para un comercio existente.</td></tr>
-        <tr><td><span class="status">Implementada</span></td><td><code>GET /municipio/tributos/{cuit}</code></td><td>Consulta el historial de tributos registrados.</td></tr>
+        <tr><td><span class="status">Implementada · demo</span></td><td><code>POST /municipio/comercios</code></td><td>Registra estado <code>pendiente</code>, valida checksum CUIT para altas y no genera obligaciones.</td></tr>
+        <tr><td><span class="status">Implementada · demo</span></td><td><code>GET /municipio/comercios/{cuit}</code></td><td>Consulta el registro; los activos históricos se conservan y las altas nuevas muestran pendiente.</td></tr>
+        <tr><td><span class="status">Implementada · demo</span></td><td><code>POST /municipio/tributos/pagos</code></td><td>El backend común paga una obligación demo existente y exacta desde Banco; la variante SQLite actualiza una obligación pendiente almacenada y no mueve saldo bancario.</td></tr>
+        <tr><td><span class="status">Implementada · demo</span></td><td><code>GET /municipio/tributos/{cuit}</code></td><td>Consulta el historial; dar de alta una solicitud no crea períodos ni importes.</td></tr>
         <tr><td>Propuesta</td><td><code>POST /municipio/solicitudes</code></td><td>Crear una solicitud en borrador con datos del local y comerciante.</td></tr>
         <tr><td>Propuesta</td><td><code>POST /municipio/solicitudes/{id}/documentos</code></td><td>Registrar cada requisito y su referencia de archivo.</td></tr>
         <tr><td>Propuesta</td><td><code>POST /municipio/solicitudes/{id}/presentar</code></td><td>Enviar una solicitud completa a revisión.</td></tr>
@@ -111,12 +112,12 @@
   <section>
     <h2>Próximos pasos del módulo</h2>
     <ul class="checklist">
-      <li>Definir cómo se guardarán los adjuntos de prueba y limitar tipos/tamaños de archivo.</li>
-      <li>Agregar tabla de solicitudes y documentos con historial de estado.</li>
-      <li>Validar CUIT, campos obligatorios, tipo documental, período e importe.</li>
-      <li>Evitar marcar activo un comercio antes de aprobar la solicitud.</li>
-      <li>Agregar idempotencia y restricción única para pagos TSyH por período.</li>
-      <li>Documentar y probar alta, documentación faltante, observación, pago y aprobación.</li>
+      <li>Definir jurisdicción e identidad de sucursal/establecimiento antes de asociar tasas o permitir ventas.</li>
+      <li>Agregar tabla de solicitudes y documentos con historial de estado, evidencia y roles de revisión.</li>
+      <li>Implementar almacenamiento seguro de adjuntos y validaciones por municipio.</li>
+      <li>Incorporar una resolución autenticada; no exponer aprobación pública ni cambiar a activa por el solo alta.</li>
+      <li>Emitir obligaciones solo con concepto, período e importe establecidos por la autoridad municipal correspondiente.</li>
+      <li>Conciliar el pago con Banco de forma idempotente; no considerar que la variante SQLite realiza un movimiento bancario.</li>
     </ul>
   </section>
 
