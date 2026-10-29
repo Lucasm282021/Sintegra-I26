@@ -28,21 +28,22 @@ Importá el mismo repo una vez por cada frontend que se quiera publicar. Elegí 
 | Módulo | Root Directory | Framework | Build Command | Output Directory | URL y estado |
 |---|---|---|---|---|---|
 | Portal y panel Banco | `.` | Other | — | `public` | [sintegrai26.vercel.app](https://sintegrai26.vercel.app) · portal y `/banco/` publicados; panel Banco consulta la API común |
+| Backend compartido | `backend` | Other | — | `public` | [sintegra-backend.vercel.app](https://sintegra-backend.vercel.app) · Banco, Billetera, padrón, Municipio, ARBA, ARCA y TPV |
 | ARBA Tomi | `arba-tomi` | Other | `vite build` | `dist` | [arba-tomi.vercel.app](https://arba-tomi.vercel.app) · UI y API demo en memoria |
 | ARBA Lucas | `arba-lucas` | Other | `npm run build` | `dist` | [arba-lucas.vercel.app](https://arba-lucas.vercel.app) · interfaz publicada; API pendiente |
 | Municipio Cristian | `municipio-cristian/frontend` | Vite | `npm run build` | `dist` | [municipio-cristian.vercel.app](https://municipio-cristian.vercel.app) · demo local en navegador |
-| TPV Sebastián | `alumnos/sebastian/tpv-frontend` | Vite | `npm run build` | `dist` | [tpv-sebastian.vercel.app](https://tpv-sebastian.vercel.app) · interfaz publicada; API pendiente |
-| TPV David | `tpv-david` | Other | — | `public` | [tpv-david.vercel.app](https://tpv-david.vercel.app) · UI y API demo (Banco, ARBA y ARCA simulados) |
+| TPV Sebastián | `sebasTPV/tpv-frontend` | Vite | `npm run build` | `dist` | [tpv-sebastian.vercel.app](https://tpv-sebastian.vercel.app) · usa el backend común |
+| TPV David | `tpv-david` | Other | — | `public` | [tpv-david.vercel.app](https://tpv-david.vercel.app) · UI demo y callback firmado |
 | ARCA Mateo | `arca-mateo` | Other | — | `public` | [arca-mateo.vercel.app](https://arca-mateo.vercel.app) · UI y API demo (padrón y comprobantes con CAE ficticio; requiere usuario) |
 | Billetera virtual | `Billetera_virtual-Lucas_M` | Other | — | `public` | [billetera-virtual-lucas-m.vercel.app](https://billetera-virtual-lucas-m.vercel.app) · interfaz publicada; backend pendiente |
 
-La sección Banco de la landing sirve el panel estático desde `public/banco/`; consulta en modo de solo lectura cuentas, saldos y movimientos del backend compartido. No depende del API Prisma independiente de `banco-m`. No habilites **Include source files outside of the Root Directory** salvo que una app lo necesite de verdad.
+La sección Banco de la landing sirve el panel estático desde `public/banco/`; consulta cuentas, saldos y movimientos del backend compartido por CUIT. No depende del API Prisma independiente de `banco-m`. No habilites **Include source files outside of the Root Directory** salvo que una app lo necesite de verdad.
 
-### TPV Sebastián, desde el repo que contiene el frontend
+### TPV Sebastián en este monorepo
 
-El código TPV está en `Lucasm282021/Ecosistema-Fintech-simulado`, no dentro del repo principal. Para su frontend, importá ese repo y usá Root Directory `alumnos/sebastian/tpv-frontend`, Framework `Vite`, build `npm run build`, salida `dist`. Configurá `VITE_TPV_API_BASE_URL` con el host público del backend (sin el sufijo `/tpv`). La variable y el consumo ya están preparados en el worktree local.
+El frontend está en `sebasTPV/tpv-frontend`, con build Vite (`npm ci`, `npm run build`, `dist`). Consume la API común para catálogo y ventas; el backend NestJS/Prisma local no es parte del flujo publicado. Su callback para pagos confirmados es `https://tpv-sebastian.vercel.app/api/webhooks/payment`.
 
-El backend TPV es NestJS + Prisma + SQLite. Desplegalo como contenedor en un host que permita disco persistente; configurá `DATABASE_URL=file:/data/tpv.db` y montá un volumen en `/data`. El backend admite CORS y expone Swagger en `/api/docs`. Vercel sirve el frontend, pero no es el lugar para conservar esta base SQLite. Hasta configurar `VITE_TPV_API_BASE_URL`, la interfaz pública no puede cargar ventas o productos.
+El dominio de Vercel recibe el webhook firmado por terminal. El backend común guarda el evento antes de entregarlo; el receptor responde `2xx` cuando valida la firma y registra el evento en logs de Functions.
 
 ## APIs y persistencia
 
@@ -51,8 +52,9 @@ El backend TPV es NestJS + Prisma + SQLite. Desplegalo como contenedor en un hos
 - **Municipio Cristian:** la interfaz usa una implementación simulada dentro del frontend; crear/pagar cambia solo datos de demo en memoria. El backend SQLite actual es otro servicio, y todavía no implementa todos los endpoints que la demo simula. Para conservar altas y pagos, primero hay que integrar ambos contratos y alojar la API con disco persistente.
 - **Billetera:** el proyecto Vercel publica solo `public/`. El ingreso y las operaciones no funcionan todavía porque requieren el backend Express y una base persistente. No desplegar SQLite de archivo en Vercel; el Dockerfile usa `/data/billetera.db`, que requiere un servicio Docker con volumen en `/data`.
 - **TPV David:** `tpv-david/vercel.json` sirve `public/` como estático y manda `/health` y `/tpv/*` a una función Express (`api/index.ts`). Variables del proyecto: `DATA_DIR=/tmp/tpv-data`, `BANCO_MOCK=true`, `ARBA_MOCK=true`, `ARCA_MOCK=true`. Productos y ventas se guardan en `/tmp` y se pierden cuando la función se reinicia: es una demo, no un registro persistente.
+- **Webhooks TPV:** `brisa`, `sebastian` y `david` reciben `payment.confirmed` en sus dominios Vercel. Los endpoints validan HMAC SHA-256 con `SINTEGRA_WEBHOOK_SECRET` y comparan `TPV_TERMINAL_ID`; las URLs, estados e intentos están documentados en [INTEGRACION-E2E-SINTETICA-Y-QA.md](INTEGRACION-E2E-SINTETICA-Y-QA.md).
 - **ARCA Mateo:** `arca-mateo/vercel.json` sirve `public/` como estático y manda `/health`, `/auth/*`, `/admin/*` y `/arca/*` a una función Express (`api/index.js`). Variables: `ARCA_DATA_FILE=/tmp/arca/arca.json`, `ARCA_ADMIN_EMAIL` y `ARCA_ADMIN_PASSWORD` (superadmin demo que se crea al arrancar si no hay usuarios). Usuarios, sesiones y comprobantes se reinician con la función.
-- **TPV Sebastián:** el frontend está publicado, pero requiere el backend NestJS y base persistente por separado. Configurar `VITE_TPV_API_BASE_URL` para que el usuario pueda cargar productos y ventas.
+- **TPV Sebastián:** el proyecto publicado usa la API común. El backend NestJS local de otra etapa no es autoridad de los saldos ni se despliega como backend duplicado.
 - **ARCA:** el repo tiene la identidad visual, pero todavía no contiene una app desplegable.
 
 Todos los CUIT, movimientos, alícuotas y comprobantes actuales son de simulación. No cargar información fiscal real ni credenciales reales.
