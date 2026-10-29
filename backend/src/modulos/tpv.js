@@ -19,36 +19,47 @@ router.get('/integraciones', ruta(async () => ({ body: [
   { nombre: 'Base de datos compartida', estado: 'ok' },
 ] })));
 router.get('/terminales', ruta(async () => ({ body: (await query('select id,nombre,creado_en from tpv.terminales order by id')).rows })));
-// Adaptador de compatibilidad para la interfaz de Brisa (Mostrador).
-router.get('/comercios', ruta(async () => {
+// Comercios y cuenta bancaria receptora por terminal. Brisa conserva su valor
+// predeterminado; Sebastián y los siguientes terminales usan terminal_id.
+router.get('/comercios', ruta(async (req) => {
+  const terminal = req.query.terminal_id || 'brisa';
+  if (!idValido(terminal)) throw falla(400, 'terminal_id inválido');
   const { rows } = await query(`select c.cuit,c.razon_social,tc.rubro,tc.cuenta_destino,tc.activo
+    ,bc.alias as cuenta_alias,bc.cbu as cuenta_cbu,bc.saldo as cuenta_saldo
     from tpv.comercios tc join padron.contribuyentes c using(cuit)
-    where tc.terminal_id='brisa' order by c.razon_social`);
+    left join banco.cuentas bc on bc.id=tc.cuenta_destino
+    where tc.terminal_id=$1 order by c.razon_social`, [terminal]);
   return { body: rows };
 }));
 router.post('/comercios', ruta(async (req) => {
-  const b=req.body||{}; const cuit=String(b.cuit||'');
+  const b=req.body||{}; const cuit=String(b.cuit||''); const terminal=String(b.terminal_id||'brisa');
+  if(!idValido(terminal)) throw falla(400,'terminal_id inválido');
   if(!cuitValido(cuit)||!String(b.razon_social||'').trim()) throw falla(400,'CUIT y razón social son obligatorios');
   const result=await tx(async c=>{
     const contributor=(await c.query('select cuit,razon_social from padron.contribuyentes where cuit=$1 for update',[cuit])).rows[0];
     if(!contributor) throw falla(404,'El CUIT debe existir antes en el padrón central');
-    await c.query('insert into tpv.terminales(id,nombre) values(\'brisa\',\'TPV Brisa\') on conflict do nothing');
+    const terminalRow=(await c.query('select id from tpv.terminales where id=$1',[terminal])).rows[0];
+    if(!terminalRow) throw falla(404,'terminal TPV no encontrada');
     const cuenta=(await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1',[cuit])).rows[0];
     const cuentaDestino=b.cuenta_destino||cuenta?.id||null;
+    if(!cuentaDestino) throw falla(409,'el CUIT debe tener una cuenta bancaria abierta en Banco M');
     if(cuentaDestino && !(await c.query('select 1 from banco.cuentas where id=$1 and cuit=$2',[cuentaDestino,cuit])).rows[0]) throw falla(400,'La cuenta de cobro no pertenece al CUIT');
-    await c.query(`insert into tpv.comercios(terminal_id,cuit,rubro,cuenta_destino) values('brisa',$1,$2,$3)
-      on conflict(terminal_id,cuit) do update set rubro=excluded.rubro,cuenta_destino=excluded.cuenta_destino,activo=true`,[cuit,b.rubro||'Comercio',cuentaDestino]);
-    return {cuit,razon_social:contributor.razon_social,rubro:b.rubro||'Comercio',cuenta_destino:cuentaDestino,activo:true};
+    await c.query(`insert into tpv.comercios(terminal_id,cuit,rubro,cuenta_destino) values($1,$2,$3,$4)
+      on conflict(terminal_id,cuit) do update set rubro=excluded.rubro,cuenta_destino=excluded.cuenta_destino,activo=true`,[terminal,cuit,b.rubro||'Comercio',cuentaDestino]);
+    return {terminal_id:terminal,cuit,razon_social:contributor.razon_social,rubro:b.rubro||'Comercio',cuenta_destino:cuentaDestino,activo:true};
   });
   return {status:201,body:result};
 }));
 router.put('/comercios/:cuit', ruta(async(req)=>{
   if(!cuitValido(req.params.cuit)) throw falla(400,'CUIT inválido');
   const b=req.body||{};
+  const terminal=String(b.terminal_id||req.query.terminal_id||'brisa');
+  if(!idValido(terminal)) throw falla(400,'terminal_id inválido');
+  if(b.cuenta_destino && !(await query('select 1 from banco.cuentas where id=$1 and cuit=$2',[String(b.cuenta_destino),req.params.cuit])).rows[0]) throw falla(400,'La cuenta de cobro no pertenece al CUIT');
   const {rows}=await query(`update tpv.comercios tc set rubro=coalesce(nullif($2,''),tc.rubro),
     cuenta_destino=coalesce(nullif($3,''),tc.cuenta_destino),activo=coalesce($4,tc.activo)
-    from padron.contribuyentes c where tc.cuit=$1 and c.cuit=tc.cuit and tc.terminal_id='brisa'
-    returning tc.cuit,c.razon_social,tc.rubro,tc.cuenta_destino,tc.activo`,[req.params.cuit,String(b.rubro||'').trim(),String(b.cuenta_destino||'').trim(),typeof b.activo==='boolean'?b.activo:null]);
+    from padron.contribuyentes c where tc.cuit=$1 and c.cuit=tc.cuit and tc.terminal_id=$5
+    returning tc.cuit,c.razon_social,tc.rubro,tc.cuenta_destino,tc.activo`,[req.params.cuit,String(b.rubro||'').trim(),String(b.cuenta_destino||'').trim(),typeof b.activo==='boolean'?b.activo:null,terminal]);
   if(!rows[0]) throw falla(404,'comercio no encontrado en el padrón');
   return {body:rows[0]};
 }));
@@ -90,7 +101,10 @@ router.get('/ventas', ruta(async (req) => {
   const { rows } = await query(`select v.*,c.razon_social,ac.cae comprobante_cae,ac.numero comprobante_numero,ac.tipo_comprobante
     from tpv.ventas v join padron.contribuyentes c on c.cuit=v.comercio_cuit left join arca.comprobantes ac on ac.id::text=v.ref_comprobante
     where ($1::text is null or v.terminal_id=$1) order by v.creado_en desc limit 100`, [terminal_id || null]);
-  return { body: rows.map((r) => ({ ...r,id:r.id_venta,createdAt:r.creado_en,estado:r.estado.toUpperCase(),creada:r.creado_en,subtotal:num(r.subtotal),percepcion:num(r.percepcion),total:num(r.total),comprobante:r.comprobante_numero?{numero:r.comprobante_numero,cae:r.comprobante_cae,tipo_comprobante:r.tipo_comprobante}:null })) };
+  return { body: rows.map((r) => ({ ...r,id:r.id_venta,createdAt:r.creado_en,estado:r.estado.toUpperCase(),creada:r.creado_en,subtotal:num(r.subtotal),percepcion:num(r.percepcion),total:num(r.total),comprobante:r.comprobante_numero?{
+    numero:r.comprobante_numero,cae:`FICTICIO-${r.comprobante_cae}`,tipo_comprobante:r.tipo_comprobante,
+    estado:'simulado',validez_fiscal:false,
+  }:null })) };
 }));
 
 router.get('/ventas/:id', ruta(async (req) => {
@@ -104,7 +118,8 @@ router.get('/ventas/:id', ruta(async (req) => {
   return { body: { ...v, estado:v.estado.toUpperCase(), creada:v.creado_en, subtotal: num(v.subtotal), percepcion: num(v.percepcion), total: num(v.total),
     createdAt:v.creado_en,lineas:items.map((i)=>({producto_id:i.producto_id,nombre:i.nombre,descripcion:i.nombre,cantidad:i.cantidad,precio_unitario:num(i.precio_unitario),subtotal:num(i.precio_unitario)*i.cantidad})),
     pago:{medio:v.medio_pago,medio_pago:v.medio_pago,id_movimiento:movimiento?.id||billetera?.id||v.ref_pago,transaccion_id:movimiento?.id||billetera?.id||v.ref_pago,cuenta_origen:movimiento?.cuenta_origen||null,cuit_pagador:billetera?.cuit||null},
-    comprobante:factura?{id:factura.id,tipo_comprobante:factura.tipo_comprobante,numero_comprobante:factura.numero,cae:factura.cae}:null,
+    comprobante:factura?{id:factura.id,tipo_comprobante:factura.tipo_comprobante,numero_comprobante:factura.numero,
+      cae:`FICTICIO-${factura.cae}`,estado:'simulado',validez_fiscal:false}:null,
     intentos:1,etapa_pendiente:null,ultimo_error:null,items:items.map((i) => ({ ...i, precio_unitario: num(i.precio_unitario) })) } };
 }));
 
@@ -134,6 +149,12 @@ router.post('/ventas', ruta(async (req) => {
     if (!terminalExiste) throw falla(404, 'terminal TPV no encontrada');
     const comercio = (await c.query('select * from padron.contribuyentes where cuit=$1', [comercioCuit])).rows[0];
     if (!comercio) throw falla(404, 'comercio no encontrado en padrón');
+    const vinculacion = (await c.query(`select tc.cuenta_destino,b.cbu from tpv.comercios tc
+      left join banco.cuentas b on b.id=tc.cuenta_destino
+      where tc.terminal_id=$1 and tc.cuit=$2 and tc.activo=true`, [terminal,comercioCuit])).rows[0];
+    if (['brisa','sebastian','david'].includes(terminal) && !vinculacion?.cuenta_destino) {
+      throw falla(409, 'vinculá el comercio a una cuenta bancaria de Banco M antes de vender');
+    }
     const resolved = [];
     for (const item of items) {
       const p = (await c.query(`select * from tpv.productos where id=$1 and terminal_id=$2 and comercio_cuit=$3 and activo=true for update`,
@@ -162,7 +183,7 @@ router.post('/ventas', ruta(async (req) => {
       const pago = await pagarBilletera(c, { id_venta: `tpv:${idVenta}`, origenCuit: b.cuit_cliente || b.cuitComprador || b.cuit_pagador, destinoCuit: comercioCuit, monto: total, op: 'pago', exigirDestino: false, liquidarBanco: true });
       pagoId = pago.body.movimiento.id;
     } else {
-      const cuentaDestino = (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [comercioCuit])).rows[0]?.id;
+      const cuentaDestino = vinculacion?.cuenta_destino || (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [comercioCuit])).rows[0]?.id;
       if (!cuentaDestino) throw falla(404, 'comercio sin cuenta bancaria asociada');
       const transf = await transferir(c, { id_operacion: cobroId, tipo: 'venta', origen: b.cuenta_origen || 'cuenta-mostrador', destino: cuentaDestino,
         monto: total, payload: { venta: idVenta, medio_pago: medio } });
@@ -176,9 +197,10 @@ router.post('/ventas', ruta(async (req) => {
       percepcionId = p.id;
     }
     const tipo = tipos[comercio.condicion_iva] || 'FACTURA_C';
-    await c.query(`insert into arca.puntos_venta(emisor_cuit,punto_venta,tipo_comprobante) values($1,$2,$3) on conflict do nothing`, [comercioCuit,puntoVenta,tipo]);
-    const numero = (await c.query(`update arca.puntos_venta set ultimo_numero=ultimo_numero+1
-      where emisor_cuit=$1 and punto_venta=$2 and tipo_comprobante=$3 returning ultimo_numero`, [comercioCuit,puntoVenta,tipo])).rows[0].ultimo_numero;
+    const puntoConfigurado = (await c.query(`update arca.puntos_venta set ultimo_numero=ultimo_numero+1
+      where emisor_cuit=$1 and punto_venta=$2 and tipo_comprobante=$3 returning ultimo_numero`, [comercioCuit,puntoVenta,tipo])).rows[0];
+    if (!puntoConfigurado) throw falla(409, 'configurá previamente en ARCA el punto de venta y el tipo de comprobante');
+    const numero = puntoConfigurado.ultimo_numero;
     const cae = Array.from(crypto.randomBytes(14), (byte) => byte % 10).join('');
     const comprobante = (await c.query(`insert into arca.comprobantes(id_venta,emisor_cuit,punto_venta,tipo_comprobante,numero,subtotal,percepcion,monto_total,cae,cae_vencimiento,payload_hash)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9,current_date+10,$10) returning id`, [idVenta,comercioCuit,puntoVenta,tipo,numero,subtotal,percepcion,total,cae,hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta,receptor:null })])).rows[0];

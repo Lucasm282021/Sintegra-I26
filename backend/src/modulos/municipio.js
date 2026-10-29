@@ -1,11 +1,12 @@
 // API persistente del Municipio. Las obligaciones y pagos viven en Postgres.
 const express = require('express');
 const { query, tx } = require('../db');
-const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('../http');
+const { falla, cuitValido, cuitChecksumValido, idValido, montoValido, num, hash, ruta } = require('../http');
 const { transferir } = require('./banco');
 
 const router = express.Router();
 const CONDICIONES = { responsable_inscripto: 'Responsable Inscripto', monotributo: 'Monotributista', exento: 'Exento', consumidor_final: 'Consumidor Final' };
+const estadoComercioDto = (estado) => estado === 'activa' ? 'habilitado' : estado;
 const montoFila = (r) => num(r.monto);
 const tasaDto = (r) => ({
   id_tributo: r.id_tributo, cuit: r.cuit, periodo: r.periodo,
@@ -37,14 +38,14 @@ router.get('/comercios', ruta(async () => {
   return { body: rows.map((r) => ({
     cuit: r.cuit, razon_social: r.razon_social, condicion_fiscal: CONDICIONES[r.condicion_iva] || r.condicion_iva,
     direccion: r.domicilio || r.domicilio_fiscal || '', rubro_principal: r.rubro, rubro_secundario: '',
-    estado: r.estado === 'activa' ? 'habilitado' : r.estado, fecha_alta: new Date(r.fecha_alta).toISOString().slice(0, 10),
+    estado: estadoComercioDto(r.estado), fecha_alta: new Date(r.fecha_alta).toISOString().slice(0, 10),
     deuda_total: num(r.deuda_total), periodos_pendientes: Number(r.periodos_pendientes), periodos_pagados: Number(r.periodos_pagados),
   })) };
 }));
 
 router.post('/comercios', ruta(async (req) => {
   const b = req.body || {};
-  if (!cuitValido(b.cuit)) throw falla(400, 'CUIT_INVALIDO: se requieren 11 dígitos sin guiones');
+  if (!cuitChecksumValido(b.cuit)) throw falla(400, 'CUIT_INVALIDO: se requieren 11 dígitos y un dígito verificador correcto');
   const razon = String(b.razon_social || '').trim();
   const condicion = String(b.condicion_fiscal || '').trim().toLowerCase().replaceAll(' ', '_');
   const direccion = String(b.direccion || '').trim();
@@ -56,19 +57,13 @@ router.post('/comercios', ruta(async (req) => {
     if (previo) throw falla(409, 'el CUIT ya existe en el padrón compartido');
     await c.query(`insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_iva, domicilio_fiscal)
       values ($1,$2,$3,$4,$5)`, [b.cuit, razon, /^[23]/.test(b.cuit) ? 'fisica' : 'juridica', iva, direccion]);
-    const comercio = (await c.query(`insert into municipio.habilitaciones (cuit, rubro, domicilio)
-      values ($1,$2,$3) returning *`, [b.cuit, rubro, direccion])).rows[0];
-    const now = new Date();
-    const periodo = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-    const desglose = [{ concepto: 'Tasa de Seguridad e Higiene (TISH)', importe: 12500 }];
-    const tributo = (await c.query(`insert into municipio.tasas (id_tributo,cuit,periodo,tipo,monto,concepto,desglose,vencimiento)
-      values ($1,$2,$3,'TSYH',12500,'Tasa de Seguridad e Higiene (TISH)',$4::jsonb,(date_trunc('month', now()) + interval '1 month - 1 day')::date)
-      returning *`, [`${b.cuit}-${periodo}`, b.cuit, periodo, JSON.stringify(desglose)])).rows[0];
+    const comercio = (await c.query(`insert into municipio.habilitaciones (cuit, rubro, domicilio, estado)
+      values ($1,$2,$3,'pendiente') returning *`, [b.cuit, rubro, direccion])).rows[0];
     return { status: 201, body: { comercio: {
       cuit: b.cuit, razon_social: razon, condicion_fiscal: CONDICIONES[iva], direccion,
       rubro_principal: comercio.rubro, rubro_secundario: b.rubro_secundario || '',
-      estado: 'habilitado', fecha_alta: new Date(comercio.fecha_alta).toISOString().slice(0, 10),
-    }, tributos_generados: [tasaDto(tributo)] } };
+      estado: estadoComercioDto(comercio.estado), fecha_alta: new Date(comercio.fecha_alta).toISOString().slice(0, 10),
+    }, tributos_generados: [], mensaje: 'Solicitud registrada. La habilitación requiere revisión y resolución municipal.' } };
   });
 }));
 
@@ -79,7 +74,7 @@ router.get('/comercios/:cuit', ruta(async (req) => {
   const r = rows[0]; if (!r) throw falla(404, 'comercio no encontrado');
   return { body: { cuit: r.cuit, razon_social: r.razon_social, condicion_fiscal: CONDICIONES[r.condicion_iva],
     direccion: r.domicilio || r.domicilio_fiscal || '', rubro_principal: r.rubro, rubro_secundario: '',
-    estado: r.estado === 'activa' ? 'habilitado' : r.estado, fecha_alta: new Date(r.fecha_alta).toISOString().slice(0, 10) } };
+    estado: estadoComercioDto(r.estado), fecha_alta: new Date(r.fecha_alta).toISOString().slice(0, 10) } };
 }));
 
 router.get('/tributos/:cuit', ruta(async (req) => {
@@ -90,7 +85,7 @@ router.get('/tributos/:cuit', ruta(async (req) => {
   if (!rows.length) throw falla(404, 'comercio no empadronado');
   const tributos = rows.filter((r) => r.id_tributo).map(tasaDto);
   return { body: { cuit: req.params.cuit, razon_social: rows[0].razon_social,
-    estado_comercio: rows[0].estado_comercio === 'activa' ? 'habilitado' : rows[0].estado_comercio, moneda: 'ARS',
+    estado_comercio: estadoComercioDto(rows[0].estado_comercio), moneda: 'ARS',
     deuda_total: tributos.filter((t) => t.estado === 'pendiente').reduce((s, t) => s + t.importe, 0),
     total_pagado: tributos.filter((t) => t.estado === 'pagada').reduce((s, t) => s + t.importe, 0),
     periodos_pendientes: tributos.filter((t) => t.estado === 'pendiente').length, tributos } };
@@ -144,6 +139,7 @@ router.get('/certificados/libre-deuda/:cuit', ruta(async (req) => {
     from municipio.habilitaciones h join padron.contribuyentes p using(cuit) left join municipio.tasas t using(cuit)
     where h.cuit=$1 group by h.cuit,p.razon_social,p.condicion_iva,p.domicilio_fiscal`, [req.params.cuit])).rows[0];
   if (!c) throw falla(404, 'comercio no empadronado');
+  if (c.estado !== 'activa') throw falla(409, 'la habilitación municipal todavía no está vigente');
   if (num(c.deuda) > 0 || Number(c.pendientes) > 0) throw falla(409, `registra deuda pendiente de $${num(c.deuda).toFixed(2)} en ${c.pendientes} período(s)`);
   const emitida = new Date(); const vigencia = new Date(emitida.getTime() + 90 * 86400000);
   return { body: { id_certificado: `CLD-${c.cuit}-${emitida.toISOString().slice(0, 10)}`, codigo_verificacion: `MUN-${hash(c.cuit + emitida.toISOString().slice(0, 10)).slice(0, 12).toUpperCase()}`,

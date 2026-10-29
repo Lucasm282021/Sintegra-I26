@@ -59,16 +59,41 @@ router.get('/clientes/:cuit', ruta(async (req) => {
   const identidad=(await query('select cuit,razon_social,tipo_persona,condicion_iva,estado from padron.contribuyentes where cuit=$1',[cuit])).rows[0];
   if(!identidad) throw falla(404,'cliente no encontrado en el padrón');
   const cuentas=(await query('select * from banco.cuentas where cuit=$1 order by creado_en',[cuit])).rows.map(filaCuenta);
-  const billetera=(await query('select * from billetera.cuentas where cuit=$1',[cuit])).rows[0];
+  const billetera=(await query(`select w.*,bc.saldo as saldo_banco,bc.cbu from billetera.cuentas w
+    left join banco.cuentas bc on bc.id=w.banco_cuenta_id where w.cuit=$1`,[cuit])).rows[0];
   let movimientosBilletera=[];
   if(billetera) movimientosBilletera=(await query('select * from billetera.movimientos where cuenta_id=$1 order by creado_en desc limit 30',[billetera.id])).rows.map(m=>({
     id:m.id,tipo:m.tipo,monto:num(m.monto),contraparte:m.contraparte||m.contraparte_cuit||null,
     saldo_resultante:num(m.saldo_resultante),fecha:new Date(m.creado_en).toISOString(),
   }));
   return {body:{cliente:identidad,cuentas,billetera:billetera?{
-    id:billetera.id,cuit:billetera.cuit,titular:billetera.titular,alias:billetera.alias,saldo:num(billetera.saldo),
+    id:billetera.id,cuit:billetera.cuit,titular:billetera.titular,alias:billetera.alias,
+    saldo:num(billetera.saldo_banco ?? billetera.saldo),cbu:billetera.cbu||null,
     banco_cuenta_id:billetera.banco_cuenta_id, movimientos:movimientosBilletera,
   }:null}};
+}));
+
+// Banco M es el único módulo que provisiona billeteras; reutiliza la cuenta y
+// el CBU ya asignados al cliente, y crea el acceso de la billetera.
+router.post('/clientes/:cuit/billetera', ruta(async (req) => {
+  const cuit = req.params.cuit;
+  const { alias, contrasena } = req.body || {};
+  if (!cuitValido(cuit)) throw falla(400, 'CUIT debe tener 11 dígitos');
+  if (typeof alias !== 'string' || alias.trim().length < 3) throw falla(400, 'alias de billetera inválido');
+  if (typeof contrasena !== 'string' || contrasena.length < 8) throw falla(400, 'la contraseña debe tener al menos 8 caracteres');
+  return tx(async (c) => {
+    const cliente = (await c.query('select cuit,razon_social from padron.contribuyentes where cuit=$1', [cuit])).rows[0];
+    if (!cliente) throw falla(404, 'el cliente debe estar registrado en el padrón central');
+    const cuenta = (await c.query('select id,cbu,saldo from banco.cuentas where cuit=$1 order by creado_en limit 1', [cuit])).rows[0];
+    if (!cuenta) throw falla(409, 'primero abrí una cuenta bancaria para este CUIT');
+    if ((await c.query('select 1 from billetera.cuentas where cuit=$1', [cuit])).rows[0]) throw falla(409, 'el cliente ya tiene una billetera');
+    const billetera = (await c.query(`insert into billetera.cuentas(cuit,titular,alias,saldo,banco_cuenta_id)
+      values($1,$2,$3,$4,$5) returning *`, [cuit,cliente.razon_social,alias.trim(),cuenta.saldo,cuenta.id])).rows[0];
+    await c.query(`insert into billetera.usuarios(cuenta_id,password_hash)
+      values($1,extensions.crypt($2,extensions.gen_salt('bf')))`, [billetera.id,contrasena]);
+    return { status: 201, body: { ...filaCuenta({ ...billetera, saldo: cuenta.saldo }), cuit, titular: cliente.razon_social,
+      alias: billetera.alias, saldo: num(cuenta.saldo), cbu: cuenta.cbu, banco_cuenta_id: cuenta.id } };
+  });
 }));
 
 router.get('/cuentas/:id', ruta(async (req) => {

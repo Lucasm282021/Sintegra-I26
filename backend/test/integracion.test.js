@@ -57,27 +57,35 @@ test('billetera: ingreso, carga desde el banco y pago QR entre billeteras', asyn
   assert.equal(cuenta.banco_cuenta_id, 'cuenta-demo');
 
   const bancoAntes = (await api('GET', '/banco/cuentas/cuenta-demo/saldo')).body.saldo;
+  const mostradorAntes = (await api('GET', '/banco/cuentas/cuenta-mostrador/saldo')).body.saldo;
   const carga = await api('POST', '/billetera/cargas', { id_venta: 'carga-1', cuit: '20268326074', monto: 1500 });
   assert.equal(carga.status, 201);
   assert.equal(carga.body.saldo, cuenta.saldo + 1500);
-  assert.equal((await api('GET', '/banco/cuentas/cuenta-demo/saldo')).body.saldo, bancoAntes - 1500);
-  assert.equal((await api('GET', '/banco/cuentas/cuenta-billetera/saldo')).body.saldo, 1500);
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-demo/saldo')).body.saldo, bancoAntes + 1500);
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-mostrador/saldo')).body.saldo, mostradorAntes - 1500);
   // Reintento idéntico: no duplica.
   assert.equal((await api('POST', '/billetera/cargas', { id_venta: 'carga-1', cuit: '20268326074', monto: 1500 })).status, 200);
   assert.equal((await api('POST', '/billetera/cargas', { id_venta: 'carga-1', cuit: '20268326074', monto: 99 })).status, 409);
 
+  const anaAntes = (await api('GET', '/banco/cuentas/cuenta-ana-demo/saldo')).body.saldo;
   const qr = await api('POST', '/billetera/qr/pagos', { id_venta: 'qr-1', cuit_origen: '20268326074', cuit_destino: '30000000001', monto: 500 });
   assert.equal(qr.status, 201);
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-demo/saldo')).body.saldo, bancoAntes + 1000);
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-ana-demo/saldo')).body.saldo, anaAntes + 500);
   const movs = await api('GET', `/billetera/cuentas/${cuenta.id}/movimientos`);
   assert.deepEqual(movs.body.map((m) => m.tipo), ['pago', 'carga']);
   assert.equal((await api('POST', '/billetera/pagos', { id_venta: 'p-1', cuit: '30000000003', comercio_cuit: '30712345678', monto: 999999 })).status, 400);
 });
 
-test('billetera: registro nuevo queda en el padrón', async () => {
+test('Banco provisiona billetera; la billetera no puede abrir cuentas por sí misma', async () => {
   const r = await api('POST', '/billetera/auth/registro', { titular: 'Prueba Alumno', cuil: '20999999991', alias: 'prueba.alumno', contrasena: 'clave-segura' });
-  assert.equal(r.status, 201);
-  assert.equal((await api('POST', '/billetera/auth/registro', { titular: 'X', cuil: '20999999991', alias: 'otro', contrasena: 'clave-segura' })).status, 409);
-  assert.equal((await api('GET', '/padron/contribuyentes/20999999991')).body.tiene_billetera, true);
+  assert.equal(r.status, 403);
+  const altaBanco = await api('POST', '/banco/clientes/20345678901/billetera', { alias: 'juan.perez.wallet', contrasena: 'clave-segura' });
+  assert.equal(altaBanco.status, 201);
+  assert.equal(altaBanco.body.cbu, '0000003100034567890101');
+  assert.equal(altaBanco.body.saldo, (await api('GET', '/banco/cuentas/cuenta-juan/saldo')).body.saldo);
+  assert.equal((await api('POST', '/banco/clientes/20345678901/billetera', { alias: 'otro.alias', contrasena: 'clave-segura' })).status, 409);
+  assert.equal((await api('GET', '/billetera/cuentas/' + altaBanco.body.id)).body.saldo, altaBanco.body.saldo);
 });
 
 test('venta del TPV: cobro en el banco, percepción ARBA y factura ARCA', async () => {
@@ -96,6 +104,9 @@ test('venta del TPV: cobro en el banco, percepción ARBA y factura ARCA', async 
   assert.equal(fac.status, 201);
   assert.equal(fac.body.tipo_comprobante, 'FACTURA_B');
   assert.match(fac.body.cae, /^FICTICIO-\d{14}$/);
+  assert.equal(fac.body.estado, 'simulado');
+  assert.equal(fac.body.validez_fiscal, false);
+  assert.equal(fac.body.ambiente, 'sandbox');
   const fac2 = await api('POST', '/arca/comprobantes', { id_venta: 'tpv-3', cuit: '30712345678', monto: 100 });
   assert.equal(Number(fac2.body.numero), Number(fac.body.numero) + 1);
   assert.equal((await api('GET', '/arca/comprobantes?cuit=30712345678')).body.length, 2);
@@ -122,13 +133,23 @@ test('Municipio: padrón, pago transaccional, comprobante e idempotencia', async
 });
 
 test('alta Municipio y venta integral TPV idempotente sobre la base compartida', async () => {
+  const altaCuitInvalido = await api('POST', '/municipio/comercios', {
+    cuit: '20123456789', razon_social: 'No debería ingresarse', condicion_fiscal: 'Monotributista',
+    direccion: 'Calle de prueba 1', rubro_principal: 'Servicios',
+  });
+  assert.equal(altaCuitInvalido.status, 400);
+  assert.match(altaCuitInvalido.body.error, /dígito verificador/i);
+
   const alta = await api('POST', '/municipio/comercios', {
-    cuit: '20123456789', razon_social: 'Comercio de integración', condicion_fiscal: 'Monotributista',
+    cuit: '20123456786', razon_social: 'Comercio de integración', condicion_fiscal: 'Monotributista',
     direccion: 'Calle 1 123', rubro_principal: 'Servicios',
   });
   assert.equal(alta.status, 201);
-  assert.equal(alta.body.tributos_generados.length, 1);
-  assert.equal((await api('GET', '/padron/contribuyentes/20123456789')).status, 200);
+  assert.equal(alta.body.comercio.estado, 'pendiente');
+  assert.deepEqual(alta.body.tributos_generados, []);
+  assert.match(alta.body.mensaje, /resolución municipal/i);
+  assert.equal((await api('GET', '/padron/contribuyentes/20123456786')).status, 200);
+  assert.equal((await api('GET', '/municipio/certificados/libre-deuda/20123456786')).status, 409);
 
   const productos = await api('GET', '/tpv/productos?terminal_id=david&cuit=30712345678');
   const producto = productos.body[0];
@@ -161,7 +182,7 @@ test('TPV Brisa y Sebastián usan catálogos por terminal y la ficha Banco/Bille
   assert.equal(detalle.body.estado,'COMPLETADA');
   assert.equal(detalle.body.lineas.length,1);
   assert.equal(detalle.body.pago.medio_pago,'banco');
-  assert.match(detalle.body.comprobante.cae,/^\d{14}$/);
+  assert.match(detalle.body.comprobante.cae,/^FICTICIO-\d{14}$/);
 });
 
 test('errores con formato {"error": "..."}', async () => {
@@ -169,4 +190,28 @@ test('errores con formato {"error": "..."}', async () => {
   assert.equal(r.status, 400);
   assert.equal(typeof r.body.error, 'string');
   assert.equal((await api('GET', '/no-existe')).status, 404);
+});
+
+test('ARCA y TPV no crean un punto de venta durante la facturación', async () => {
+  const pv = await api('POST', '/arca/comprobantes', {
+    id_venta: 'sin-pv-arca', cuit: '30712345678', punto_venta: 555,
+    tipo_comprobante: 'FACTURA_B', monto_total: 100,
+  });
+  assert.equal(pv.status, 409);
+  assert.match(pv.body.error, /punto de venta/i);
+  const puntos = await api('GET', '/arca/puntos-venta?cuit=30712345678');
+  assert.equal(puntos.body.some((p) => p.punto_venta === 555), false);
+
+  const producto = (await api('GET', '/tpv/productos?terminal_id=david&cuit=30712345678')).body[0];
+  const saldoAntes = (await api('GET', '/banco/cuentas/cuenta-mateo/saldo')).body.saldo;
+  const stockAntes = producto.stock;
+  const venta = await api('POST', '/tpv/ventas', {
+    id_venta: 'sin-pv-tpv', terminal_id: 'david', comercio_cuit: '30712345678',
+    punto_venta: 999, medio_pago: 'banco', items: [{ producto_id: producto.id, cantidad: 1 }],
+  });
+  assert.equal(venta.status, 409);
+  assert.match(venta.body.error, /punto de venta/i);
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-mateo/saldo')).body.saldo, saldoAntes);
+  assert.equal((await api('GET', '/tpv/productos?terminal_id=david&cuit=30712345678')).body[0].stock, stockAntes);
+  assert.equal((await api('GET', '/tpv/ventas/sin-pv-tpv')).status, 404);
 });

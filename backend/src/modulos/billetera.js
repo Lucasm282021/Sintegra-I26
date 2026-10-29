@@ -20,8 +20,9 @@ const DEMO = [
   { codigo: 'laura-demo', cuit: '30000000003', perfil: 'Saldo bajo para probar rechazos' },
 ];
 
+const saldoCuenta = (b) => num(b.saldo_banco ?? b.saldo);
 const filaBilletera = (b) => ({
-  id: b.id, titular: b.titular, cuit: b.cuit, alias: b.alias, saldo: num(b.saldo),
+  id: b.id, titular: b.titular, cuit: b.cuit, alias: b.alias, saldo: saldoCuenta(b), cbu: b.cbu || null,
   fecha_alta: new Date(b.creado_en).toISOString(), banco_cuenta_id: b.banco_cuenta_id || null,
 });
 const filaMovimiento = (m) => ({
@@ -30,9 +31,12 @@ const filaMovimiento = (m) => ({
   fecha: new Date(m.creado_en).toISOString(),
 });
 
+const columnasCuenta = `w.*,
+  (select b.saldo from banco.cuentas b where b.id = w.banco_cuenta_id) as saldo_banco,
+  (select b.cbu from banco.cuentas b where b.id = w.banco_cuenta_id) as cbu`;
 const porCuit = async (c, cuit, lock = false) =>
-  (await c.query(`select * from billetera.cuentas where cuit = $1${lock ? ' for update' : ''}`, [cuit])).rows[0];
-const porId = async (c, id) => (await c.query('select * from billetera.cuentas where id = $1', [id])).rows[0];
+  (await c.query(`select ${columnasCuenta} from billetera.cuentas w where w.cuit = $1${lock ? ' for update of w' : ''}`, [cuit])).rows[0];
+const porId = async (c, id) => (await c.query(`select ${columnasCuenta} from billetera.cuentas w where w.id = $1`, [id])).rows[0];
 
 async function movimiento(c, m) {
   return (await c.query(
@@ -55,8 +59,10 @@ async function previo(c, id_operacion, cuenta, payload_hash) {
 
 async function verificarClave(cuit, clave) {
   const { rows } = await query(
-    `select c.*, (u.password_hash = extensions.crypt($2, u.password_hash)) as ok
-     from billetera.cuentas c join billetera.usuarios u on u.cuenta_id = c.id where c.cuit = $1`, [cuit, clave]);
+    `select c.*, b.saldo as saldo_banco, b.cbu,
+       (u.password_hash = extensions.crypt($2, u.password_hash)) as ok
+     from billetera.cuentas c join billetera.usuarios u on u.cuenta_id = c.id
+     left join banco.cuentas b on b.id = c.banco_cuenta_id where c.cuit = $1`, [cuit, clave]);
   return rows[0] && rows[0].ok ? rows[0] : null;
 }
 
@@ -94,17 +100,14 @@ router.post('/auth/login', ruta(async (req) => {
 }));
 
 router.post('/auth/registro', ruta(async (req) => {
-  const { titular, cuil, alias, contrasena } = req.body || {};
-  if (!titular || typeof titular !== 'string') throw falla(400, 'nombre y apellido son obligatorios');
-  if (!cuitValido(cuil)) throw falla(400, 'el CUIL debe tener 11 dígitos, sin puntos ni guiones');
-  if (!alias || typeof alias !== 'string') throw falla(400, 'el alias es obligatorio');
-  if (typeof contrasena !== 'string' || contrasena.length < MIN_CLAVE) throw falla(400, 'la contraseña debe tener al menos 8 caracteres');
-  const cuenta = await tx((c) => crearCuenta(c, { titular, cuit: cuil, alias, contrasena }));
-  return { status: 201, body: { billetera: filaBilletera(cuenta) } };
+  throw falla(403, 'el alta de billeteras la realiza Banco M; solicitá el alta de una cuenta bancaria');
 }));
 
 router.get('/demo/clientes', ruta(async () => {
-  const { rows } = await query('select * from billetera.cuentas where cuit = any($1)', [DEMO.map((d) => d.cuit)]);
+  const { rows } = await query(`select w.*,
+    (select b.saldo from banco.cuentas b where b.id=w.banco_cuenta_id) as saldo_banco,
+    (select b.cbu from banco.cuentas b where b.id=w.banco_cuenta_id) as cbu
+    from billetera.cuentas w where w.cuit = any($1)`, [DEMO.map((d) => d.cuit)]);
   return {
     body: DEMO.map((d) => {
       const b = rows.find((r) => r.cuit === d.cuit);
@@ -128,15 +131,7 @@ router.get('/qr/:cuit', ruta(async (req) => {
 }));
 
 router.post('/cuentas', ruta(async (req) => {
-  const { titular, cuit, alias, contrasena } = req.body || {};
-  if (!titular || typeof titular !== 'string') throw falla(400, 'titular es obligatorio');
-  if (!cuitValido(cuit)) throw falla(400, 'cuit debe ser un string de 11 dígitos, sin puntos ni guiones');
-  if (!alias || typeof alias !== 'string') throw falla(400, 'alias es obligatorio');
-  if (contrasena && (typeof contrasena !== 'string' || contrasena.length < MIN_CLAVE)) {
-    throw falla(400, 'la contraseña debe tener al menos 8 caracteres');
-  }
-  const cuenta = await tx((c) => crearCuenta(c, { titular, cuit, alias, contrasena: contrasena || null }));
-  return { status: 201, body: filaBilletera(cuenta) };
+  throw falla(403, 'el alta de billeteras la realiza Banco M');
 }));
 
 router.get('/cuentas/:id', ruta(async (req) => {
@@ -153,7 +148,8 @@ router.get('/cuentas/:id/movimientos', ruta(async (req) => {
   return { body: rows.map(filaMovimiento) };
 }));
 
-// POST /billetera/cargas — acredita saldo; si hay cuenta bancaria vinculada, sale de ahí.
+// Los ingresos se liquidan en la cuenta bancaria vinculada. La Billetera es una
+// vista del mismo saldo y nunca mantiene dinero paralelo al saldo de Banco.
 router.post('/cargas', ruta(async (req) => {
   const { id_venta, cuit, monto } = req.body || {};
   if (!idValido(id_venta)) throw falla(400, 'id_venta es obligatorio');
@@ -163,28 +159,25 @@ router.post('/cargas', ruta(async (req) => {
   return tx(async (c) => {
     const b = await porCuit(c, cuit, true);
     if (!b) throw falla(404, 'no existe billetera para ese cuit');
+    if (!b.banco_cuenta_id) throw falla(409, 'la billetera necesita una cuenta bancaria asignada por Banco M');
     const ya = await previo(c, id_venta, b, payload_hash);
     if (ya) {
       return { status: 200, body: { ...filaBilletera(b), id_venta, movimiento: filaMovimiento(ya), saldo_resultante: num(ya.saldo_resultante) } };
     }
-    let banco = null;
-    if (b.banco_cuenta_id) {
-      banco = (await transferir(c, {
-        id_operacion: `carga:${id_venta}`, tipo: 'carga_billetera', origen: b.banco_cuenta_id,
-        destino: CUENTA_CUSTODIA, monto, payload: { cuit },
-      })).movimiento;
-    }
-    const saldo = num(b.saldo) + monto;
-    await c.query('update billetera.cuentas set saldo = $2 where id = $1', [b.id, saldo]);
+    const banco = (await transferir(c, {
+      id_operacion: `ingreso:${id_venta}`, tipo: 'transferencia', origen: 'cuenta-mostrador',
+      destino: b.banco_cuenta_id, monto, payload: { ingreso_bancario: id_venta, cuit },
+    })).movimiento;
+    const saldo = saldoCuenta(b) + monto;
     const m = await movimiento(c, {
       id_operacion: id_venta, cuenta: b, tipo: 'carga', monto, saldo, payload_hash,
-      contraparte: banco ? `Carga desde cuenta bancaria ${b.banco_cuenta_id}` : 'Carga de saldo',
-      banco_movimiento_id: banco ? banco.id : null,
+      contraparte: `Ingreso en cuenta bancaria ${b.banco_cuenta_id}`,
+      banco_movimiento_id: banco.id,
     });
     return {
       status: 201,
-      body: { ...filaBilletera({ ...b, saldo }), id_venta, movimiento: filaMovimiento(m), saldo_resultante: saldo,
-        banco_movimiento_id: banco ? banco.id : null },
+      body: { ...filaBilletera({ ...b, saldo_banco: saldo, saldo }), id_venta, movimiento: filaMovimiento(m), saldo_resultante: saldo,
+        banco_movimiento_id: banco.id },
     };
   });
 }));
@@ -205,26 +198,25 @@ async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDe
     const event = terminal_id ? (await c.query(`select id from tpv.webhook_eventos where terminal_id=$1 and id_venta=$2 and evento='payment.confirmed'`, [terminal_id,id_venta])).rows[0] : null;
     return { status: 200, body: { ...filaBilletera(origen), id_venta, movimiento: filaMovimiento(ya), saldo_resultante: num(ya.saldo_resultante), estado: 'confirmado', _webhookEventId:event?.id||null } };
   }
-  if (num(origen.saldo) < monto) throw falla(400, 'saldo insuficiente');
-  const saldoOrigen = num(origen.saldo) - monto;
-  await c.query('update billetera.cuentas set saldo = $2 where id = $1', [origen.id, saldoOrigen]);
-  let bancoMovimiento = null;
-  if (!destino && liquidarBanco) {
-    const cuentaDestino = (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [destinoCuit])).rows[0];
-    if (!cuentaDestino) throw falla(404, 'el comercio no tiene billetera ni cuenta bancaria para recibir el pago');
-    bancoMovimiento = (await transferir(c, {
-      id_operacion: `billetera:${id_venta}`, tipo: 'transferencia', origen: CUENTA_CUSTODIA,
-      destino: cuentaDestino.id, monto, payload: { billetera_pago: id_venta, cuit_origen: origenCuit, cuit_destino: destinoCuit },
-    })).movimiento;
-  }
+  if (!origen.banco_cuenta_id) throw falla(409, 'la billetera no tiene una cuenta bancaria asignada por Banco M');
+  const cuentaDestino = destino?.banco_cuenta_id
+    ? { id: destino.banco_cuenta_id, saldo: saldoCuenta(destino) }
+    : (await c.query('select id, saldo from banco.cuentas where cuit=$1 order by creado_en limit 1', [destinoCuit])).rows[0];
+  if (!cuentaDestino) throw falla(404, 'el destinatario no tiene una cuenta bancaria');
+  const saldoAntes = saldoCuenta(origen);
+  if (saldoAntes < monto) throw falla(400, 'saldo insuficiente');
+  const bancoMovimiento = (await transferir(c, {
+    id_operacion: `billetera:${id_venta}`, tipo: 'transferencia', origen: origen.banco_cuenta_id,
+    destino: cuentaDestino.id, monto, payload: { billetera_pago: id_venta, cuit_origen: origenCuit, cuit_destino: destinoCuit },
+  })).movimiento;
+  const saldoOrigen = saldoAntes - monto;
+  const saldoDestino = num(cuentaDestino.saldo) + monto;
   const m = await movimiento(c, {
     id_operacion: id_venta, cuenta: origen, tipo: 'pago', monto, saldo: saldoOrigen, payload_hash,
     contraparte: destino ? `Pago a ${destino.alias}` : `Pago a comercio ${destinoCuit}`, contraparte_cuit: destinoCuit,
-    banco_movimiento_id: bancoMovimiento?.id,
+    banco_movimiento_id: bancoMovimiento.id,
   });
   if (destino) {
-    const saldoDestino = num(destino.saldo) + monto;
-    await c.query('update billetera.cuentas set saldo = $2 where id = $1', [destino.id, saldoDestino]);
     await movimiento(c, {
       id_operacion: id_venta, cuenta: destino, tipo: 'cobro', monto, saldo: saldoDestino, payload_hash,
       contraparte: `Cobro de ${origen.alias}`, contraparte_cuit: origenCuit,
@@ -233,12 +225,12 @@ async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDe
   const webhookEventId = await registrarEvento(c, { terminal_id, id_venta:webhook_id_venta, payload: {
     event_type: 'payment.confirmed', id_venta:webhook_id_venta, terminal_id, cuit_comercio: destinoCuit,
     cuit_pagador: origenCuit, monto, moneda: 'ARS', medio_pago: 'billetera', estado: 'confirmado',
-    billetera_movimiento_id: m.id, banco_movimiento_id: bancoMovimiento?.id || null,
+    billetera_movimiento_id: m.id, banco_movimiento_id: bancoMovimiento.id,
   } });
   return {
     status: 201,
-    body: { ...filaBilletera({ ...origen, saldo: saldoOrigen }), id_venta, movimiento: filaMovimiento(m),
-      banco_movimiento_id: bancoMovimiento?.id || null, saldo_resultante: saldoOrigen, estado: 'confirmado', _webhookEventId: webhookEventId },
+    body: { ...filaBilletera({ ...origen, saldo: saldoOrigen, saldo_banco: saldoOrigen }), id_venta, movimiento: filaMovimiento(m),
+      banco_movimiento_id: bancoMovimiento.id, saldo_resultante: saldoOrigen, estado: 'confirmado', _webhookEventId: webhookEventId },
   };
 }
 

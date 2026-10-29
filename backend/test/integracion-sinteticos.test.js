@@ -28,7 +28,7 @@ async function abrirBaseSintetica() {
     '20261026000001_esquema_inicial.sql', '20261026000002_usuarios_billetera.sql',
     '20261028000004_municipio_tpv_operativos.sql', '20261028000005_municipio_operacion_bancaria.sql',
     '20261028000006_tpv_brisa_banco_m.sql', '20261028000009_qr_pagos_liquidacion.sql',
-    '20261028000010_webhooks_tpv.sql',
+    '20261028000010_webhooks_tpv.sql', '20261028000012_municipio_habilitacion_pendiente.sql',
   ];
   for (const nombre of migraciones) await pg.exec(fs.readFileSync(path.join(dir, nombre), 'utf8'));
   await pg.exec('alter table billetera.movimientos add column if not exists contraparte text;');
@@ -60,7 +60,7 @@ async function abrirBaseSintetica() {
     insert into billetera.cuentas(cuit,titular,alias,saldo,banco_cuenta_id) values
       ('${sujetos.comprador}','Alicia Sintética','alicia.qa',5000,'qa-comprador'),
       ('${sujetos.comercioWallet}','Servicios Sintéticos Dos SA','servicios.qa',0,'qa-comercio-wallet'),
-      ('${sujetos.municipal}','Bruno Sintético','bruno.qa',3000,'qa-municipal');
+      ('${sujetos.municipal}','Bruno Sintético','bruno.qa',10000,'qa-municipal');
     insert into tpv.terminales(id,nombre) values('qa-terminal','Terminal sintética QA');
     insert into tpv.productos(terminal_id,comercio_cuit,codigo,nombre,categoria,precio,stock) values
       ('qa-terminal','${sujetos.comercio}','QA-001','Producto sintético QA','General',1000,5);
@@ -177,11 +177,13 @@ test('alta de punto de venta y checkout TPV integra cobro, ARBA, ARCA y stock', 
 });
 
 test('checkout de billetera acredita billetera del comercio y Municipio cobra al banco', async () => {
+  const pv = await api('POST', '/arca/puntos-venta', { cuit: sujetos.comercioWallet, punto_venta: 28 });
+  assert.equal(pv.status, 201);
   const producto = (await api('POST', '/tpv/productos', { terminal_id: 'qa-terminal', comercio_cuit: sujetos.comercioWallet,
     nombre: 'Servicio sintético', precio: 500, stock: 10 })).body;
   assert.equal(typeof producto.id, 'string', JSON.stringify(producto));
   const venta = await api('POST', '/tpv/ventas', { id_venta: 'qa-tpv-wallet-001', terminal_id: 'qa-terminal',
-    comercio_cuit: sujetos.comercioWallet, medio_pago: 'billetera', cuit_cliente: sujetos.municipal,
+    comercio_cuit: sujetos.comercioWallet, medio_pago: 'billetera', cuit_cliente: sujetos.municipal, punto_venta: 28,
     items: [{ producto_id: producto.id, cantidad: 1 }] });
   assert.equal(venta.status, 201, JSON.stringify(venta.body));
   const walletComercio = (await api('GET', '/banco/clientes/' + sujetos.comercioWallet)).body.billetera;

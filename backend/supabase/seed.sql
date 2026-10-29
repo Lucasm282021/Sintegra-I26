@@ -61,13 +61,16 @@ insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_i
   ('30000000003', 'Laura Fernández (Demo)', 'fisica', 'consumidor_final');
 
 insert into banco.cuentas (id, cuit, titular, cbu, alias, saldo) values
-  ('cuenta-demo', '20268326074', 'Usuario Demo Billetera', '0000003100020268326074', 'demo.banco', 200000.00);
+  ('cuenta-demo', '20268326074', 'Usuario Demo Billetera', '0000003100020268326074', 'demo.banco', 200000.00),
+  ('cuenta-ana-demo', '30000000001', 'Ana Gómez (Demo)', '0000003100030000000001', 'ana.demo.banco', 45000.00),
+  ('cuenta-marcos-demo', '30000000002', 'Marcos Ríos (Demo)', '0000003100030000000002', 'marcos.demo.banco', 18000.00),
+  ('cuenta-laura-demo', '30000000003', 'Laura Fernández (Demo)', '0000003100030000000003', 'laura.demo.banco', 7500.00);
 
 insert into billetera.cuentas (cuit, titular, alias, saldo, banco_cuenta_id) values
-  ('20268326074', 'Usuario Demo Billetera', 'demo.billetera', 50000.00, 'cuenta-demo'),
-  ('30000000001', 'Ana Gómez (Demo)',       'ana.prueba',     45000.00, null),
-  ('30000000002', 'Marcos Ríos (Demo)',     'marcos.prueba',  18000.00, null),
-  ('30000000003', 'Laura Fernández (Demo)', 'laura.prueba',    7500.00, null);
+  ('20268326074', 'Usuario Demo Billetera', 'demo.billetera', 200000.00, 'cuenta-demo'),
+  ('30000000001', 'Ana Gómez (Demo)',       'ana.prueba',      45000.00, 'cuenta-ana-demo'),
+  ('30000000002', 'Marcos Ríos (Demo)',     'marcos.prueba',   18000.00, 'cuenta-marcos-demo'),
+  ('30000000003', 'Laura Fernández (Demo)', 'laura.prueba',     7500.00, 'cuenta-laura-demo');
 
 insert into billetera.usuarios (cuenta_id, password_hash)
 select c.id, extensions.crypt(u.clave, extensions.gen_salt('bf'))

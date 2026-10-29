@@ -6,6 +6,16 @@ class HttpError extends Error {
 const falla = (status, mensaje) => new HttpError(status, mensaje);
 
 const cuitValido = (v) => typeof v === 'string' && /^\d{11}$/.test(v);
+// Validación estructural del dígito de control CUIT/CUIL. No consulta si el
+// identificador fue efectivamente emitido ni informa su estado ante ARCA.
+const cuitChecksumValido = (v) => {
+  if (!cuitValido(v)) return false;
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const suma = pesos.reduce((total, peso, i) => total + Number(v[i]) * peso, 0);
+  const resto = suma % 11;
+  const verificador = resto === 0 ? 0 : resto === 1 ? 9 : 11 - resto;
+  return Number(v[10]) === verificador;
+};
 const idValido = (v) => typeof v === 'string' && v.trim().length > 0 && v.length <= 200;
 const montoValido = (m) => typeof m === 'number' && Number.isFinite(m) && m > 0
   && Math.abs(m * 100 - Math.round(m * 100)) < 1e-7;
@@ -21,4 +31,4 @@ const ruta = (fn) => async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { HttpError, falla, cuitValido, idValido, montoValido, uuidValido, num, hash, ruta };
+module.exports = { HttpError, falla, cuitValido, cuitChecksumValido, idValido, montoValido, uuidValido, num, hash, ruta };

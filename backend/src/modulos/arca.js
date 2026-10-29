@@ -20,7 +20,8 @@ const filaComprobante = (r) => ({
   numero: pad(r.numero, 8), numero_comprobante: pad(r.numero, 8),
   subtotal: num(r.subtotal), percepcion: num(r.percepcion), monto_total: num(r.monto_total),
   cae: `FICTICIO-${r.cae}`, vencimiento_cae: new Date(r.cae_vencimiento).toISOString().slice(0, 10),
-  fecha_emision: new Date(r.emitido_en).toISOString(), estado: r.estado,
+  fecha_emision: new Date(r.emitido_en).toISOString(), estado: 'simulado', estado_registro: r.estado,
+  ambiente: 'sandbox', validez_fiscal: false,
 });
 
 router.get('/contribuyentes/:cuit', ruta(async (req) => {
@@ -93,13 +94,11 @@ router.post('/comprobantes', ruta(async (req) => {
       if (previo.payload_hash !== payload_hash) throw falla(409, 'id_venta ya fue utilizada con otros datos');
       return { status: 200, body: filaComprobante(previo) };
     }
-    await c.query(
-      `insert into arca.puntos_venta (emisor_cuit, punto_venta, tipo_comprobante) values ($1,$2,$3)
-       on conflict do nothing`, [b.cuit, puntoVenta, tipo]);
     const { ultimo_numero: numero } = (await c.query(
       `update arca.puntos_venta set ultimo_numero = ultimo_numero + 1
        where emisor_cuit = $1 and punto_venta = $2 and tipo_comprobante = $3 returning ultimo_numero`,
-      [b.cuit, puntoVenta, tipo])).rows[0];
+      [b.cuit, puntoVenta, tipo])).rows[0] || {};
+    if (!numero) throw falla(409, 'el punto de venta y tipo de comprobante deben estar configurados antes de emitir');
     const r = (await c.query(
       `insert into arca.comprobantes (id_venta, emisor_cuit, receptor_cuit, punto_venta, tipo_comprobante, numero,
          subtotal, percepcion, monto_total, cae, cae_vencimiento, payload_hash)
