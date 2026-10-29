@@ -31,5 +31,10 @@ Qué se conserva, modifica, reemplaza, depreca o elimina en cada entrega. Lo ant
 - Trabajo de Codex sin guardar (PV obligatorio, CAE ficticio, altas municipales pendientes, billetera provista por Banco, TPV Sebastián con cuenta de cobro, ARBA Lucas contra el backend único): 14/14 pruebas y builds correctos; guardado en 6 commits.
 - Limpieza de `banco-m`: se quitó un panel HTML incompleto y módulos de ingreso sin uso.
 
-### Pendiente de publicar
-- Aplicar en Supabase las migraciones `…011` a `…014` y publicar backend y portal (requiere OK).
+### Publicado (2026-10-29, con OK del docente)
+- Migraciones `…011` a `…014` aplicadas en Supabase con `npm run migrar`. El CORE importó 4 comercios (Almacén Don Mateo, Kiosco La Esquina, Juan Pérez y Taller El Rayo), cada uno con el titular demo; 3 quedaron `observado` por CUIT demo con DV inválido.
+- Backend publicado en <https://sintegra-backend.vercel.app> con `CORE_AUTH_SECRET` en Vercel. Verificado: `/health` lista `core`, ingreso demo, `/core/yo` y `401` sin sesión.
+- Portal publicado: <https://sintegrai26.vercel.app/comercios/> y tarjeta "Comercios · Alta única" en la página de inicio. Verificado en el navegador con el usuario demo.
+
+### Pendiente
+- Banco Boreal (`banco-m`, React + Prisma) no se publicó: usa una base propia (`banco_m`) paralela al Banco del backend único. Según el [plan de migración](PLAN-MIGRACION.md) (etapa 3), primero tiene que operar sobre `banco.*`; si no, habría dos libros de saldos distintos.

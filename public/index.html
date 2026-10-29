@@ -220,6 +220,7 @@
       .card-fintech { --glow: rgb(239 58 142 / 20%); --card-accent: #f36da7; }
       .card-banco { --glow: rgb(69 143 255 / 22%); --card-accent: #72a7ff; }
       .card-arca { --glow: rgb(38 155 235 / 22%); --card-accent: #4fb5f2; }
+      .card-core { --glow: rgb(80 213 189 / 24%); --card-accent: #50d5bd; }
       .card-coming { cursor: default; background: linear-gradient(145deg, rgb(18 30 46 / 75%), rgb(11 21 34 / 88%)); }
       .card-coming:hover { transform: none; border-color: #34465c; box-shadow: none; }
       .card-coming .logo-panel { opacity: .88; }
@@ -357,6 +358,11 @@
         </div>
 
         <div class="grid">
+          <a class="card card-core" href="./comercios/" aria-label="Abrir Comercios, alta única y panel de estado">
+            <div class="card-head"><h3>Comercios · Alta única</h3><span class="tag tag-ready">Nuevo · CORE del ecosistema</span></div>
+            <p>Un comercio se registra una sola vez y cada sistema (ARCA, ARBA, Municipio, Banco y TPV) informa su estado con evidencia.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-sintegra.png" alt="Sintegra I26" /></span><span class="open-label">Dar de alta <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
           <a class="card card-arba" href="https://arba-tomi.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir ARBA Tomi en una nueva pestaña">
             <div class="card-head"><h3>ARBA · Tomi</h3><span class="tag tag-ready">Backend ARBA disponible</span></div>
             <p>Padrón de sujetos, altas y percepciones. La API común expone consulta de inscripción y registro idempotente.</p>
