@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Alta única de comercios del ecosistema Sintegra I26 y panel de estado por sistema.">
+<link rel="icon" type="image/png" href="../media/logo-sintegra.png">
+<title>Comercios · Sintegra I26</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#principal">Saltar al contenido</a>
+<p class="aviso">Simulación académica: ARCA, ARBA, Municipio y Banco se consultan en su versión <strong>sandbox</strong>. Ningún estado es una constancia oficial.</p>
+
+<header class="topbar">
+  <a class="marca" href="../index.html"><img src="../media/logo-sintegra.png" alt="" width="36" height="36"><span><strong>Comercios</strong><small>Alta única · Sintegra I26</small></span></a>
+  <div class="topbar-der" id="sesion" hidden>
+    <span id="usuario-nombre"></span>
+    <button class="btn btn-claro" id="btn-mis" type="button">Mis comercios</button>
+    <button class="btn btn-claro" id="btn-salir" type="button">Salir</button>
+  </div>
+</header>
+
+<main id="principal" tabindex="-1">
+  <!-- Ingreso -->
+  <section id="v-ingreso" class="vista ingreso" hidden>
+    <div class="card">
+      <h1>Ingresá al registro de comercios</h1>
+      <div class="pestanas" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="login" type="button">Ingresar</button>
+        <button role="tab" aria-selected="false" data-tab="registro" type="button">Crear usuario</button>
+      </div>
+      <form id="f-login" class="form">
+        <label for="l-email">Correo</label><input id="l-email" type="email" autocomplete="username" required>
+        <label for="l-pass">Contraseña</label><input id="l-pass" type="password" autocomplete="current-password" required>
+        <button class="btn btn-prim" type="submit">Ingresar</button>
+      </form>
+      <form id="f-registro" class="form" hidden>
+        <label for="r-nombre">Nombre y apellido</label><input id="r-nombre" required autocomplete="name">
+        <label for="r-email">Correo</label><input id="r-email" type="email" required autocomplete="username">
+        <label for="r-pass">Contraseña (mínimo 10 caracteres)</label><input id="r-pass" type="password" minlength="10" required autocomplete="new-password">
+        <button class="btn btn-prim" type="submit">Crear usuario</button>
+      </form>
+    </div>
+    <aside class="card ayuda" aria-label="Usuario de prueba">
+      <h2>Usuario de prueba (ayuda memoria)</h2>
+      <p>Correo: <code>demo.comercios.i26@gmail.com</code><br>Contraseña: <code>ComerciosDemo2026</code></p>
+      <p class="muted">Es titular de los comercios que ya operaban en el ecosistema (por ejemplo, Almacén Don Mateo y Kiosco La Esquina). Para probar un alta desde cero, creá tu propio usuario.</p>
+      <button class="btn btn-borde" id="btn-usar-demo" type="button">Completar con el usuario de prueba</button>
+    </aside>
+  </section>
+
+  <!-- Mis comercios -->
+  <section id="v-mis" class="vista" hidden>
+    <div class="encabezado">
+      <div><h1>Mis comercios</h1><p class="muted">Un comercio, una identidad: se da de alta una sola vez y cada sistema informa su estado.</p></div>
+      <button class="btn btn-prim" id="btn-nuevo" type="button">Dar de alta un comercio</button>
+    </div>
+    <div id="lista-comercios" class="lista"></div>
+    <details class="card">
+      <summary>¿El comercio ya está registrado? Solicitar acceso</summary>
+      <form id="f-acceso" class="form fila">
+        <label for="a-cuit">CUIT del comercio</label><input id="a-cuit" inputmode="numeric" maxlength="11" required>
+        <label for="a-motivo">Motivo</label><input id="a-motivo" placeholder="Ej.: soy la encargada de la sucursal">
+        <button class="btn btn-borde" type="submit">Enviar solicitud</button>
+      </form>
+      <p class="muted">Conocer el CUIT no da acceso: la solicitud la aprueba el titular del comercio.</p>
+    </details>
+  </section>
+
+  <!-- Alta -->
+  <section id="v-alta" class="vista" hidden>
+    <h1>Alta de comercio</h1>
+    <ol class="pasos" aria-label="Pasos del alta"><li data-paso="1">Comercio</li><li data-paso="2">Sucursal</li><li data-paso="3">Confirmación</li></ol>
+    <form id="f-alta" class="card form" novalidate>
+      <fieldset data-paso="1">
+        <legend>Datos del comercio (se cargan una sola vez)</legend>
+        <label for="c-cuit">CUIT</label>
+        <input id="c-cuit" name="cuit" inputmode="numeric" maxlength="11" required placeholder="11 dígitos, sin guiones" aria-describedby="c-cuit-msg">
+        <span id="c-cuit-msg" class="nota" aria-live="polite"></span>
+        <label for="c-razon">Razón social o nombre comercial</label><input id="c-razon" name="razon_social" required>
+        <label for="c-fantasia">Nombre de fantasía</label><input id="c-fantasia" name="nombre_fantasia">
+        <label for="c-tipo">Tipo de persona</label>
+        <select id="c-tipo" name="tipo_persona"><option value="">Según el CUIT</option><option value="fisica">Persona humana</option><option value="juridica">Persona jurídica</option></select>
+        <label for="c-email">Correo de contacto</label><input id="c-email" name="email_contacto" type="email" required>
+        <label for="c-tel">Teléfono</label><input id="c-tel" name="telefono_contacto" inputmode="tel">
+        <label for="c-dom">Domicilio fiscal</label><input id="c-dom" name="domicilio_fiscal">
+      </fieldset>
+      <fieldset data-paso="2" hidden>
+        <legend>Primera sucursal (local donde se atiende)</legend>
+        <p class="nota">El domicilio comercial puede ser distinto del fiscal. La habilitación municipal se tramita por sucursal.</p>
+        <label for="s-nombre">Nombre</label><input id="s-nombre" name="s_nombre" value="Casa central">
+        <label for="s-dom">Domicilio comercial</label><input id="s-dom" name="s_domicilio" required>
+        <label for="s-loc">Localidad</label><input id="s-loc" name="s_localidad">
+        <label for="s-mun">Municipio</label><input id="s-mun" name="s_municipio">
+        <label for="s-prov">Provincia</label><input id="s-prov" name="s_provincia" value="Buenos Aires">
+        <label for="s-cp">Código postal</label><input id="s-cp" name="s_cp">
+      </fieldset>
+      <fieldset data-paso="3" hidden>
+        <legend>Confirmación</legend>
+        <dl id="resumen" class="resumen"></dl>
+        <label class="check"><input type="checkbox" id="c-acepta"> Acepto las condiciones de uso y el tratamiento de los datos para la simulación académica.</label>
+        <label class="check"><input type="checkbox" id="c-declara"> Declaro que represento a este comercio. (Queda registrado como declaración, no como verificación.)</label>
+      </fieldset>
+      <p id="alta-error" class="error" role="alert"></p>
+      <div class="acciones">
+        <button class="btn btn-borde" id="btn-atras" type="button">Atrás</button>
+        <button class="btn btn-prim" id="btn-siguiente" type="button">Siguiente</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Panel del comercio -->
+  <section id="v-panel" class="vista" hidden>
+    <div class="encabezado">
+      <div><h1 id="p-nombre"></h1><p class="muted" id="p-sub"></p></div>
+      <span id="p-identidad"></span>
+    </div>
+    <div class="pestanas" role="tablist" id="p-tabs">
+      <button role="tab" aria-selected="true" data-ptab="estado" type="button">Estado</button>
+      <button role="tab" aria-selected="false" data-ptab="sucursales" type="button">Sucursales</button>
+      <button role="tab" aria-selected="false" data-ptab="usuarios" type="button">Usuarios</button>
+      <button role="tab" aria-selected="false" data-ptab="historial" type="button">Historial</button>
+    </div>
+    <div data-ppanel="estado"><div id="tarjetas" class="tarjetas"></div></div>
+    <div data-ppanel="sucursales" hidden>
+      <div id="lista-sucursales" class="lista"></div>
+      <form id="f-sucursal" class="card form">
+        <h2>Agregar sucursal</h2>
+        <label for="ns-nombre">Nombre</label><input id="ns-nombre" required>
+        <label for="ns-dom">Domicilio comercial</label><input id="ns-dom" required>
+        <label for="ns-loc">Localidad</label><input id="ns-loc">
+        <label for="ns-mun">Municipio</label><input id="ns-mun">
+        <button class="btn btn-prim" type="submit">Agregar</button>
+      </form>
+    </div>
+    <div data-ppanel="usuarios" hidden><div id="lista-usuarios" class="lista"></div></div>
+    <div data-ppanel="historial" hidden><div class="card tabla"><table><thead><tr><th>Fecha</th><th>Sistema</th><th>Resultado</th><th>Origen</th><th>Evidencia</th></tr></thead><tbody id="historial"></tbody></table></div></div>
+  </section>
+</main>
+
+<dialog id="d-manual" aria-labelledby="dm-titulo">
+  <form id="f-manual" class="form">
+    <h2 id="dm-titulo">Verificación manual</h2>
+    <p class="nota">Solo con evidencia: número de constancia, expediente o resolución.</p>
+    <label for="m-resultado">Resultado</label><select id="m-resultado"></select>
+    <label for="m-motivo">Motivo</label><input id="m-motivo" required>
+    <label for="m-evidencia">Referencia de evidencia</label><input id="m-evidencia" required minlength="3">
+    <label for="m-vigencia">Vigente hasta (opcional)</label><input id="m-vigencia" type="date">
+    <p id="m-error" class="error" role="alert"></p>
+    <div class="acciones"><button class="btn btn-borde" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="btn btn-prim" type="submit">Registrar</button></div>
+  </form>
+</dialog>
+
+<dialog id="d-tramite" aria-labelledby="dr-titulo">
+  <form id="f-tramite" class="form">
+    <h2 id="dr-titulo">Trámite</h2>
+    <p class="nota" id="dr-nota"></p>
+    <p class="nota"><strong>Simulación:</strong> se hace en el sistema sandbox del organismo, no ante el organismo real.</p>
+    <div id="dr-campos" class="form"></div>
+    <p id="dr-error" class="error" role="alert"></p>
+    <div class="acciones"><button class="btn btn-borde" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="btn btn-prim" type="submit">Enviar trámite</button></div>
+  </form>
+</dialog>
+
+<dialog id="d-tpv" aria-labelledby="dt-titulo">
+  <form id="f-tpv" class="form">
+    <h2 id="dt-titulo">Activar TPV</h2>
+    <p class="nota">Requisitos: ARCA verificado y cuenta bancaria vinculada. Una habilitación municipal observada lo bloquea.</p>
+    <label for="t-terminal">Terminal</label><select id="t-terminal" required></select>
+    <label for="t-rubro">Rubro</label><input id="t-rubro" value="Comercio">
+    <p id="t-error" class="error" role="alert"></p>
+    <div class="acciones"><button class="btn btn-borde" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="btn btn-prim" type="submit">Activar</button></div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
