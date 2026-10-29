@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "migrar": "node scripts/migrar.js",
-    "test": "node --test"
+    "test": "node --test",
+    "dev:memoria": "node scripts/dev-pglite.js"
   },
   "engines": {
     "node": ">=20"
