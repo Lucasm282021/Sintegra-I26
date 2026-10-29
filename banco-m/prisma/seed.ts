@@ -1,15 +1,14 @@
 // Datos de prueba ficticios para la demo de banco-m. Se puede correr varias
-// veces: no duplica cuentas ni usuarios (npm run db:seed).
+// veces: no duplica cuentas ni comercios (npm run db:seed).
 import 'dotenv/config'
-import { PrismaClient, RolUsuario } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { generarCBU } from '../src/utils/cbu'
 import { generarAlias } from '../src/utils/alias'
-import { hashPassword } from '../src/modules/auth/auth.service'
 
 const prisma = new PrismaClient()
-const PASSWORD = process.env.DEMO_PASSWORD || 'banco1234'
 
-type Alta = { cuit: string; nombre: string; rol: RolUsuario; saldo: number; rubro?: string }
+type Rol = 'ADMIN' | 'CLIENTE' | 'COMERCIO' | 'ORGANISMO'
+type Alta = { cuit: string; nombre: string; rol: Rol; saldo: number; rubro?: string }
 
 const ALTAS: Alta[] = [
   { cuit: '20111111112', nombre: 'Administración Banco M', rol: 'ADMIN', saldo: 0 },
@@ -45,11 +44,6 @@ async function main() {
         create: { cuit: a.cuit, razonSocial: a.nombre, rubro: a.rubro, cuentaId: cuenta.id },
       })
     }
-    await prisma.usuario.upsert({
-      where: { cuit: a.cuit },
-      update: { nombre: a.nombre, rol: a.rol },
-      create: { cuit: a.cuit, nombre: a.nombre, rol: a.rol, passwordHash: hashPassword(PASSWORD) },
-    })
     console.log(`${a.rol.padEnd(9)} ${a.cuit}  ${cuenta.alias}`)
   }
 }
