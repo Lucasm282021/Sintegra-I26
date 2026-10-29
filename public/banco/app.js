@@ -85,19 +85,19 @@ function renderWallet(data) {
   const w = data.billetera;
   if (!w) {
     node.innerHTML = '<div class="wallet-heading"><div><p class="eyebrow">BILLETERA VIRTUAL</p><h2>Sin billetera asociada</h2></div><span class="wallet-mark">W</span></div>' +
-      '<p class="muted">Cliente identificado por CUIT ' + escapeHtml(data.cliente.cuit) + '. Creá una billetera vinculada a su cuenta bancaria.</p>' +
+      '<p class="muted">El Banco crea una billetera por CUIT. Va a compartir el saldo y el CBU de la cuenta bancaria seleccionada.</p>' +
       '<form id="wallet-create" class="wallet-form"><label>Alias<input name="alias" required minlength="3" placeholder="cliente.alias"></label><label>Clave de acceso<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label><button class="button secondary" type="submit">Crear billetera</button></form>';
     node.querySelector('#wallet-create').addEventListener('submit', async (e) => {
       e.preventDefault(); const f=e.currentTarget; const account=accounts.find(a=>a.id===selectedId); if(!account)return;
       const submit=f.querySelector('button'); submit.disabled=true;
-      try { await postJson('/billetera/cuentas',{titular:data.cliente.razon_social,cuit:data.cliente.cuit,alias:f.alias.value.trim(),contrasena:f.password.value}); await selectAccount(account.id); }
+      try { await postJson('/banco/clientes/'+encodeURIComponent(data.cliente.cuit)+'/billetera',{alias:f.alias.value.trim(),contrasena:f.password.value}); await selectAccount(account.id); }
       catch(error) { showError(error instanceof Error?error.message:'No se pudo crear la billetera.'); submit.disabled=false; }
     });
     return;
   }
   const movements=w.movimientos||[];
   node.innerHTML = '<div class="wallet-heading"><div><p class="eyebrow">BILLETERA VIRTUAL · CUIT ' + escapeHtml(w.cuit) + '</p><h2>' + escapeHtml(w.titular) + '</h2></div><span class="wallet-mark">W</span></div>' +
-    '<div class="wallet-balance"><span>Saldo disponible · ARS</span><strong>' + fmt.format(Number(w.saldo)) + '</strong><small>Alias: ' + escapeHtml(w.alias) + ' · Vinculada: ' + escapeHtml(w.banco_cuenta_id||'sin cuenta bancaria') + '</small></div>' +
+    '<div class="wallet-balance"><span>Saldo compartido · ARS</span><strong>' + fmt.format(Number(w.saldo)) + '</strong><small>Alias: ' + escapeHtml(w.alias) + ' · CBU: ' + escapeHtml(w.cbu||'pendiente') + ' · Cuenta: ' + escapeHtml(w.banco_cuenta_id||'sin cuenta bancaria') + '</small></div>' +
     '<div class="wallet-actions"><a class="button secondary" href="https://billetera-virtual-lucas-m.vercel.app" target="_blank" rel="noopener noreferrer">Abrir Billetera</a></div>' +
     (w.banco_cuenta_id ? '<form id="wallet-load" class="wallet-form"><label>Cargar desde la cuenta bancaria<input name="amount" type="number" min="0.01" step="0.01" required placeholder="Importe en ARS"></label><button class="button secondary" type="submit">Cargar saldo</button></form>' : '<p class="muted">Esta billetera no tiene una cuenta bancaria vinculada; no se habilita la carga desde Banco.</p>') +
     '<div class="wallet-movements"><div class="section-title"><div><p class="eyebrow">ACTIVIDAD</p><h3>Movimientos de billetera</h3></div><span class="muted">' + movements.length + '</span></div>' +

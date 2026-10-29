@@ -13,6 +13,14 @@ function idVentaDeReintento(tipo) {
   return { id, clear: () => sessionStorage.removeItem(key) };
 }
 const money = (value) => `$ ${Number(value || 0).toLocaleString('es-AR')}`;
+const icon = (name) => {
+  const paths = {
+    payment: '<path d="M7 17 17 7M7 7h10v10"/>',
+    charge: '<path d="M12 3v12m-5-5 5 5 5-5M5 20h14"/>',
+    received: '<path d="M7 7 17 17M7 17h10V7"/>',
+  };
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.received}</svg>`;
+};
 
 const introScreen = byId('intro-screen');
 const introVideo = byId('intro-video');
@@ -43,9 +51,16 @@ function renderAccount(account) {
   state.account = account;
   byId('welcome-name').textContent = (account.titular || 'Tu billetera').trim().split(/\s+/)[0];
   byId('balance').textContent = money(account.saldo);
-  byId('account-label').textContent = `Cuenta #${account.id}`;
+  byId('account-label').textContent = 'Cuenta en pesos · ARS';
   byId('account-holder').textContent = `${account.titular} · ${account.alias}`;
-  byId('account-id').value = account.id;
+  byId('account-alias').textContent = account.alias || 'Sin alias asignado';
+  byId('detail-holder').textContent = account.titular || '—';
+  byId('detail-cuit').textContent = account.cuit || '—';
+  byId('detail-cbu').textContent = account.cbu || 'CBU pendiente de asignación por Banco M';
+  byId('detail-bank').textContent = account.banco_cuenta_id ? `Vinculada · ${account.banco_cuenta_id}` : 'Sin cuenta bancaria vinculada';
+  byId('detail-date').textContent = account.fecha_alta
+    ? new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(new Date(account.fecha_alta))
+    : '—';
   loadMovements(account.id);
 }
 
@@ -69,9 +84,7 @@ function showLogin() {
   byId('wallet-app').hidden = true;
   byId('auth-screen').hidden = false;
   byId('login-form').hidden = false;
-  byId('register-form').hidden = true;
   byId('login-form').reset();
-  byId('register-form').reset();
 }
 
 async function request(url, options) {
@@ -81,34 +94,23 @@ async function request(url, options) {
   return data;
 }
 
-async function loadAccount() {
-  const id = byId('account-id').value;
-  if (!id) return notify('Ingresá el ID de una cuenta');
-  try {
-    renderAccount(await request(`/billetera/cuentas/${id}`));
-    notify('Cuenta cargada');
-  } catch (error) {
-    notify(error.message);
-  }
-}
-
 async function loadMovements(id) {
   const list = byId('activity-list');
   try {
     const movements = await request(`/billetera/cuentas/${id}/movimientos`);
     if (!movements.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">↗</span><strong>Aún no hay movimientos</strong><p>Las cargas, pagos y cobros de tu cuenta aparecerán aquí.</p></div>';
+      list.innerHTML = `<div class="empty-state"><span class="empty-icon">${icon('received')}</span><strong>Aún no hay movimientos</strong><p>Las cargas, pagos y cobros de tu cuenta aparecerán aquí.</p></div>`;
       return;
     }
     list.innerHTML = movements.map((movement) => {
       const isPayment = movement.tipo === 'pago';
       const isCharge = movement.tipo === 'carga';
       const title = isPayment ? 'Pago realizado' : isCharge ? 'Carga de saldo' : 'Cobro recibido';
-      const icon = isPayment ? '↗' : isCharge ? '↙' : '↓';
+      const movementIcon = icon(isPayment ? 'payment' : isCharge ? 'charge' : 'received');
       return `
         <div class="movement">
           <div class="movement-info">
-            <span class="movement-icon ${isPayment ? 'payment' : ''}">${icon}</span>
+            <span class="movement-icon ${isPayment ? 'payment' : ''} ${isCharge ? 'charge' : 'received'}">${movementIcon}</span>
             <span><strong>${title}</strong><small>${movement.contraparte || 'Sin detalle'}</small></span>
           </div>
           <span class="movement-amount">${isPayment ? '-' : '+'}${money(movement.monto)}</span>
@@ -121,7 +123,6 @@ async function loadMovements(id) {
 
 document.querySelectorAll('[data-open-modal]').forEach((button) => {
   button.addEventListener('click', () => {
-    if (state.account && button.dataset.openModal === 'deposit-modal') byId('deposit-cuit').value = state.account.cuit;
     if (state.account && button.dataset.openModal === 'payment-modal') byId('payment-cuit').value = state.account.cuit;
     if (button.dataset.openModal === 'qr-modal') selectQrMode('pay');
     byId(button.dataset.openModal).showModal();
@@ -130,9 +131,8 @@ document.querySelectorAll('[data-open-modal]').forEach((button) => {
 document.querySelectorAll('[data-close-modal]').forEach((button) => {
   button.addEventListener('click', () => closeModal(button.closest('dialog')));
 });
-byId('load-account').addEventListener('click', loadAccount);
 byId('refresh-button').addEventListener('click', () => state.account && loadMovements(state.account.id));
-byId('copy-alias').addEventListener('click', async () => {
+const copyAlias = async () => {
   if (!state.account?.alias) return notify('Primero seleccioná una billetera');
   try {
     await navigator.clipboard.writeText(state.account.alias);
@@ -140,7 +140,9 @@ byId('copy-alias').addEventListener('click', async () => {
   } catch {
     notify(`Tu alias: ${state.account.alias}`);
   }
-});
+};
+byId('copy-alias').addEventListener('click', copyAlias);
+byId('copy-alias-detail').addEventListener('click', copyAlias);
 
 function selectQrMode(mode) {
   stopQrCamera();
@@ -314,14 +316,6 @@ byId('qr-pay-form').addEventListener('submit', async (event) => {
 });
 byId('qr-modal').addEventListener('close', stopQrCamera);
 
-byId('show-register').addEventListener('click', () => {
-  byId('login-form').hidden = true;
-  byId('register-form').hidden = false;
-});
-byId('back-to-login').addEventListener('click', () => {
-  byId('register-form').hidden = true;
-  byId('login-form').hidden = false;
-});
 byId('login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
@@ -336,21 +330,6 @@ byId('login-form').addEventListener('submit', async (event) => {
     notify(`Hola, ${result.billetera.titular}`);
   } catch (error) { notify(error.message); }
 });
-byId('register-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const input = Object.fromEntries(form);
-  const body = { titular: input.titular, cuil: input.cuit, alias: input.alias, contrasena: input.contrasena };
-  try {
-    const result = await request('/billetera/auth/registro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    showWallet(result.billetera);
-    notify('Billetera creada. Ya puedes comenzar.');
-  } catch (error) { notify(error.message); }
-});
 document.querySelectorAll('[data-toggle-password]').forEach((button) => {
   button.addEventListener('click', () => {
     const input = byId(button.dataset.togglePassword);
@@ -359,35 +338,6 @@ document.querySelectorAll('[data-toggle-password]').forEach((button) => {
   });
 });
 byId('logout-button').addEventListener('click', showLogin);
-
-byId('account-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  try {
-    const account = await request('/billetera/cuentas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(form)) });
-    closeModal(event.currentTarget.closest('dialog'));
-    event.currentTarget.reset();
-    showWallet(account);
-    notify(`Cuenta #${account.id} creada`);
-  } catch (error) { notify(error.message); }
-});
-
-byId('deposit-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const body = Object.fromEntries(form);
-  body.monto = Number(body.monto);
-  const idempotencia = idVentaDeReintento('carga');
-  body.id_venta = idempotencia.id;
-  try {
-    const account = await request('/billetera/cargas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    closeModal(event.currentTarget.closest('dialog'));
-    event.currentTarget.reset();
-    renderAccount(account);
-    idempotencia.clear();
-    notify('Saldo cargado correctamente');
-  } catch (error) { notify(error.message); }
-});
 
 byId('payment-form').addEventListener('submit', async (event) => {
   event.preventDefault();

@@ -29,28 +29,11 @@
             <button class="password-toggle" type="button" data-toggle-password="login-password" aria-label="Mostrar contraseña">Ver</button>
           </div>
           <button class="button button-dark full-width auth-submit" type="submit">Ingresar</button>
-          <button class="auth-link" id="show-register" type="button">Crear una billetera</button>
           <div class="demo-hint" aria-label="Datos de prueba">
             <strong>Usuario de prueba (ayuda memoria)</strong>
             <span>CUIL: <code>20268326074</code> · Contraseña: <code>demo1234</code></span>
             <span>También: <code>30000000001</code>, <code>30000000002</code> o <code>30000000003</code> con <code>demo1234</code></span>
           </div>
-        </form>
-
-        <form id="register-form" class="auth-form" hidden>
-          <div class="auth-form-heading">
-            <button class="back-link" id="back-to-login" type="button" aria-label="Volver al ingreso">←</button>
-            <span><strong>Crear billetera</strong><small>Empieza con una cuenta nueva</small></span>
-          </div>
-          <label for="register-holder">Nombre y apellido</label>
-          <input id="register-holder" name="titular" required autocomplete="name" placeholder="Ej. Ana Gómez" />
-          <label for="register-cuil">CUIL</label>
-          <input id="register-cuil" name="cuit" required inputmode="numeric" autocomplete="username" pattern="[0-9]{11}" maxlength="11" placeholder="11 dígitos, sin guiones" />
-          <label for="register-alias">Alias</label>
-          <input id="register-alias" name="alias" required placeholder="nombre.billetera" />
-          <label for="register-password">Contraseña</label>
-          <input id="register-password" name="contrasena" required type="password" minlength="8" autocomplete="new-password" placeholder="Al menos 8 caracteres" />
-          <button class="button button-dark full-width auth-submit" type="submit">Crear cuenta</button>
         </form>
 
         <p class="auth-footnote">Simulación académica · No se conecta a servicios financieros reales</p>
@@ -74,7 +57,7 @@
           <a class="active" href="#saldo">Pesos</a>
           <a href="#movimientos">Actividad</a>
           <a href="#operaciones">Operaciones</a>
-          <a href="#cuentas">Cuentas</a>
+          <a href="#cuentas">Mi cuenta</a>
         </nav>
 
         <section class="workspace-grid" aria-label="Gestión de billetera">
@@ -90,17 +73,14 @@
                 <span class="balance-dot"></span>
               </div>
               <div class="quick-actions" id="operaciones" aria-label="Operaciones frecuentes">
-                <button class="quick-action" data-open-modal="deposit-modal" type="button">
-                  <span aria-hidden="true">↓</span><strong>Cargar</strong>
-                </button>
                 <button class="quick-action" data-open-modal="payment-modal" type="button">
-                  <span aria-hidden="true">↗</span><strong>Pagar</strong>
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></span><strong>Pagar</strong>
                 </button>
                 <button class="quick-action" id="copy-alias" type="button">
-                  <span aria-hidden="true">⌗</span><strong>Mi alias</strong>
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 12h5m-5 3h8"/></svg></span><strong>Mi alias</strong>
                 </button>
                 <button class="quick-action quick-action-qr" data-open-modal="qr-modal" type="button">
-                  <span aria-hidden="true">▦</span><strong>QR</strong>
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-6v-2"/></svg></span><strong>QR</strong>
                 </button>
               </div>
             </article>
@@ -126,17 +106,22 @@
               <div class="panel-heading">
                 <div>
                   <p class="eyebrow">Tus cuentas</p>
-                  <h2>Vincular billetera</h2>
+                  <h2>Mi cuenta</h2>
                 </div>
-                <button class="icon-button" data-open-modal="account-modal" aria-label="Crear cuenta">+</button>
               </div>
-              <label class="field-label" for="account-id">ID de cuenta</label>
-              <div class="account-picker">
-                <input id="account-id" type="number" min="1" placeholder="Ej. 1" />
-                <button class="button button-small" id="load-account" type="button">Ver</button>
+              <div class="alias-card">
+                <span class="alias-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h10M7 12h10M7 17h6"/><circle cx="18" cy="17" r="3"/></svg></span>
+                <div class="alias-copy"><small>Alias</small><strong id="account-alias">—</strong></div>
+                <button class="icon-button copy-alias-button" id="copy-alias-detail" type="button" aria-label="Copiar alias"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
               </div>
-              <p class="helper-text">Ingresa el ID de otra billetera para consultar su saldo.</p>
-              <button class="button button-dark full-width create-wallet" data-open-modal="account-modal" type="button">+ Crear otra billetera</button>
+              <dl class="account-facts">
+                <div><dt>Titular</dt><dd id="detail-holder">—</dd></div>
+                <div><dt>CUIT / CUIL</dt><dd id="detail-cuit">—</dd></div>
+                <div><dt>CBU</dt><dd id="detail-cbu">—</dd></div>
+                <div><dt>Cuenta bancaria vinculada</dt><dd id="detail-bank">—</dd></div>
+                <div><dt>Fecha de apertura</dt><dd id="detail-date">—</dd></div>
+              </dl>
+              <div class="account-note"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.5 3.1 7.8 7.5 9.5 4.4-1.7 7.5-5 7.5-9.5V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg></span>Cuenta emitida por Banco M</div>
             </section>
           </aside>
         </section>
@@ -145,44 +130,12 @@
         <a href="#saldo" class="selected"><span aria-hidden="true">⌂</span>Inicio</a>
         <a href="#movimientos"><span aria-hidden="true">↔</span>Actividad</a>
         <button type="button" class="qr-nav-button" data-open-modal="qr-modal"><span aria-hidden="true">▦</span>QR</button>
-        <button type="button" data-open-modal="deposit-modal"><span aria-hidden="true">↓</span>Cargar</button>
-        <button type="button" data-open-modal="account-modal"><span aria-hidden="true">＋</span>Más</button>
+        <a href="#cuentas"><span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-14 5h4"/></svg></span>Cuenta</a>
       </nav>
       </div>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-    <dialog class="modal" id="account-modal">
-      <form class="modal-card" id="account-form">
-        <button class="close-button" type="button" data-close-modal aria-label="Cerrar">×</button>
-        <p class="eyebrow">Nueva billetera</p>
-        <h2>Crear una cuenta</h2>
-        <p class="modal-copy">Completá los datos para sumar una nueva billetera al ecosistema.</p>
-        <label for="holder">Titular</label>
-        <input id="holder" name="titular" required placeholder="Ej. Almacén Don Mateo" />
-        <label for="cuit">CUIL</label>
-        <input id="cuit" name="cuit" required inputmode="numeric" pattern="[0-9]{11}" placeholder="11 dígitos, sin guiones" />
-        <label for="alias">Alias</label>
-        <input id="alias" name="alias" required placeholder="ejemplo.billetera" />
-        <label for="account-password">Contraseña</label>
-        <input id="account-password" name="contrasena" required type="password" minlength="8" autocomplete="new-password" placeholder="Al menos 8 caracteres" />
-        <button class="button button-dark full-width" type="submit">Crear cuenta</button>
-      </form>
-    </dialog>
-
-    <dialog class="modal" id="deposit-modal">
-      <form class="modal-card operation-form" id="deposit-form">
-        <button class="close-button" type="button" data-close-modal aria-label="Cerrar">×</button>
-        <p class="eyebrow">Acreditar dinero</p>
-        <h2>Cargar saldo</h2>
-        <label for="deposit-cuit">CUIT de la cuenta</label>
-        <input id="deposit-cuit" name="cuit" required inputmode="numeric" pattern="[0-9]{11}" placeholder="11 dígitos, sin guiones" />
-        <label for="deposit-amount">Monto</label>
-        <input id="deposit-amount" name="monto" required type="number" min="1" step="1" placeholder="$ 0" />
-        <button class="button button-dark full-width" type="submit">Cargar saldo</button>
-      </form>
-    </dialog>
 
     <dialog class="modal" id="payment-modal">
       <form class="modal-card operation-form" id="payment-form">
