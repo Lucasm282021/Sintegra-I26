@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#061426;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "outline": "#8b90a1", "surface-bright": "#2d3a4e", "on-secondary-container": "#99b7e2", "secondary-fixed-dim": "#aac9f4", "surface-container-lowest": "#020e21", "background": "#061426", "primary-container": "#4f8eff", "on-tertiary-container": "#003114", "on-surface-variant": "#c1c6d7", "tertiary-fixed": "#62ff95", "surface-container-highest": "#28354a", "on-primary-fixed": "#001a42", "inverse-surface": "#d6e3fe", "on-surface": "#d6e3fe", "on-error-container": "#ffdad6", "surface-container-high": "#1d2a3e", "inverse-on-surface": "#243145", "secondary": "#aac9f4", "on-secondary": "#0e3255", "outline-variant": "#414755", "surface": "#061426", "primary-fixed-dim": "#aec6ff", "tertiary": "#2fe378", "surface-tint": "#aec6ff", "surface-container-low": "#0e1c2f", "primary-fixed": "#d8e2ff", "on-tertiary-fixed-variant": "#005226", "tertiary-fixed-dim": "#2fe378", "on-background": "#d6e3fe", "on-secondary-fixed": "#001c38", "on-primary": "#002e6a", "primary": "#aec6ff", "inverse-primary": "#005ac4", "error": "#ffb4ab", "surface-dim": "#061426", "secondary-fixed": "#d3e4ff", "on-primary-container": "#00275e", "on-secondary-fixed-variant": "#29486d", "on-error": "#690005", "surface-container": "#132033", "on-tertiary-fixed": "#00210b", "secondary-container": "#29486d", "on-tertiary": "#003918", "surface-variant": "#28354a", "tertiary-container": "#00a753", "error-container": "#93000a", "on-primary-fixed-variant": "#004396" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "gutter": "1rem", "space-2xl": "3rem", "space-sm": "0.5rem", "margin": "1rem", "space-lg": "1.5rem", "space-xs": "0.25rem", "gutter-tablet": "1.5rem", "space-xl": "2rem", "gutter-desktop": "2rem", "margin-tablet": "2rem", "space-md": "1rem", "margin-desktop": "3rem" }, "fontFamily": { "currency-display": ["Inter"], "body-md": ["Inter"], "label-md": ["Inter"], "headline-md": ["Inter"], "body-lg": ["Inter"], "headline-sm": ["Inter"], "tabular-mono": ["JetBrains Mono"], "display-lg": ["Inter"], "currency-display-mobile": ["Inter"], "headline-lg": ["Inter"], "display-lg-mobile": ["Inter"], "label-sm": ["Inter"], "body-sm": ["Inter"], "label-lg": ["Inter"] }, "fontSize": { "currency-display": ["36px", { "lineHeight": "42px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }], "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "tabular-mono": ["13px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "500" }], "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "700" }], "currency-display-mobile": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "display-lg-mobile": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-background font-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl pt-safe shadow-[0_4px_20px_rgba(2,14,33,0.5)]"><div class="w-full bg-amber-500/10 px-margin py-1 flex items-center justify-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span><span class="font-label-sm text-label-sm text-amber-300 font-medium tracking-wide uppercase">Entorno de simulación - Datos de prueba ficticios</span></div><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="Boreal Banco Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UmWq9sg3oBP6ry0JCEaQSmt_9s1LJCXIj6ODzELMed9gwcLINeyQzxLmR4Cp5GhFMDbweLNn0AUBMx8n2iCyrnLAaKAtXd0tIkoxRfM2vpRthwqkT0-FmMp0Pg9P3nE67tHSm8I8Ps3-jZTc_fHtwYTYbl5kYK3kVT3DgxkWgzw8tS_u5g3xTRnjvJk4YWFV2jGVzJbGb5tCmmz879ZpAxKYe4K20vnQkLxBAjx07KUugnOv8j8TJWlGGR"/><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant font-medium leading-none">Banco Digital</span><span class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Boreal Banco</span></div></div><div class="flex items-center gap-space-xs"><button aria-label="Notificaciones" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container active:scale-95 transition-all"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="flex items-center pl-1"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/30" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCMMo2QhHz664j8V9DZ0Ocvxw7zvEeSxsOB9M7_lohcBYZBiHdfv_BKFtgtYaCdZemQhff4-L4JQijosJevDn-ItcfCT3tBHiGICMij6tICVZt5tlAtRzunC8DtDpSnpb6o3cKaTwyOx-Abj-2XtLAUhNfKj2ir-EiqAxG4fE1xMk9CjsuuuHgxrPSHz5C6_c5nxRBPP0TbmZ47vxM5uVt6Qeuik3dsvfqT9R_0bUFszZyDLbDi4C1pQ"/></div></div></div></header><main class="flex flex-col relative w-full px-margin pt-24 pb-28 bg-background min-h-screen"><div class="flex flex-col w-full gap-space-lg">
+<!-- Header Saludo & Status Pill -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold tracking-tight">¡Hola, Martín! 👋</h1>
+</div>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-secondary text-label-sm font-label-sm shadow-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+        En línea
+      </span>
+</div>
+<!-- Sim Warning Pill Embedded -->
+<div class="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-surface-container-high text-amber-300 shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+<span class="font-label-sm text-label-sm font-semibold tracking-wider uppercase">Entorno de simulación activa</span>
+</div>
+</div>
+<!-- Hero Card: Saldo Total Consolidado -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container-high p-space-lg shadow-xl">
+<div class="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-primary-container/10 blur-2xl pointer-events-none"></div>
+<div class="absolute right-0 bottom-0 w-32 h-32 rounded-full bg-tertiary/10 blur-2xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-space-md">
+<!-- Top Row Hero: Info & Toggle Visibilidad -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px] text-primary">account_balance</span>
+<span>Saldo total consolidado (Ficticio)</span>
+</div>
+<button aria-label="Ocultar o mostrar saldo" class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-bright active:scale-90 transition-all" id="toggle-balance-btn">
+<span class="material-symbols-outlined text-[20px]" id="eye-icon">visibility_off</span>
+</button>
+</div>
+<!-- Importe Principal -->
+<div class="flex flex-col">
+<div class="flex items-baseline gap-1.5">
+<span class="font-currency-display-mobile text-currency-display-mobile text-on-surface tracking-tight" id="main-balance-text">$ 1.480.250,00</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Valores simulados para demostración operativa</span>
+</div>
+<!-- Desglose Rápido en Bento Píldoras -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-xs pt-space-xs">
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">CA en pesos</span>
+</div>
+<span class="font-tabular-mono text-tabular-mono text-on-surface font-semibold balance-val" data-real="$ 1.250.000,00">$ 1.250.000,00</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">CA dólares sim</span>
+</div>
+<span class="font-tabular-mono text-tabular-mono text-tertiary font-semibold balance-val" data-real="U$S 250,00">U$S 250,00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Botonera de Acciones Rápidas Circulares -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Acciones rápidas</span>
+<span class="font-label-sm text-label-sm text-secondary">Frecuentes</span>
+</div>
+<div class="grid grid-cols-4 gap-2 pt-1">
+<!-- Transferir -->
+<button class="flex flex-col items-center gap-2 group focus:outline-none">
+<div class="w-14 h-14 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-lg shadow-primary-container/25 group-active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[24px]">swap_horiz</span>
+</div>
+<span class="font-label-sm text-label-sm text-center text-on-surface group-hover:text-primary transition-colors leading-tight">Transferir</span>
+</button>
+<!-- Pagar Servicio -->
+<button class="flex flex-col items-center gap-2 group focus:outline-none">
+<div class="w-14 h-14 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center shadow-md group-hover:bg-surface-container-highest group-active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px] text-primary-fixed-dim">receipt</span>
+</div>
+<span class="font-label-sm text-label-sm text-center text-on-surface group-hover:text-primary transition-colors leading-tight">Pagar servicio</span>
+</button>
+<!-- Ver CBU / Alias -->
+<button class="flex flex-col items-center gap-2 group focus:outline-none" id="btn-show-cbu-sheet">
+<div class="w-14 h-14 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center shadow-md group-hover:bg-surface-container-highest group-active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px] text-secondary">share</span>
+</div>
+<span class="font-label-sm text-label-sm text-center text-on-surface group-hover:text-primary transition-colors leading-tight">Ver CBU / Alias</span>
+</button>
+<!-- Ingresar Dinero -->
+<button class="flex flex-col items-center gap-2 group focus:outline-none">
+<div class="w-14 h-14 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center shadow-md group-hover:bg-surface-container-highest group-active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px] text-tertiary">account_balance_wallet</span>
+</div>
+<span class="font-label-sm text-label-sm text-center text-on-surface group-hover:text-primary transition-colors leading-tight">Ingresar dinero</span>
+</button>
+</div>
+</div>
+<!-- Cuentas Disponibles Section -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Cuentas disponibles</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">1 activa</span>
+</div>
+<!-- Account Details Card -->
+<div class="rounded-xl bg-surface-container p-space-md shadow-md flex flex-col gap-space-sm relative overflow-hidden">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">account_balance</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">Caja de Ahorro en Pesos</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Boreal Banco • Titular</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm text-label-sm font-semibold uppercase tracking-wider">Activa</span>
+</div>
+<!-- Identificadores Bancarios: CBU y Alias con Copia Dinámica -->
+<div class="flex flex-col gap-1.5 p-3 rounded-lg bg-surface-container-low">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>CBU</span>
+<span class="font-tabular-mono text-tabular-mono text-on-surface font-medium">00000031...5892</span>
+</div>
+<button class="text-primary hover:text-primary-fixed-dim text-label-sm font-label-sm flex items-center gap-1" onclick="navigator.clipboard.writeText('0000003100012345675892'); alert('CBU copiado al portapapeles');">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copiar</span>
+</button>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>Alias</span>
+<span class="font-tabular-mono text-tabular-mono text-secondary font-medium">martin.boreal.sim</span>
+</div>
+<button class="text-primary hover:text-primary-fixed-dim text-label-sm font-label-sm flex items-center gap-1" onclick="navigator.clipboard.writeText('martin.boreal.sim'); alert('Alias copiado al portapapeles');">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copiar</span>
+</button>
+</div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Saldo en cuenta</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight balance-val" data-real="$ 1.250.000,00">$ 1.250.000,00</span>
+</div>
+</div>
+</div>
+<!-- Actividad Reciente Section -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between px-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Actividad reciente</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Últimos movimientos</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<!-- Transacción 1: Enviada a Lucía Varela -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex-shrink-0 flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">call_made</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">Transferencia enviada a Lucía Varela</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>14/10/2024</span>
+<span>•</span>
+<span class="text-secondary">Exitosa</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0 pl-2">
+<span class="font-tabular-mono text-tabular-mono text-on-surface font-bold balance-val" data-real="-$ 18.500,00">-$ 18.500,00</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Transferencia 3.0</span>
+</div>
+</div>
+<!-- Transacción 2: Haberes Tech Corp SA -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/30 flex-shrink-0 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">call_received</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">Cobro de haberes ficticios Tech Corp SA</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>10/10/2024</span>
+<span>•</span>
+<span class="text-tertiary font-medium">Acreditada</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0 pl-2">
+<span class="font-tabular-mono text-tabular-mono text-tertiary font-bold balance-val" data-real="+$ 950.000,00">+$ 950.000,00</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sueldo / Nómina</span>
+</div>
+</div>
+<!-- Transacción 3: Pago Edesur -->
+<div class="flex items-center justify-between p-3.5 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex-shrink-0 flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">Pago de servicio Edesur Simulado</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>08/10/2024</span>
+<span>•</span>
+<span class="text-on-surface-variant">Pagado</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0 pl-2">
+<span class="font-tabular-mono text-tabular-mono text-on-surface font-bold balance-val" data-real="-$ 12.340,50">-$ 12.340,50</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Débito directo</span>
+</div>
+</div>
+</div>
+<!-- Enlace a Ver Todos los Movimientos -->
+<a class="mt-space-xs py-3 px-4 rounded-xl bg-surface-container-low hover:bg-surface-container flex items-center justify-center gap-2 text-primary font-label-lg text-label-lg transition-colors group" href="#">
+<span>Ver todos los movimientos</span>
+<span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+<!-- Banner Ilustrativo de Soporte & Tip Ficticio -->
+<div class="p-space-md rounded-xl bg-surface-container-high/60 flex items-center gap-space-md relative overflow-hidden">
+<div class="w-12 h-12 rounded-full bg-secondary-container/40 flex-shrink-0 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[24px]">verified_user</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Canal de prueba seguro</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Recordá que ninguna operación en este entorno transacciona fondos bancarios reales ni afecta tu scoring crediticio.</span>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interacción: Ocultar / Mostrar Saldo
+  const toggleBtn = document.getElementById('toggle-balance-btn');
+  const eyeIcon = document.getElementById('eye-icon');
+  const mainBalance = document.getElementById('main-balance-text');
+  const balanceNodes = document.querySelectorAll('.balance-val');
+  let isHidden = false;
+
+  const realMainBalance = "$ 1.480.250,00";
+
+  toggleBtn.addEventListener('click', () => {
+    isHidden = !isHidden;
+    if (isHidden) {
+      eyeIcon.textContent = 'visibility';
+      mainBalance.textContent = '••••••••••';
+      balanceNodes.forEach(node => {
+        node.textContent = '••••••';
+      });
+    } else {
+      eyeIcon.textContent = 'visibility_off';
+      mainBalance.textContent = realMainBalance;
+      balanceNodes.forEach(node => {
+        node.textContent = node.getAttribute('data-real');
+      });
+    }
+  });
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-low/90 backdrop-blur-xl shadow-[0_-4px_24px_rgba(2,14,33,0.6)]" data-active-classes="text-primary font-semibold"><div class="flex justify-between items-center h-20 px-space-xs max-w-lg mx-auto"><a aria-current="page" class="flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-colors min-h-[44px] text-primary font-semibold" data-path="inicio" href="#"><span class="material-symbols-outlined text-[24px]">home</span><span class="font-label-sm text-label-sm">Inicio</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="cuentas" href="#"><span class="material-symbols-outlined text-[24px]">account_balance_wallet</span><span class="font-label-sm text-label-sm">Cuentas</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="transferir-pagar" href="#"><div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-lg shadow-primary-container/20 -mt-3"><span class="material-symbols-outlined text-[22px]">swap_horiz</span></div><span class="font-label-sm text-label-sm mt-0.5">Transferir</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="movimientos" href="#"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="font-label-sm text-label-sm">Movimientos</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-on-surface-variant hover:text-on-surface transition-colors min-h-[44px]" data-path="perfil" href="#"><span class="material-symbols-outlined text-[24px]">shield_person</span><span class="font-label-sm text-label-sm">Perfil</span></a></div></nav></body></html>

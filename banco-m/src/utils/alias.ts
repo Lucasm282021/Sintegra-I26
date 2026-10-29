@@ -5,7 +5,7 @@
 
 const PALABRAS = [
   'MATE', 'SOL', 'MAR', 'LUNA', 'RIO', 'CAMPO', 'VIENTO', 'NUBE',
-  'PUMA', 'CÓNDOR', 'GAUCHO', 'PAMPA', 'CEIBO', 'TERO', 'ÑANDÚ',
+  'PUMA', 'CONDOR', 'GAUCHO', 'PAMPA', 'CEIBO', 'TERO', 'NANDU',
   'PLATA', 'ORO', 'VERDE', 'AZUL', 'ROJO', 'BLANCO', 'NEGRO',
   'MANGO', 'PERA', 'DURAZNO', 'UVA', 'NARANJA', 'LIMON', 'FRUTILLA',
   'TIGRE', 'LEON', 'AGUILA', 'ZORRO', 'LOBO', 'OSO', 'PATO',

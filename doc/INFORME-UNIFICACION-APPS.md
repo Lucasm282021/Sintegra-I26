@@ -1,6 +1,6 @@
 # Informe de contratos para unificar las aplicaciones
 
-**Estado:** análisis de la documentación y del código disponible en `i26sintegra` al 21/10/2026. Es una propuesta para acordar antes de implementar el backend común.
+**Estado:** diagnóstico histórico levantado el 21/10/2026. La implementación posterior ya cambió varias de las brechas aquí descriptas. Para el estado vigente, contratos implementados, migración y pasos de conexión, consultar [Integración del backend común — 28/10/2026](INTEGRACION-BACKEND-2026-10-28.md) y [la guía actual de arquitectura](../consolidacion/BACKEND-Y-BASE-DE-DATOS.md).
 
 ## Resumen ejecutivo
 

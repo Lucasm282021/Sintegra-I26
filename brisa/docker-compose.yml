@@ -1,0 +1,45 @@
+# Demo local del TPV de Brisa.
+#
+#   docker compose up --build        → abre http://localhost:3001
+#
+# "simuladores" imita a Municipio, ARBA, Banco, Billetera y ARCA con datos ficticios,
+# para poder mostrar una venta completa sin depender de los otros módulos.
+# En la integración del curso, el TPV usa el mismo Dockerfile y solo cambian las *_URL
+# para apuntar a los servicios reales de cada equipo.
+
+services:
+  tpv:
+    build: .
+    image: tpv-brisa:local
+    container_name: tpv-brisa
+    ports:
+      - "${TPV_PUERTO_HOST:-3001}:3001"
+    environment:
+      MUNICIPIO_URL: http://municipio:3005
+      ARBA_URL: http://arba:3003
+      BANCO_URL: http://banco:3002
+      BILLETERA_URL: http://billetera:3006
+      ARCA_URL: http://arca:3004
+      HTTP_TIMEOUT_MS: "5000"
+      TIPO_COMPROBANTE: FACTURA_B
+    volumes:
+      - tpv-brisa-datos:/app/data
+    depends_on:
+      - simuladores
+    restart: unless-stopped
+
+  simuladores:
+    build:
+      context: .
+      dockerfile: herramientas/Simuladores/Dockerfile
+    image: tpv-brisa-simuladores:local
+    container_name: tpv-brisa-simuladores
+    # Panel de control de la demo (por ejemplo, simular que ARCA se cae).
+    ports:
+      - "${SIMULADORES_PUERTO_HOST:-3099}:3006"
+    networks:
+      default:
+        aliases: [municipio, arba, banco, billetera, arca]
+
+volumes:
+  tpv-brisa-datos:

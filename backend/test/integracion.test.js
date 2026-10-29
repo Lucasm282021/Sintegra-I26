@@ -101,6 +101,69 @@ test('venta del TPV: cobro en el banco, percepción ARBA y factura ARCA', async 
   assert.equal((await api('GET', '/arca/comprobantes?cuit=30712345678')).body.length, 2);
 });
 
+test('Municipio: padrón, pago transaccional, comprobante e idempotencia', async () => {
+  const listado = await api('GET', '/municipio/comercios');
+  assert.equal(listado.status, 200);
+  assert.ok(listado.body.some((c) => c.cuit === '30987654321'));
+  const cuentaAntes = (await api('GET', '/banco/cuentas/cuenta-esquina/saldo')).body.saldo;
+  const pago = await api('POST', '/municipio/tributos/pagos', { cuit: '30987654321', periodo: '2026-09', monto: 8400 });
+  assert.equal(pago.status, 201);
+  assert.equal(pago.body.comprobante.monto, 8400);
+  assert.equal(pago.body.tributo_actualizado.estado, 'pagada');
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-esquina/saldo')).body.saldo, cuentaAntes - 8400);
+  const repetido = await api('POST', '/municipio/tributos/pagos', { cuit: '30987654321', periodo: '2026-09', monto: 8400 });
+  assert.equal(repetido.status, 200);
+  assert.equal(repetido.body.repetido, true);
+  assert.equal((await api('GET', '/municipio/certificados/libre-deuda/30987654321')).status, 200);
+  const recibos = await api('GET', '/municipio/comprobantes?cuit=30987654321');
+  assert.equal(recibos.body.length, 1);
+  assert.equal(recibos.body[0].id_comprobante, pago.body.comprobante.id_comprobante);
+  assert.equal(recibos.body[0].numero_operacion, pago.body.comprobante.numero_operacion);
+});
+
+test('alta Municipio y venta integral TPV idempotente sobre la base compartida', async () => {
+  const alta = await api('POST', '/municipio/comercios', {
+    cuit: '20123456789', razon_social: 'Comercio de integración', condicion_fiscal: 'Monotributista',
+    direccion: 'Calle 1 123', rubro_principal: 'Servicios',
+  });
+  assert.equal(alta.status, 201);
+  assert.equal(alta.body.tributos_generados.length, 1);
+  assert.equal((await api('GET', '/padron/contribuyentes/20123456789')).status, 200);
+
+  const productos = await api('GET', '/tpv/productos?terminal_id=david&cuit=30712345678');
+  const producto = productos.body[0];
+  assert.ok(producto);
+  const saldoAntes = (await api('GET', '/banco/cuentas/cuenta-mateo/saldo')).body.saldo;
+  const venta = await api('POST', '/tpv/ventas', { id_venta: 'integracion-tpv-01', terminal_id: 'david',
+    comercio_cuit: '30712345678', medio_pago: 'banco', items: [{ producto_id: producto.id, cantidad: 1 }] });
+  assert.equal(venta.status, 201);
+  assert.equal(venta.body.estado, 'completada');
+  assert.equal(venta.body.percepcion, Math.round(producto.precio * 0.03 * 100) / 100);
+  assert.equal((await api('GET', '/banco/cuentas/cuenta-mateo/saldo')).body.saldo, saldoAntes + venta.body.total);
+  assert.equal((await api('POST', '/tpv/ventas', { id_venta: 'integracion-tpv-01', terminal_id: 'david',
+    comercio_cuit: '30712345678', medio_pago: 'banco', items: [{ producto_id: producto.id, cantidad: 1 }] })).status, 200);
+  assert.equal((await api('GET', '/arca/comprobantes?cuit=30712345678')).body.some((f) => f.id_venta === 'integracion-tpv-01'), true);
+});
+
+test('TPV Brisa y Sebastián usan catálogos por terminal y la ficha Banco/Billetera es por CUIT', async () => {
+  const perfil=await api('GET','/banco/clientes/30712345678');
+  assert.equal(perfil.status,200);
+  assert.equal(perfil.body.cliente.cuit,'30712345678');
+  assert.equal(perfil.body.cuentas[0].id,'cuenta-mateo');
+  const brisa=await api('GET','/tpv/productos?terminal_id=brisa&cuit=30712345678');
+  const sebastian=await api('GET','/tpv/productos?terminal_id=sebastian&cuit=30712345678');
+  assert.equal(brisa.body.length,8);
+  assert.equal(sebastian.body.length,6);
+  assert.notEqual(brisa.body[0].id,sebastian.body[0].id);
+  const venta=await api('POST','/tpv/ventas',{id_venta:'sebastian-contract-01',terminal_id:'sebastian',comercio_cuit:'30712345678',medio_pago:'BANCO',items:[{producto_id:sebastian.body[0].id,cantidad:1}]});
+  assert.equal(venta.status,201);
+  const detalle=await api('GET','/tpv/ventas/sebastian-contract-01');
+  assert.equal(detalle.body.estado,'COMPLETADA');
+  assert.equal(detalle.body.lineas.length,1);
+  assert.equal(detalle.body.pago.medio_pago,'banco');
+  assert.match(detalle.body.comprobante.cae,/^\d{14}$/);
+});
+
 test('errores con formato {"error": "..."}', async () => {
   const r = await api('POST', '/banco/pagos', { id_venta: 'x', cuit: '123', monto: 1 });
   assert.equal(r.status, 400);

@@ -1,0 +1,1504 @@
+<title>banco-m Prompt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+/* Layout: panel lateral fijo + contenido scrollable */
+:root {
+  --bg:        #0d1117;
+  --bg2:       #161b22;
+  --bg3:       #21262d;
+  --border:    #30363d;
+  --fg:        #e6edf3;
+  --fg2:       #8b949e;
+  --accent:    #58a6ff;
+  --accent2:   #1f6feb;
+  --green:     #3fb950;
+  --yellow:    #d29922;
+  --red:       #f85149;
+  --code-bg:   #161b22;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:      #ffffff;
+    --bg2:     #f6f8fa;
+    --bg3:     #eaeef2;
+    --border:  #d0d7de;
+    --fg:      #1f2328;
+    --fg2:     #656d76;
+    --accent:  #0969da;
+    --accent2: #0550ae;
+    --green:   #1a7f37;
+    --yellow:  #9a6700;
+    --red:     #cf222e;
+    --code-bg: #f6f8fa;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg:      #ffffff;
+  --bg2:     #f6f8fa;
+  --bg3:     #eaeef2;
+  --border:  #d0d7de;
+  --fg:      #1f2328;
+  --fg2:     #656d76;
+  --accent:  #0969da;
+  --accent2: #0550ae;
+  --green:   #1a7f37;
+  --yellow:  #9a6700;
+  --red:     #cf222e;
+  --code-bg: #f6f8fa;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+
+/* === Layout === */
+.shell {
+  display: flex;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sidebar-logo {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.sidebar-logo .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.sidebar-logo h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -.02em;
+}
+.sidebar-logo p {
+  font-size: 11px;
+  color: var(--fg2);
+  margin-top: 2px;
+}
+.nav-section {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fg2);
+  margin-top: 8px;
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 20px;
+  font-size: 13px;
+  color: var(--fg2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: all .15s;
+  border-left: 2px solid transparent;
+}
+.nav-link:hover { color: var(--fg); background: var(--bg3) }
+.nav-link.active { color: var(--accent); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent) }
+.nav-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fg2);
+  flex-shrink: 0;
+}
+.nav-link.active .nav-dot { background: var(--accent) }
+
+/* Main */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 40px;
+}
+
+/* Header */
+.page-header {
+  margin-bottom: 36px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.page-header .eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.page-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  color: var(--fg);
+  margin-bottom: 8px;
+}
+.page-header p { color: var(--fg2); font-size: 15px; max-width: 600px }
+.meta-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--fg2);
+  font-family: 'JetBrains Mono', monospace;
+}
+.meta-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green) }
+
+/* Copy-all bar */
+.copy-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+}
+.copy-bar p { font-size: 13px; color: var(--fg2) }
+.copy-bar p strong { color: var(--fg) }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all .15s;
+  font-family: inherit;
+}
+.btn-primary {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  color: #fff;
+}
+.btn-primary:hover { background: color-mix(in srgb, var(--accent2) 80%, #fff 20%); }
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--fg2);
+}
+.btn-ghost:hover { color: var(--fg); border-color: var(--fg2) }
+.btn.copied { background: var(--green); border-color: var(--green); color: #fff }
+
+/* Sections */
+.section {
+  margin-bottom: 48px;
+  scroll-margin-top: 24px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.section-title h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.section-title p {
+  font-size: 12px;
+  color: var(--fg2);
+  margin-top: 1px;
+}
+
+/* Code blocks */
+.code-block {
+  position: relative;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.code-lang {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--fg2);
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+.code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--fg2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.code-copy:hover { color: var(--fg); border-color: var(--fg2) }
+.code-copy.copied { color: var(--green); border-color: var(--green) }
+pre {
+  padding: 20px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+code {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--fg);
+}
+
+/* File tree */
+.file-tree {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 2;
+  color: var(--fg);
+}
+.tree-dir  { color: var(--accent) }
+.tree-file { color: var(--fg2) }
+.tree-comment { color: color-mix(in srgb, var(--fg2) 60%, transparent) }
+
+/* Endpoints table */
+.ep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ep-table th {
+  text-align: left;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg2);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.ep-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.ep-table tr:last-child td { border-bottom: none }
+.ep-table tr:hover td { background: var(--bg2) }
+.method {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: .04em;
+}
+.method.GET    { background: color-mix(in srgb, var(--green) 15%, transparent);  color: var(--green) }
+.method.POST   { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent) }
+.method.PATCH  { background: color-mix(in srgb, var(--yellow) 15%, transparent); color: var(--yellow) }
+.ep-path { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg) }
+.ep-desc { color: var(--fg2) }
+
+/* Checklist */
+.checklist { list-style: none; display: flex; flex-direction: column; gap: 8px }
+.checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.check-icon {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.check-text strong { color: var(--fg) }
+.check-text span { color: var(--fg2); font-size: 12px }
+
+/* Tabs for files */
+.file-tabs {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 8px 0;
+}
+.file-tab {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--fg2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-radius: 4px 4px 0 0;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.file-tab:hover { color: var(--fg) }
+.file-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--code-bg) }
+.tab-content { display: none }
+.tab-content.active { display: block }
+.tabbed-code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+.tabbed-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Note */
+.note {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--yellow) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--fg);
+  margin-top: 16px;
+}
+.note-icon { font-size: 16px; flex-shrink: 0 }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none }
+  .main { padding: 20px 0 }
+  .ep-table { font-size: 12px }
+  .ep-table th, .ep-table td { padding: 8px 10px }
+}
+
+/* Theme toggle */
+.theme-toggle {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+.theme-toggle button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg2);
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: all .15s;
+  font-family: inherit;
+}
+.theme-toggle button:hover { color: var(--fg); border-color: var(--fg2) }
+
+/* Progress bar */
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width .1s;
+  z-index: 100;
+}
+</style>
+
+<div class="progress-bar" id="progress"></div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="badge">i26sintegra</div>
+      <h1>banco-m</h1>
+      <p>Billetera virtual · CUIT/CBU/Alias</p>
+    </div>
+
+    <div class="nav-section">Estructura</div>
+    <button class="nav-link active" onclick="scrollTo('intro')"><span class="nav-dot"></span>Introducción</button>
+    <button class="nav-link" onclick="scrollTo('estructura')"><span class="nav-dot"></span>Árbol de archivos</button>
+    <button class="nav-link" onclick="scrollTo('schema')"><span class="nav-dot"></span>Schema Prisma</button>
+
+    <div class="nav-section">Código</div>
+    <button class="nav-link" onclick="scrollTo('utils')"><span class="nav-dot"></span>Utils CBU · Alias</button>
+    <button class="nav-link" onclick="scrollTo('cuentas')"><span class="nav-dot"></span>Módulo Cuentas</button>
+    <button class="nav-link" onclick="scrollTo('movimientos')"><span class="nav-dot"></span>Módulo Movimientos</button>
+    <button class="nav-link" onclick="scrollTo('transferencias')"><span class="nav-dot"></span>Módulo Transferencias</button>
+    <button class="nav-link" onclick="scrollTo('entry')"><span class="nav-dot"></span>Entry point</button>
+
+    <div class="nav-section">Config</div>
+    <button class="nav-link" onclick="scrollTo('config')"><span class="nav-dot"></span>Package · TSConfig</button>
+    <button class="nav-link" onclick="scrollTo('endpoints')"><span class="nav-dot"></span>Endpoints</button>
+    <button class="nav-link" onclick="scrollTo('pasos')"><span class="nav-dot"></span>Pasos finales</button>
+
+    <div class="theme-toggle">
+      <button onclick="toggleTheme()">☀ / ☾ &nbsp; Cambiar tema</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header" id="intro">
+      <div class="eyebrow">i26sintegra · Módulo nuevo</div>
+      <h2>banco-m — Prompt de implementación</h2>
+      <p>Prompt completo listo para pegar en Codex o Claude Code. Crea el módulo bancario / billetera virtual desde cero con CBU y alias por CUIT.</p>
+      <div class="meta-row">
+        <span class="meta-chip"><span class="dot"></span>Node.js + TypeScript</span>
+        <span class="meta-chip">Express · Prisma · PostgreSQL</span>
+        <span class="meta-chip">Zod · CUIT/CBU/Alias</span>
+        <span class="meta-chip">Puerto 3001</span>
+      </div>
+    </div>
+
+    <!-- Copy all -->
+    <div class="copy-bar">
+      <p><strong>Prompt completo</strong> — copiá todo y pegalo en la sesión de Codex o Claude Code activa.</p>
+      <button class="btn btn-primary" id="btnCopyAll" onclick="copyAll()">⧉ Copiar todo el prompt</button>
+    </div>
+
+    <!-- PASO 1: Estructura -->
+    <div class="section" id="estructura">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">1</div>
+          <div>
+            <h3>Estructura de carpetas</h3>
+            <p>Árbol completo a crear dentro del monorepo</p>
+          </div>
+        </div>
+      </div>
+      <div class="file-tree">
+<span class="tree-dir">banco-m/</span>
+├── <span class="tree-file">README.md</span>
+├── <span class="tree-file">package.json</span>
+├── <span class="tree-file">tsconfig.json</span>
+├── <span class="tree-file">.env.example</span>
+├── <span class="tree-dir">prisma/</span>
+│   └── <span class="tree-file">schema.prisma</span>
+└── <span class="tree-dir">src/</span>
+    ├── <span class="tree-file">index.ts</span>         <span class="tree-comment">← entry point Express</span>
+    ├── <span class="tree-dir">config/</span>
+    │   └── <span class="tree-file">env.ts</span>
+    ├── <span class="tree-dir">db/</span>
+    │   └── <span class="tree-file">client.ts</span>       <span class="tree-comment">← Prisma singleton</span>
+    ├── <span class="tree-dir">modules/</span>
+    │   ├── <span class="tree-dir">cuentas/</span>
+    │   │   ├── <span class="tree-file">cuentas.routes.ts</span>
+    │   │   ├── <span class="tree-file">cuentas.controller.ts</span>
+    │   │   ├── <span class="tree-file">cuentas.service.ts</span>
+    │   │   └── <span class="tree-file">cuentas.schema.ts</span>
+    │   ├── <span class="tree-dir">movimientos/</span>
+    │   │   ├── <span class="tree-file">movimientos.routes.ts</span>
+    │   │   ├── <span class="tree-file">movimientos.controller.ts</span>
+    │   │   ├── <span class="tree-file">movimientos.service.ts</span>
+    │   │   └── <span class="tree-file">movimientos.schema.ts</span>
+    │   └── <span class="tree-dir">transferencias/</span>
+    │       ├── <span class="tree-file">transferencias.routes.ts</span>
+    │       ├── <span class="tree-file">transferencias.controller.ts</span>
+    │       ├── <span class="tree-file">transferencias.service.ts</span>
+    │       └── <span class="tree-file">transferencias.schema.ts</span>
+    └── <span class="tree-dir">utils/</span>
+        ├── <span class="tree-file">cbu.ts</span>           <span class="tree-comment">← generador CBU 22 dígitos</span>
+        └── <span class="tree-file">alias.ts</span>         <span class="tree-comment">← generador PALABRA.PALABRA.CUIT</span>
+      </div>
+    </div>
+
+    <!-- PASO 2: Schema -->
+    <div class="section" id="schema">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">2</div>
+          <div>
+            <h3>Schema Prisma</h3>
+            <p>prisma/schema.prisma — modelos Cuenta, Movimiento, Transferencia</p>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="copyBlock('schemaCode')">⧉ Copiar</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PRISMA</span></div>
+        <pre><code id="schemaCode">generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cuenta {
+  id             String   @id @default(cuid())
+  cuit           String   @unique
+  cbu            String   @unique
+  alias          String   @unique
+  titularNombre  String
+  saldo          Decimal  @default(0) @db.Decimal(15, 2)
+  activa         Boolean  @default(true)
+  creadaEn       DateTime @default(now())
+  actualizadaEn  DateTime @updatedAt
+
+  movimientos             Movimiento[]
+  transferenciasEnviadas  Transferencia[] @relation("Origen")
+  transferenciasRecibidas Transferencia[] @relation("Destino")
+}
+
+model Movimiento {
+  id            String         @id @default(cuid())
+  cuentaId      String
+  tipo          TipoMovimiento
+  monto         Decimal        @db.Decimal(15, 2)
+  descripcion   String?
+  referencia    String?
+  origen        String?        // ARBA | ARCA | MUNICIPALIDAD | DEPOSITO | OTRO
+  saldoAntes    Decimal        @db.Decimal(15, 2)
+  saldoDespues  Decimal        @db.Decimal(15, 2)
+  creadoEn      DateTime       @default(now())
+
+  cuenta Cuenta @relation(fields: [cuentaId], references: [id])
+}
+
+model Transferencia {
+  id          String              @id @default(cuid())
+  origenId    String
+  destinoId   String
+  monto       Decimal             @db.Decimal(15, 2)
+  descripcion String?
+  estado      EstadoTransferencia @default(PENDIENTE)
+  creadaEn    DateTime            @default(now())
+
+  origen  Cuenta @relation("Origen",  fields: [origenId],  references: [id])
+  destino Cuenta @relation("Destino", fields: [destinoId], references: [id])
+}
+
+enum TipoMovimiento {
+  CREDITO
+  DEBITO
+}
+
+enum EstadoTransferencia {
+  PENDIENTE
+  COMPLETADA
+  RECHAZADA
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Utils -->
+    <div class="section" id="utils">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">3</div>
+          <div>
+            <h3>Utils — CBU y Alias</h3>
+            <p>Generadores determinísticos basados en CUIT</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="file-tabs" id="utils-tabs">
+        <button class="file-tab active" onclick="switchTab('utils','cbu')">cbu.ts</button>
+        <button class="file-tab" onclick="switchTab('utils','alias')">alias.ts</button>
+      </div>
+      <div class="tabbed-code">
+        <div class="tabbed-header">
+          <button class="code-copy" onclick="copyActiveTab('utils')">⧉ Copiar</button>
+        </div>
+        <div class="tab-content active" id="utils-cbu">
+<pre><code>/**
+ * Generador de CBU virtual — banco-m
+ * Prefijo de entidad ficticia: 0000099 (no es un banco real)
+ * Algoritmo de dígito verificador estándar argentino
+ */
+
+function calcularDigitoVerificador(bloque: string, pesos: number[]): number {
+  let suma = 0
+  for (let i = 0; i &lt; bloque.length; i++) {
+    suma += parseInt(bloque[i]) * pesos[i]
+  }
+  const resto = suma % 10
+  return resto === 0 ? 0 : 10 - resto
+}
+
+export function generarCBU(cuit: string): string {
+  // Bloque 1: entidad (3) + sucursal (4) + dígito verificador (1)
+  const entidad   = '000'
+  const sucursal  = '0099'
+  const bloque1Sin = entidad + sucursal
+  const dv1 = calcularDigitoVerificador(bloque1Sin, [7, 1, 3, 9, 7, 1, 3])
+  const bloque1 = bloque1Sin + dv1
+
+  // Bloque 2: número de cuenta (13) + dígito verificador (1)
+  const cuitNumerico  = cuit.replace(/\D/g, '').padEnd(11, '0').substring(0, 11)
+  const timestamp     = Date.now().toString().substring(5, 7)
+  const numeroCuenta  = (cuitNumerico + timestamp).substring(0, 13).padStart(13, '0')
+  const dv2 = calcularDigitoVerificador(numeroCuenta, [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3])
+  const bloque2 = numeroCuenta + dv2
+
+  return bloque1 + bloque2  // 22 dígitos
+}</code></pre>
+        </div>
+        <div class="tab-content" id="utils-alias">
+<pre><code>/**
+ * Generador de alias determinístico basado en CUIT
+ * Formato: PALABRA.PALABRA.CUIT  (ej: MATE.SOL.27123456789)
+ */
+
+const PALABRAS = [
+  'MATE', 'SOL', 'MAR', 'LUNA', 'RIO', 'CAMPO', 'VIENTO', 'NUBE',
+  'PUMA', 'CONDOR', 'GAUCHO', 'PAMPA', 'CEIBO', 'TERO', 'NANDU',
+  'PLATA', 'ORO', 'VERDE', 'AZUL', 'ROJO', 'BLANCO', 'NEGRO',
+  'MANGO', 'PERA', 'DURAZNO', 'UVA', 'NARANJA', 'LIMON', 'FRUTILLA',
+  'TIGRE', 'LEON', 'AGUILA', 'ZORRO', 'LOBO', 'OSO', 'PATO',
+  'NORTE', 'SUR', 'ESTE', 'OESTE', 'CENTRO', 'ALTO', 'BAJO',
+  'RAPIDO', 'FIRME', 'CLARO', 'LIBRE', 'FUERTE', 'NOBLE', 'JUSTO'
+]
+
+function hashCuit(cuit: string): number {
+  const numeros = cuit.replace(/\D/g, '')
+  let hash = 0
+  for (let i = 0; i &lt; numeros.length; i++) {
+    hash = (hash * 31 + parseInt(numeros[i])) >>> 0
+  }
+  return hash
+}
+
+export function generarAlias(cuit: string): string {
+  const hash   = hashCuit(cuit)
+  const idx1   = hash % PALABRAS.length
+  const idx2   = (hash * 7 + 13) % PALABRAS.length
+  const p1     = PALABRAS[idx1]
+  const p2     = PALABRAS[idx2 === idx1 ? (idx2 + 1) % PALABRAS.length : idx2]
+  const cuitLimpio = cuit.replace(/\D/g, '')
+  return `${p1}.${p2}.${cuitLimpio}`
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cuentas -->
+    <div class="section" id="cuentas">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">4</div>
+          <div>
+            <h3>Módulo Cuentas</h3>
+            <p>schema · service · controller · routes</p>
+          </div>
+        </div>
+      </div>
+      <div class="file-tabs" id="cuentas-tabs">
+        <button class="file-tab active" onclick="switchTab('cuentas','schema')">schema.ts</button>
+        <button class="file-tab" onclick="switchTab('cuentas','service')">service.ts</button>
+        <button class="file-tab" onclick="switchTab('cuentas','controller')">controller.ts</button>
+        <button class="file-tab" onclick="switchTab('cuentas','routes')">routes.ts</button>
+      </div>
+      <div class="tabbed-code">
+        <div class="tabbed-header">
+          <button class="code-copy" onclick="copyActiveTab('cuentas')">⧉ Copiar</button>
+        </div>
+        <div class="tab-content active" id="cuentas-schema">
+<pre><code>import { z } from 'zod'
+
+export const crearCuentaSchema = z.object({
+  cuit:          z.string().min(11).max(13),
+  titularNombre: z.string().min(2).max(200),
+})
+
+export type CrearCuentaDTO = z.infer&lt;typeof crearCuentaSchema&gt;</code></pre>
+        </div>
+        <div class="tab-content" id="cuentas-service">
+<pre><code>import { prisma } from '../../db/client'
+import { generarCBU }   from '../../utils/cbu'
+import { generarAlias } from '../../utils/alias'
+import type { CrearCuentaDTO } from './cuentas.schema'
+
+export async function crearCuenta(data: CrearCuentaDTO) {
+  const existe = await prisma.cuenta.findUnique({ where: { cuit: data.cuit } })
+  if (existe) throw new Error('Ya existe una cuenta para ese CUIT')
+  const cbu   = generarCBU(data.cuit)
+  const alias = generarAlias(data.cuit)
+  return prisma.cuenta.create({
+    data: { cuit: data.cuit, cbu, alias, titularNombre: data.titularNombre, saldo: 0 },
+  })
+}
+
+export async function obtenerPorCuit(cuit: string) {
+  return prisma.cuenta.findUnique({ where: { cuit } })
+}
+
+export async function obtenerPorCBU(cbu: string) {
+  return prisma.cuenta.findUnique({ where: { cbu } })
+}
+
+export async function obtenerPorAlias(alias: string) {
+  return prisma.cuenta.findUnique({ where: { alias: alias.toUpperCase() } })
+}
+
+export async function obtenerSaldo(cuit: string) {
+  const cuenta = await prisma.cuenta.findUnique({
+    where: { cuit },
+    select: { saldo: true, cbu: true, alias: true, titularNombre: true },
+  })
+  if (!cuenta) throw new Error('Cuenta no encontrada')
+  return cuenta
+}
+
+export async function toggleActivar(cuit: string) {
+  const cuenta = await prisma.cuenta.findUnique({ where: { cuit } })
+  if (!cuenta) throw new Error('Cuenta no encontrada')
+  return prisma.cuenta.update({ where: { cuit }, data: { activa: !cuenta.activa } })
+}</code></pre>
+        </div>
+        <div class="tab-content" id="cuentas-controller">
+<pre><code>import { Request, Response } from 'express'
+import * as service from './cuentas.service'
+import { crearCuentaSchema } from './cuentas.schema'
+
+export async function crearCuenta(req: Request, res: Response) {
+  try {
+    const data   = crearCuentaSchema.parse(req.body)
+    const cuenta = await service.crearCuenta(data)
+    res.status(201).json({ ok: true, data: cuenta })
+  } catch (e: any) { res.status(400).json({ ok: false, error: e.message }) }
+}
+
+export async function obtenerPorCuit(req: Request, res: Response) {
+  try {
+    const cuenta = await service.obtenerPorCuit(req.params.cuit)
+    if (!cuenta) return res.status(404).json({ ok: false, error: 'No encontrada' })
+    res.json({ ok: true, data: cuenta })
+  } catch (e: any) { res.status(500).json({ ok: false, error: e.message }) }
+}
+
+export async function obtenerPorCBU(req: Request, res: Response) {
+  try {
+    const cuenta = await service.obtenerPorCBU(req.params.cbu)
+    if (!cuenta) return res.status(404).json({ ok: false, error: 'No encontrada' })
+    res.json({ ok: true, data: cuenta })
+  } catch (e: any) { res.status(500).json({ ok: false, error: e.message }) }
+}
+
+export async function obtenerPorAlias(req: Request, res: Response) {
+  try {
+    const cuenta = await service.obtenerPorAlias(req.params.alias)
+    if (!cuenta) return res.status(404).json({ ok: false, error: 'No encontrada' })
+    res.json({ ok: true, data: cuenta })
+  } catch (e: any) { res.status(500).json({ ok: false, error: e.message }) }
+}
+
+export async function obtenerSaldo(req: Request, res: Response) {
+  try {
+    const saldo = await service.obtenerSaldo(req.params.cuit)
+    res.json({ ok: true, data: saldo })
+  } catch (e: any) { res.status(404).json({ ok: false, error: e.message }) }
+}
+
+export async function toggleActivar(req: Request, res: Response) {
+  try {
+    const cuenta = await service.toggleActivar(req.params.cuit)
+    res.json({ ok: true, data: cuenta })
+  } catch (e: any) { res.status(404).json({ ok: false, error: e.message }) }
+}</code></pre>
+        </div>
+        <div class="tab-content" id="cuentas-routes">
+<pre><code>import { Router } from 'express'
+import * as controller from './cuentas.controller'
+
+const router = Router()
+router.post('/',               controller.crearCuenta)
+router.get('/:cuit',           controller.obtenerPorCuit)
+router.get('/cbu/:cbu',        controller.obtenerPorCBU)
+router.get('/alias/:alias',    controller.obtenerPorAlias)
+router.get('/:cuit/saldo',     controller.obtenerSaldo)
+router.patch('/:cuit/activar', controller.toggleActivar)
+export default router</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Movimientos -->
+    <div class="section" id="movimientos">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">5</div>
+          <div>
+            <h3>Módulo Movimientos</h3>
+            <p>Depósitos y débitos atómicos con auditoría de saldo</p>
+          </div>
+        </div>
+      </div>
+      <div class="file-tabs" id="mov-tabs">
+        <button class="file-tab active" onclick="switchTab('mov','schema')">schema.ts</button>
+        <button class="file-tab" onclick="switchTab('mov','service')">service.ts</button>
+        <button class="file-tab" onclick="switchTab('mov','controller')">controller.ts</button>
+        <button class="file-tab" onclick="switchTab('mov','routes')">routes.ts</button>
+      </div>
+      <div class="tabbed-code">
+        <div class="tabbed-header">
+          <button class="code-copy" onclick="copyActiveTab('mov')">⧉ Copiar</button>
+        </div>
+        <div class="tab-content active" id="mov-schema">
+<pre><code>import { z } from 'zod'
+
+export const depositoSchema = z.object({
+  cuit:        z.string().min(11).max(13),
+  monto:       z.number().positive(),
+  descripcion: z.string().optional(),
+  origen:      z.enum(['ARBA', 'ARCA', 'MUNICIPALIDAD', 'DEPOSITO', 'OTRO']).optional(),
+  referencia:  z.string().optional(),
+})
+
+export const debitoSchema = z.object({
+  cuit:        z.string().min(11).max(13),
+  monto:       z.number().positive(),
+  descripcion: z.string().optional(),
+  origen:      z.enum(['ARBA', 'ARCA', 'MUNICIPALIDAD', 'DEBITO', 'OTRO']).optional(),
+  referencia:  z.string().optional(),
+})
+
+export type DepositoDTO = z.infer&lt;typeof depositoSchema&gt;
+export type DebitoDTO   = z.infer&lt;typeof debitoSchema&gt;</code></pre>
+        </div>
+        <div class="tab-content" id="mov-service">
+<pre><code>import { prisma } from '../../db/client'
+import { Decimal } from '@prisma/client/runtime/library'
+import type { DepositoDTO, DebitoDTO } from './movimientos.schema'
+
+export async function registrarDeposito(data: DepositoDTO) {
+  return prisma.$transaction(async (tx) => {
+    const cuenta = await tx.cuenta.findUnique({ where: { cuit: data.cuit } })
+    if (!cuenta)        throw new Error('Cuenta no encontrada')
+    if (!cuenta.activa) throw new Error('La cuenta está inactiva')
+    const saldoAntes   = cuenta.saldo
+    const saldoDespues = new Decimal(cuenta.saldo).plus(data.monto)
+    await tx.cuenta.update({ where: { cuit: data.cuit }, data: { saldo: saldoDespues } })
+    return tx.movimiento.create({
+      data: {
+        cuentaId: cuenta.id, tipo: 'CREDITO', monto: data.monto,
+        descripcion: data.descripcion, origen: data.origen,
+        referencia: data.referencia, saldoAntes, saldoDespues,
+      },
+    })
+  })
+}
+
+export async function registrarDebito(data: DebitoDTO) {
+  return prisma.$transaction(async (tx) => {
+    const cuenta = await tx.cuenta.findUnique({ where: { cuit: data.cuit } })
+    if (!cuenta)        throw new Error('Cuenta no encontrada')
+    if (!cuenta.activa) throw new Error('La cuenta está inactiva')
+    const saldoActual = new Decimal(cuenta.saldo)
+    if (saldoActual.lessThan(data.monto)) throw new Error('Saldo insuficiente')
+    const saldoAntes   = cuenta.saldo
+    const saldoDespues = saldoActual.minus(data.monto)
+    await tx.cuenta.update({ where: { cuit: data.cuit }, data: { saldo: saldoDespues } })
+    return tx.movimiento.create({
+      data: {
+        cuentaId: cuenta.id, tipo: 'DEBITO', monto: data.monto,
+        descripcion: data.descripcion, origen: data.origen,
+        referencia: data.referencia, saldoAntes, saldoDespues,
+      },
+    })
+  })
+}
+
+export async function listarMovimientos(cuentaId: string, page = 1, limit = 20) {
+  const skip = (page - 1) * limit
+  const [total, items] = await Promise.all([
+    prisma.movimiento.count({ where: { cuentaId } }),
+    prisma.movimiento.findMany({
+      where: { cuentaId }, orderBy: { creadoEn: 'desc' }, skip, take: limit,
+    }),
+  ])
+  return { total, page, limit, items }
+}</code></pre>
+        </div>
+        <div class="tab-content" id="mov-controller">
+<pre><code>import { Request, Response } from 'express'
+import * as service from './movimientos.service'
+import { depositoSchema, debitoSchema } from './movimientos.schema'
+
+export async function deposito(req: Request, res: Response) {
+  try {
+    const data = depositoSchema.parse(req.body)
+    const mov  = await service.registrarDeposito(data)
+    res.status(201).json({ ok: true, data: mov })
+  } catch (e: any) { res.status(400).json({ ok: false, error: e.message }) }
+}
+
+export async function debito(req: Request, res: Response) {
+  try {
+    const data = debitoSchema.parse(req.body)
+    const mov  = await service.registrarDebito(data)
+    res.status(201).json({ ok: true, data: mov })
+  } catch (e: any) { res.status(400).json({ ok: false, error: e.message }) }
+}
+
+export async function listar(req: Request, res: Response) {
+  try {
+    const page  = parseInt(req.query.page  as string) || 1
+    const limit = parseInt(req.query.limit as string) || 20
+    const result = await service.listarMovimientos(req.params.cuentaId, page, limit)
+    res.json({ ok: true, data: result })
+  } catch (e: any) { res.status(500).json({ ok: false, error: e.message }) }
+}</code></pre>
+        </div>
+        <div class="tab-content" id="mov-routes">
+<pre><code>import { Router } from 'express'
+import * as controller from './movimientos.controller'
+
+const router = Router()
+router.get('/:cuentaId', controller.listar)
+router.post('/deposito',  controller.deposito)
+router.post('/debito',    controller.debito)
+export default router</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transferencias -->
+    <div class="section" id="transferencias">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">6</div>
+          <div>
+            <h3>Módulo Transferencias</h3>
+            <p>Transferencias atómicas por CUIT, CBU o alias</p>
+          </div>
+        </div>
+      </div>
+      <div class="file-tabs" id="trans-tabs">
+        <button class="file-tab active" onclick="switchTab('trans','schema')">schema.ts</button>
+        <button class="file-tab" onclick="switchTab('trans','service')">service.ts</button>
+        <button class="file-tab" onclick="switchTab('trans','controller')">controller.ts</button>
+        <button class="file-tab" onclick="switchTab('trans','routes')">routes.ts</button>
+      </div>
+      <div class="tabbed-code">
+        <div class="tabbed-header">
+          <button class="code-copy" onclick="copyActiveTab('trans')">⧉ Copiar</button>
+        </div>
+        <div class="tab-content active" id="trans-schema">
+<pre><code>import { z } from 'zod'
+
+export const transferenciaSchema = z.object({
+  origenCuit:  z.string().min(11).max(13),
+  monto:       z.number().positive(),
+  descripcion: z.string().optional(),
+}).and(z.union([
+  z.object({ destinoCuit:  z.string().min(11).max(13) }),
+  z.object({ destinoCBU:   z.string().length(22) }),
+  z.object({ destinoAlias: z.string().min(3) }),
+]))
+
+export type TransferenciaDTO = z.infer&lt;typeof transferenciaSchema&gt;</code></pre>
+        </div>
+        <div class="tab-content" id="trans-service">
+<pre><code>import { prisma } from '../../db/client'
+import { Decimal } from '@prisma/client/runtime/library'
+import type { TransferenciaDTO } from './transferencias.schema'
+
+async function resolverDestino(dto: TransferenciaDTO) {
+  if ('destinoCuit'  in dto) return prisma.cuenta.findUnique({ where: { cuit:  dto.destinoCuit } })
+  if ('destinoCBU'   in dto) return prisma.cuenta.findUnique({ where: { cbu:   dto.destinoCBU } })
+  if ('destinoAlias' in dto) return prisma.cuenta.findUnique({ where: { alias: dto.destinoAlias.toUpperCase() } })
+  return null
+}
+
+export async function crearTransferencia(dto: TransferenciaDTO) {
+  return prisma.$transaction(async (tx) => {
+    const origen = await tx.cuenta.findUnique({ where: { cuit: dto.origenCuit } })
+    if (!origen)        throw new Error('Cuenta origen no encontrada')
+    if (!origen.activa) throw new Error('Cuenta origen inactiva')
+
+    const destino = await resolverDestino(dto)
+    if (!destino)         throw new Error('Cuenta destino no encontrada')
+    if (!destino.activa)  throw new Error('Cuenta destino inactiva')
+    if (origen.id === destino.id) throw new Error('No podés transferir a tu propia cuenta')
+
+    const saldoOrigen = new Decimal(origen.saldo)
+    if (saldoOrigen.lessThan(dto.monto)) throw new Error('Saldo insuficiente')
+
+    const nuevoSaldoOrigen  = saldoOrigen.minus(dto.monto)
+    const nuevoSaldoDestino = new Decimal(destino.saldo).plus(dto.monto)
+
+    await tx.cuenta.update({ where: { id: origen.id  }, data: { saldo: nuevoSaldoOrigen } })
+    await tx.cuenta.update({ where: { id: destino.id }, data: { saldo: nuevoSaldoDestino } })
+
+    const transferencia = await tx.transferencia.create({
+      data: {
+        origenId: origen.id, destinoId: destino.id,
+        monto: dto.monto, descripcion: dto.descripcion, estado: 'COMPLETADA',
+      },
+    })
+
+    await tx.movimiento.createMany({
+      data: [
+        {
+          cuentaId: origen.id, tipo: 'DEBITO', monto: dto.monto,
+          descripcion: dto.descripcion || `Transferencia a ${destino.titularNombre}`,
+          origen: 'TRANSFERENCIA', referencia: transferencia.id,
+          saldoAntes: origen.saldo, saldoDespues: nuevoSaldoOrigen,
+        },
+        {
+          cuentaId: destino.id, tipo: 'CREDITO', monto: dto.monto,
+          descripcion: dto.descripcion || `Transferencia de ${origen.titularNombre}`,
+          origen: 'TRANSFERENCIA', referencia: transferencia.id,
+          saldoAntes: destino.saldo, saldoDespues: nuevoSaldoDestino,
+        },
+      ],
+    })
+
+    return transferencia
+  })
+}</code></pre>
+        </div>
+        <div class="tab-content" id="trans-controller">
+<pre><code>import { Request, Response } from 'express'
+import * as service from './transferencias.service'
+import { transferenciaSchema } from './transferencias.schema'
+
+export async function crear(req: Request, res: Response) {
+  try {
+    const data = transferenciaSchema.parse(req.body)
+    const transferencia = await service.crearTransferencia(data)
+    res.status(201).json({ ok: true, data: transferencia })
+  } catch (e: any) { res.status(400).json({ ok: false, error: e.message }) }
+}
+
+export async function listar(req: Request, res: Response) {
+  try {
+    const result = await service.listarTransferencias(req.params.cuentaId)
+    res.json({ ok: true, data: result })
+  } catch (e: any) { res.status(500).json({ ok: false, error: e.message }) }
+}</code></pre>
+        </div>
+        <div class="tab-content" id="trans-routes">
+<pre><code>import { Router } from 'express'
+import * as controller from './transferencias.controller'
+
+const router = Router()
+router.post('/',         controller.crear)
+router.get('/:cuentaId', controller.listar)
+export default router</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry point -->
+    <div class="section" id="entry">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">7</div>
+          <div>
+            <h3>Entry point — src/index.ts</h3>
+            <p>Express app con todas las rutas montadas</p>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="copyBlock('entryCode')">⧉ Copiar</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">TYPESCRIPT</span></div>
+        <pre><code id="entryCode">import express from 'express'
+import cors from 'cors'
+import { env } from './config/env'
+import cuentasRouter        from './modules/cuentas/cuentas.routes'
+import movimientosRouter    from './modules/movimientos/movimientos.routes'
+import transferenciasRouter from './modules/transferencias/transferencias.routes'
+
+const app = express()
+app.use(cors())
+app.use(express.json())
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, servicio: 'banco-m', timestamp: new Date().toISOString() })
+})
+
+app.use('/api/cuentas',        cuentasRouter)
+app.use('/api/movimientos',    movimientosRouter)
+app.use('/api/transferencias', transferenciasRouter)
+
+app.use((_req, res) => {
+  res.status(404).json({ ok: false, error: 'Ruta no encontrada' })
+})
+
+app.listen(env.PORT, () => {
+  console.log(`✅ banco-m corriendo en http://localhost:${env.PORT}`)
+  console.log(`📋 Ambiente: ${env.NODE_ENV}`)
+})
+
+export default app</code></pre>
+      </div>
+    </div>
+
+    <!-- Config -->
+    <div class="section" id="config">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">8</div>
+          <div>
+            <h3>Package.json · TSConfig · .env</h3>
+          </div>
+        </div>
+      </div>
+      <div class="file-tabs" id="cfg-tabs">
+        <button class="file-tab active" onclick="switchTab('cfg','pkg')">package.json</button>
+        <button class="file-tab" onclick="switchTab('cfg','ts')">tsconfig.json</button>
+        <button class="file-tab" onclick="switchTab('cfg','env')">env.ts</button>
+        <button class="file-tab" onclick="switchTab('cfg','envex')">.env.example</button>
+      </div>
+      <div class="tabbed-code">
+        <div class="tabbed-header">
+          <button class="code-copy" onclick="copyActiveTab('cfg')">⧉ Copiar</button>
+        </div>
+        <div class="tab-content active" id="cfg-pkg">
+<pre><code>{
+  "name": "banco-m",
+  "version": "0.1.0",
+  "description": "Módulo bancario / billetera virtual — i26sintegra",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev":          "tsx watch src/index.ts",
+    "build":        "tsc",
+    "start":        "node dist/index.js",
+    "db:push":      "prisma db push",
+    "db:studio":    "prisma studio",
+    "db:generate":  "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "cors":           "^2.8.5",
+    "dotenv":         "^16.4.5",
+    "express":        "^4.19.2",
+    "zod":            "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors":    "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node":    "^20.14.0",
+    "prisma":         "^5.14.0",
+    "tsx":            "^4.15.7",
+    "typescript":     "^5.4.5"
+  }
+}</code></pre>
+        </div>
+        <div class="tab-content" id="cfg-ts">
+<pre><code>{
+  "compilerOptions": {
+    "target":                          "ES2020",
+    "module":                          "commonjs",
+    "lib":                             ["ES2020"],
+    "outDir":                          "./dist",
+    "rootDir":                         "./src",
+    "strict":                          true,
+    "esModuleInterop":                 true,
+    "skipLibCheck":                    true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule":               true,
+    "declaration":                     true,
+    "declarationMap":                  true,
+    "sourceMap":                       true
+  },
+  "include":  ["src/**/*"],
+  "exclude":  ["node_modules", "dist"]
+}</code></pre>
+        </div>
+        <div class="tab-content" id="cfg-env">
+<pre><code>import dotenv from 'dotenv'
+dotenv.config()
+
+export const env = {
+  PORT:         parseInt(process.env.PORT || '3001'),
+  NODE_ENV:     process.env.NODE_ENV || 'development',
+  DATABASE_URL: process.env.DATABASE_URL || '',
+}</code></pre>
+        </div>
+        <div class="tab-content" id="cfg-envex">
+<pre><code>DATABASE_URL="postgresql://usuario:password@localhost:5432/banco_m"
+PORT=3001
+NODE_ENV=development</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Endpoints -->
+    <div class="section" id="endpoints">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">9</div>
+          <div>
+            <h3>Endpoints REST</h3>
+            <p>Todos los endpoints disponibles una vez levantado el servidor</p>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto; border:1px solid var(--border); border-radius:8px;">
+        <table class="ep-table">
+          <thead>
+            <tr>
+              <th>Método</th>
+              <th>Ruta</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/health</td>               <td class="ep-desc">Health check</td></tr>
+            <tr><td><span class="method POST">POST</span></td> <td class="ep-path">/api/cuentas</td>              <td class="ep-desc">Crear cuenta (genera CBU + alias)</td></tr>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/cuentas/:cuit</td>         <td class="ep-desc">Obtener cuenta por CUIT</td></tr>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/cuentas/:cuit/saldo</td>   <td class="ep-desc">Consultar saldo</td></tr>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/cuentas/cbu/:cbu</td>      <td class="ep-desc">Buscar por CBU</td></tr>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/cuentas/alias/:alias</td>  <td class="ep-desc">Buscar por alias</td></tr>
+            <tr><td><span class="method PATCH">PATCH</span></td><td class="ep-path">/api/cuentas/:cuit/activar</td><td class="ep-desc">Activar / desactivar</td></tr>
+            <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/movimientos/deposito</td>  <td class="ep-desc">Registrar depósito</td></tr>
+            <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/movimientos/debito</td>    <td class="ep-desc">Registrar débito</td></tr>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/movimientos/:cuentaId</td> <td class="ep-desc">Listar movimientos (paginado)</td></tr>
+            <tr><td><span class="method POST">POST</span></td><td class="ep-path">/api/transferencias</td>        <td class="ep-desc">Transferir por CUIT / CBU / alias</td></tr>
+            <tr><td><span class="method GET">GET</span></td>  <td class="ep-path">/api/transferencias/:id</td>   <td class="ep-desc">Listar transferencias</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pasos finales -->
+    <div class="section" id="pasos">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-num">10</div>
+          <div>
+            <h3>Pasos finales para Codex</h3>
+            <p>Lo que debe ejecutar al terminar de crear los archivos</p>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">BASH</span></div>
+        <pre><code># Desde la carpeta banco-m/
+npm install
+npx tsc --noEmit
+
+# ⚠️  NO ejecutar hasta que el usuario configure .env:
+# npm run dev
+# npm run db:push</code></pre>
+      </div>
+      <ul class="checklist" style="margin-top:16px">
+        <li><div class="check-icon">✓</div><div class="check-text"><strong>Crear banco-m/</strong> en la raíz del monorepo i26sintegra<br><span>No tocar ningún archivo existente</span></div></li>
+        <li><div class="check-icon">✓</div><div class="check-text"><strong>Crear todos los archivos</strong> con el contenido exacto indicado<br><span>20 archivos en total</span></div></li>
+        <li><div class="check-icon">✓</div><div class="check-text"><strong>npm install</strong> dentro de banco-m/<br><span>Instala Express, Prisma, Zod, TypeScript y tipos</span></div></li>
+        <li><div class="check-icon">✓</div><div class="check-text"><strong>npx tsc --noEmit</strong> para verificar compilación<br><span>Corregir cualquier error de TypeScript antes de reportar</span></div></li>
+        <li><div class="check-icon">✓</div><div class="check-text"><strong>Reportar</strong> con lista de archivos creados y resultado del tsc<br><span>El usuario configura .env y corre db:push cuando esté listo</span></div></li>
+      </ul>
+      <div class="note">
+        <span class="note-icon">⚡</span>
+        <div>
+          <strong>Integración futura con i26sintegra:</strong> El campo <code>origen</code> en Movimiento acepta <code>ARBA</code> | <code>ARCA</code> | <code>MUNICIPALIDAD</code> para identificar de qué sistema viene el pago. El campo <code>referencia</code> guarda el ID externo de ese sistema.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const root = document.documentElement
+    const cur  = root.getAttribute('data-theme')
+    if (cur === 'light') root.removeAttribute('data-theme')
+    else if (!cur) root.setAttribute('data-theme', 'dark')
+    else root.setAttribute('data-theme', 'light')
+  }
+
+  // Scroll progress
+  window.addEventListener('scroll', () => {
+    const el  = document.getElementById('progress')
+    const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100
+    if (el) el.style.width = Math.min(pct, 100) + '%'
+  })
+
+  // Nav scroll
+  function scrollTo(id) {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'))
+    event.currentTarget.classList.add('active')
+  }
+
+  // Tab switching
+  function switchTab(group, name) {
+    const tabs    = document.getElementById(group + '-tabs').querySelectorAll('.file-tab')
+    const section = tabs[0].closest('.section') || tabs[0].parentElement.parentElement
+    const contents = section.querySelectorAll('.tab-content')
+    tabs.forEach(t => t.classList.remove('active'))
+    contents.forEach(c => c.classList.remove('active'))
+    event.currentTarget.classList.add('active')
+    const target = document.getElementById(group + '-' + name)
+    if (target) target.classList.add('active')
+  }
+
+  // Copy single block
+  function copyBlock(id) {
+    const el = document.getElementById(id)
+    if (!el) return
+    const btn = event.currentTarget
+    navigator.clipboard.writeText(el.textContent || '').then(() => {
+      btn.textContent = '✓ Copiado'
+      btn.classList.add('copied')
+      setTimeout(() => { btn.textContent = '⧉ Copiar'; btn.classList.remove('copied') }, 2000)
+    }).catch(() => {
+      const sel = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    })
+  }
+
+  // Copy active tab
+  function copyActiveTab(group) {
+    const section = event.currentTarget.closest('.tabbed-code').parentElement
+    const active  = section.querySelector('.tab-content.active code')
+    const btn     = event.currentTarget
+    if (!active) return
+    navigator.clipboard.writeText(active.textContent || '').then(() => {
+      btn.textContent = '✓ Copiado'
+      btn.classList.add('copied')
+      setTimeout(() => { btn.textContent = '⧉ Copiar'; btn.classList.remove('copied') }, 2000)
+    }).catch(() => {})
+  }
+
+  // Copy all (full prompt)
+  const FULL_PROMPT = `Sos el agente de desarrollo del módulo banco-m dentro del monorepo i26sintegra.
+
+Tu tarea es crear desde cero la app banco-m completa con toda su estructura de archivos, modelos de base de datos, lógica de negocio y endpoints REST. No modifiques ningún archivo existente del proyecto, solo creá todo dentro de la carpeta banco-m/.
+
+La documentación completa con todo el código está en el archivo banco-m-prompt.md que se descargó junto con este HTML. Seguí exactamente cada archivo y su contenido.
+
+Al terminar ejecutá:
+  cd banco-m
+  npm install
+  npx tsc --noEmit
+
+Y reportá la lista de archivos creados + resultado del tsc.
+NO ejecutes npm run dev ni prisma db push — eso lo configura el usuario.`
+
+  function copyAll() {
+    const btn = document.getElementById('btnCopyAll')
+    navigator.clipboard.writeText(FULL_PROMPT).then(() => {
+      btn.textContent = '✓ Copiado'
+      btn.classList.add('copied')
+      setTimeout(() => { btn.textContent = '⧉ Copiar todo el prompt'; btn.classList.remove('copied') }, 2500)
+    }).catch(() => {})
+  }
+</script>

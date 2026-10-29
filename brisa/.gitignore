@@ -1,0 +1,30 @@
+# Compilación
+bin/
+obj/
+out/
+publish/
+TestResults/
+
+# Base SQLite de desarrollo (se crea sola al arrancar)
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Variables locales y secretos
+.env
+.env.*
+!.env.example
+
+# Editores
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Sistema y logs
+*.log
+.DS_Store
+Thumbs.db

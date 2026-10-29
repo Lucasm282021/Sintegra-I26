@@ -24,9 +24,24 @@ const HTTP_STATUS_TEXT: Record<HttpStatusCode, string> = {
   200: '200 OK',
   201: '201 Created',
   400: '400 Bad Request',
+  401: '401 Unauthorized',
+  402: '402 Payment Required',
+  403: '403 Forbidden',
   404: '404 Not Found',
   409: '409 Conflict',
+  422: '422 Unprocessable Entity',
+  429: '429 Too Many Requests',
+  500: '500 Internal Server Error',
+  502: '502 Bad Gateway',
+  503: '503 Service Unavailable',
+  504: '504 Gateway Timeout',
 };
+
+// En Vercel consume el backend compartido. En desarrollo se puede apuntar al
+// backend local con VITE_BACKEND_URL; sin esa variable conserva la demo local.
+const BACKEND_API_BASE = (import.meta.env.PROD
+  ? (import.meta.env.VITE_BACKEND_URL || 'https://sintegra-backend.vercel.app')
+  : import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
 /**
  * Valida que el CUIT sea exactamente una cadena de 11 dígitos numéricos sin guiones ni puntos.
@@ -270,6 +285,47 @@ async function simularRequest<T>(
   requestBody: unknown | null,
   handler: () => { status: HttpStatusCode; data?: T; error?: { codigo: string; mensaje: string; detalles?: string } }
 ): Promise<ApiResponse<T>> {
+  if (BACKEND_API_BASE) {
+    const start = performance.now();
+    const timestamp = new Date().toISOString();
+    let status: HttpStatusCode = 503;
+    let responsePayload: unknown;
+    let data: T | undefined;
+    let error: ApiResponse<T>['error'];
+    try {
+      const response = await fetch(`${BACKEND_API_BASE}${endpoint}`, {
+        method,
+        headers: requestBody ? { 'content-type': 'application/json' } : {},
+        body: requestBody ? JSON.stringify(requestBody) : undefined,
+      });
+      status = (response.status in HTTP_STATUS_TEXT ? response.status : 502) as HttpStatusCode;
+      responsePayload = await response.json();
+      if (response.ok) data = responsePayload as T;
+      else {
+        const raw = (responsePayload as { error?: unknown })?.error;
+        error = typeof raw === 'string'
+          ? { codigo: `HTTP_${status}`, mensaje: raw }
+          : (raw as ApiResponse<T>['error']) || { codigo: `HTTP_${status}`, mensaje: 'La solicitud no pudo completarse.' };
+      }
+    } catch (cause) {
+      status = 503;
+      error = { codigo: 'BACKEND_NO_DISPONIBLE', mensaje: cause instanceof Error ? cause.message : 'No se pudo conectar al backend.' };
+      responsePayload = { error };
+    }
+    const latencyMs = Math.max(1, Math.round(performance.now() - start));
+    const result: ApiResponse<T> = { status, statusText: HTTP_STATUS_TEXT[status], ok: status >= 200 && status < 300,
+      latencyMs, timestamp, data, error };
+    const logEntry: ApiTrafficLog = {
+      id: `REQ-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      timestamp, method, endpoint, port: 443, status, statusText: result.statusText, latencyMs,
+      requestBody: requestBody ? JSON.parse(JSON.stringify(requestBody)) : null,
+      responseBody: JSON.parse(JSON.stringify(responsePayload ?? null)),
+    };
+    store.trafficLogs = [logEntry, ...store.trafficLogs].slice(0, 100);
+    notifyTrafficListeners();
+    return result;
+  }
+
   const start = performance.now();
   const jitter = simulatedLatencyMs > 0 ? Math.floor(Math.random() * 60) : 0;
   const delay = simulatedLatencyMs + jitter;

@@ -241,4 +241,4 @@ router.post('/qr/pagos', ruta(async (req) => {
   return tx((c) => pagar(c, { id_venta, origenCuit: cuit_origen, destinoCuit: cuit_destino, monto, op: 'qr', exigirDestino: true }));
 }));
 
-module.exports = { router };
+module.exports = { router, pagar };

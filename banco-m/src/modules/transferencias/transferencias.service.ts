@@ -1,11 +1,12 @@
-import { prisma } from '../../db/client'
 import { Decimal } from '@prisma/client/runtime/library'
+import { Prisma, type Prisma as PrismaTypes } from '@prisma/client'
+import { prisma } from '../../db/client'
 import type { TransferenciaDTO } from './transferencias.schema'
 
-async function resolverDestino(dto: TransferenciaDTO) {
-  if ('destinoCuit' in dto) return prisma.cuenta.findUnique({ where: { cuit: dto.destinoCuit } })
-  if ('destinoCBU' in dto)  return prisma.cuenta.findUnique({ where: { cbu: dto.destinoCBU } })
-  if ('destinoAlias' in dto) return prisma.cuenta.findUnique({ where: { alias: dto.destinoAlias.toUpperCase() } })
+async function resolverDestino(tx: PrismaTypes.TransactionClient, dto: TransferenciaDTO) {
+  if (dto.destinoCuit) return tx.cuenta.findUnique({ where: { cuit: dto.destinoCuit } })
+  if (dto.destinoCBU) return tx.cuenta.findUnique({ where: { cbu: dto.destinoCBU } })
+  if (dto.destinoAlias) return tx.cuenta.findUnique({ where: { alias: dto.destinoAlias.toUpperCase() } })
   return null
 }
 
@@ -15,39 +16,36 @@ export async function crearTransferencia(dto: TransferenciaDTO) {
     if (!origen) throw new Error('Cuenta origen no encontrada')
     if (!origen.activa) throw new Error('Cuenta origen inactiva')
 
-    const destino = await resolverDestino(dto)
+    const destino = await resolverDestino(tx, dto)
     if (!destino) throw new Error('Cuenta destino no encontrada')
     if (!destino.activa) throw new Error('Cuenta destino inactiva')
     if (origen.id === destino.id) throw new Error('No podés transferir a tu propia cuenta')
 
+    const monto = new Decimal(dto.monto.toFixed(2))
     const saldoOrigen = new Decimal(origen.saldo)
-    if (saldoOrigen.lessThan(dto.monto)) throw new Error('Saldo insuficiente')
+    if (saldoOrigen.lessThan(monto)) throw new Error('Saldo insuficiente')
 
-    const nuevoSaldoOrigen = saldoOrigen.minus(dto.monto)
-    const nuevoSaldoDestino = new Decimal(destino.saldo).plus(dto.monto)
-
-    // Actualizar saldos
+    const nuevoSaldoOrigen = saldoOrigen.minus(monto)
+    const nuevoSaldoDestino = new Decimal(destino.saldo).plus(monto)
     await tx.cuenta.update({ where: { id: origen.id }, data: { saldo: nuevoSaldoOrigen } })
     await tx.cuenta.update({ where: { id: destino.id }, data: { saldo: nuevoSaldoDestino } })
 
-    // Crear registro de transferencia
     const transferencia = await tx.transferencia.create({
       data: {
         origenId: origen.id,
         destinoId: destino.id,
-        monto: dto.monto,
+        monto,
         descripcion: dto.descripcion,
         estado: 'COMPLETADA',
       },
     })
 
-    // Crear movimientos en ambas cuentas
     await tx.movimiento.createMany({
       data: [
         {
           cuentaId: origen.id,
           tipo: 'DEBITO',
-          monto: dto.monto,
+          monto,
           descripcion: dto.descripcion || `Transferencia a ${destino.titularNombre}`,
           origen: 'TRANSFERENCIA',
           referencia: transferencia.id,
@@ -57,7 +55,7 @@ export async function crearTransferencia(dto: TransferenciaDTO) {
         {
           cuentaId: destino.id,
           tipo: 'CREDITO',
-          monto: dto.monto,
+          monto,
           descripcion: dto.descripcion || `Transferencia de ${origen.titularNombre}`,
           origen: 'TRANSFERENCIA',
           referencia: transferencia.id,
@@ -68,14 +66,12 @@ export async function crearTransferencia(dto: TransferenciaDTO) {
     })
 
     return transferencia
-  })
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 }
 
 export async function listarTransferencias(cuentaId: string) {
   return prisma.transferencia.findMany({
-    where: {
-      OR: [{ origenId: cuentaId }, { destinoId: cuentaId }],
-    },
+    where: { OR: [{ origenId: cuentaId }, { destinoId: cuentaId }] },
     include: {
       origen: { select: { cuit: true, titularNombre: true, alias: true } },
       destino: { select: { cuit: true, titularNombre: true, alias: true } },

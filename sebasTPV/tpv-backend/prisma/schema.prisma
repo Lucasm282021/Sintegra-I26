@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Empresa {
+  id          String           @id @default(uuid())
+  nombre      String
+  estado      String           @default("ACTIVA") // ACTIVA, SUSPENDIDA
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  usuarios    Usuario[]
+  comercios   Comercio[]
+  productos   Producto[]
+  ventas      Venta[]
+  modulos     EmpresaModulo[]
+  auditorias  AuditoriaAcceso[]
+}
+
+model Usuario {
+  id                 String            @id @default(uuid())
+  email              String            @unique
+  passwordHash       String
+  nombre             String?
+  rol                String            // SUPERADMIN, ADMIN
+  empresaId          String?
+  empresa            Empresa?          @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  activo             Boolean           @default(true)
+  mustChangePassword Boolean           @default(false)
+  tokenVersion       Int               @default(0)
+  ultimoAcceso       DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  auditorias         AuditoriaAcceso[]
+
+  @@index([empresaId])
+}
+
+model EmpresaModulo {
+  id         Int      @id @default(autoincrement())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  modulo     String
+  habilitado Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([empresaId, modulo])
+}
+
+model AuditoriaAcceso {
+  id         Int      @id @default(autoincrement())
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id])
+  accion     String
+  recurso    String
+  recursoId  String?
+  ip         String?
+  userAgent  String?
+  resultado  String?
+  detalle    String?
+  createdAt  DateTime @default(now())
+
+  @@index([empresaId, createdAt])
+  @@index([usuarioId, createdAt])
+}
+
+model Comercio {
+  id          Int      @id @default(autoincrement())
+  empresaId   String
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
+  cuit        String   @unique
+  razonSocial String
+  direccion   String?
+  rubro       String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ventas      Venta[]
+
+  @@index([empresaId])
+}
+
+model Producto {
+  id           Int            @id @default(autoincrement())
+  empresaId    String
+  empresa      Empresa        @relation(fields: [empresaId], references: [id])
+  codigo       String?
+  nombre       String
+  descripcion  String?
+  precio       Float
+  stock        Int            @default(100)
+  categoria    String         @default("General")
+  imagenUrl    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  detalleVenta DetalleVenta[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId])
+}
+
+model Venta {
+  id                     Int            @id @default(autoincrement())
+  idVentaExternal        String?        @unique
+  empresaId              String
+  empresa                Empresa        @relation(fields: [empresaId], references: [id])
+  cuit                   String
+  comercio               Comercio       @relation(fields: [cuit], references: [cuit])
+  medioPago              String         // BANCO, BILLETERA, TRANSFERENCIA, EFECTIVO, TARJETA
+  cuentaOrigen           String?
+  cuentaDestino          String?
+  cuitPagador            String?
+  subtotal               Float
+  percepcionArba         Float          @default(0)
+  montoTotal             Float
+  estado                 String         @default("BORRADOR") // PENDIENTE, COMPLETADA, ERROR_RECUPERABLE; legados migrados: BORRADOR, VALIDADO_MUNICIPIO, PERCIBIDO_ARBA, COBRADO, FACTURADO_ARCA, REVISION_MANUAL (solo lectura histórica)
+  etapaPendiente         String?        // municipio, arba, pago, pago_en_curso, arca, conciliacion_pago
+  lockToken              String?
+  lockExpiresAt          DateTime?
+  intentos               Int            @default(0)
+  cae                    String?        // CAE retornado por ARCA
+  comprobanteNumero      String?        // Número asignado por ARCA
+  fechaVencimientoCae    String?
+  tipoComprobante        String?
+  bancoTransaccionId     String?
+  billeteraTransaccionId String?
+  arbaPercepcionId       String?
+  arcaComprobanteId      String?
+  errorDetalle           String?
+  observacionConciliacion String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  items                  DetalleVenta[]
+
+  @@index([empresaId])
+  @@index([empresaId, createdAt])
+}
+
+model DetalleVenta {
+  id             Int      @id @default(autoincrement())
+  ventaId        Int
+  venta          Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  productoId     Int
+  producto       Producto @relation(fields: [productoId], references: [id])
+  cantidad       Int
+  precioUnitario Float
+  subtotal       Float
+}

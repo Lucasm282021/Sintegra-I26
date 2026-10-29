@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mostrador | Punto de venta</title>
+  <meta name="description" content="Punto de venta del Ecosistema Fintech simulado. Implementación de Brisa.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314214F'/%3E%3Crect x='8' y='9' width='16' height='3' rx='1.5' fill='%23AF9B63'/%3E%3Crect x='8' y='15' width='16' height='8' rx='2' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <section class="demo-access" id="demo-access" aria-labelledby="demo-title">
+    <div class="demo-card"><div class="demo-shield" aria-hidden="true">◇</div><p class="demo-eyebrow">BIENVENIDO · I26 TPV BRISA</p><h1 id="demo-title">Ingresá a tu cuenta</h1><p class="demo-subtitle">Accedé al punto de venta y la gestión de tu comercio.</p>
+      <form id="demo-login"><label>Correo electrónico<input name="email" type="email" autocomplete="username" placeholder="nombre@correo.com" required></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" placeholder="Ingresá tu contraseña" required></label><p class="demo-error" id="demo-error" role="alert" hidden></p><button type="submit">Iniciar sesión</button></form>
+      <aside class="demo-credentials"><strong>Usuario de prueba (ayuda memoria)</strong><span>Correo: <b>demo.tpv.brisa.i26@gmail.com</b></span><span>Contraseña: <b>BrisaDemo2026</b></span></aside><footer>Entorno académico · Información de ejemplo</footer></div>
+  </section>
+  <header class="barra">
+    <a class="marca" href="#/vender" aria-label="Mostrador, ir a vender">
+      <svg class="marca-icono" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="currentColor"/>
+        <rect x="8" y="9" width="16" height="3" rx="1.5" fill="#AF9B63"/>
+        <rect x="8" y="15" width="16" height="8" rx="2" fill="#fff"/>
+      </svg>
+      <span>Mostrador</span>
+    </a>
+
+    <label class="selector-comercio">
+      <span class="sr-only">Comercio</span>
+      <select id="comercio" aria-label="Comercio que vende"></select>
+    </label>
+
+    <nav class="navegacion" aria-label="Secciones">
+      <a href="#/vender" data-ruta="vender">Vender</a>
+      <a href="#/ventas" data-ruta="ventas">Ventas</a>
+      <a href="#/productos" data-ruta="productos">Productos</a>
+      <a href="#/comercios" data-ruta="comercios">Comercios</a>
+    </nav>
+
+    <button class="conexiones" id="conexiones" type="button" aria-haspopup="dialog" title="Estado de los servicios conectados">
+      <span class="punto" id="conexiones-punto"></span>
+      <span id="conexiones-texto">Conexiones</span>
+    </button>
+  </header>
+
+  <main id="vista" tabindex="-1"></main>
+
+  <!-- Cobro -->
+  <dialog id="dialogo-cobro" class="dialogo" aria-labelledby="cobro-titulo">
+    <form id="form-cobro" method="dialog" novalidate>
+      <header class="dialogo-cabecera">
+        <h2 id="cobro-titulo">Cobrar</h2>
+        <button type="button" class="boton-icono" data-cerrar aria-label="Cerrar">&times;</button>
+      </header>
+
+      <div class="dialogo-cuerpo" id="cobro-cuerpo">
+        <fieldset class="medios">
+          <legend>Medio de pago</legend>
+          <label class="medio">
+            <input type="radio" name="medio" value="banco" checked>
+            <span class="medio-caja">
+              <strong>Banco</strong>
+              <small>Transferencia desde una cuenta</small>
+            </span>
+          </label>
+          <label class="medio">
+            <input type="radio" name="medio" value="billetera">
+            <span class="medio-caja">
+              <strong>Billetera</strong>
+              <small>Pago con billetera virtual</small>
+            </span>
+          </label>
+        </fieldset>
+
+        <div class="campo" id="campo-cuenta">
+          <label for="cuenta-origen">Cuenta de quien paga</label>
+          <input id="cuenta-origen" name="cuenta_origen" autocomplete="off" placeholder="cuenta-cliente-1" spellcheck="false">
+          <p class="ayuda">El identificador de la cuenta en el Banco.</p>
+        </div>
+
+        <div class="campo" id="campo-cuit" hidden>
+          <label for="cuit-pagador">CUIT de quien paga</label>
+          <input id="cuit-pagador" name="cuit_pagador" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="27123456789">
+          <p class="ayuda">11 números, sin guiones.</p>
+        </div>
+
+        <dl class="resumen-cobro">
+          <div><dt>Subtotal</dt><dd id="cobro-subtotal">$ 0,00</dd></div>
+          <div><dt>Percepción IIBB</dt><dd class="tenue">La calcula ARBA al cobrar</dd></div>
+        </dl>
+
+        <p class="mensaje-error" id="cobro-error" role="alert" hidden></p>
+      </div>
+
+      <footer class="dialogo-pie">
+        <button type="button" class="boton boton-secundario" data-cerrar>Volver al ticket</button>
+        <button type="submit" class="boton boton-primario" id="cobro-confirmar">Confirmar cobro</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Producto -->
+  <dialog id="dialogo-producto" class="dialogo" aria-labelledby="producto-titulo">
+    <form id="form-producto" method="dialog" novalidate>
+      <header class="dialogo-cabecera">
+        <h2 id="producto-titulo">Nuevo producto</h2>
+        <button type="button" class="boton-icono" data-cerrar aria-label="Cerrar">&times;</button>
+      </header>
+      <div class="dialogo-cuerpo">
+        <div class="campo">
+          <label for="p-nombre">Nombre</label>
+          <input id="p-nombre" name="nombre" required maxlength="80" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="p-categoria">Categoría</label>
+          <input id="p-categoria" name="categoria" required maxlength="40" list="categorias" autocomplete="off">
+          <datalist id="categorias"></datalist>
+        </div>
+        <div class="campos-fila">
+          <div class="campo">
+            <label for="p-precio">Precio</label>
+            <div class="con-prefijo"><span>$</span><input id="p-precio" name="precio" inputmode="decimal" required placeholder="0,00"></div>
+          </div>
+          <div class="campo">
+            <label for="p-stock">Stock</label>
+            <input id="p-stock" name="stock" type="number" min="0" step="1" required>
+          </div>
+        </div>
+        <label class="interruptor">
+          <input type="checkbox" name="activo" checked>
+          <span>Disponible para vender</span>
+        </label>
+        <p class="mensaje-error" id="producto-error" role="alert" hidden></p>
+      </div>
+      <footer class="dialogo-pie">
+        <button type="button" class="boton boton-secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="boton boton-primario">Guardar producto</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Comercio -->
+  <dialog id="dialogo-comercio" class="dialogo" aria-labelledby="comercio-titulo">
+    <form id="form-comercio" method="dialog" novalidate>
+      <header class="dialogo-cabecera">
+        <h2 id="comercio-titulo">Nuevo comercio</h2>
+        <button type="button" class="boton-icono" data-cerrar aria-label="Cerrar">&times;</button>
+      </header>
+      <div class="dialogo-cuerpo">
+        <div class="campo">
+          <label for="c-cuit">CUIT</label>
+          <input id="c-cuit" name="cuit" inputmode="numeric" maxlength="11" required autocomplete="off" placeholder="30712345678">
+          <p class="ayuda">Tiene que estar habilitado en Municipio para poder vender.</p>
+        </div>
+        <div class="campo">
+          <label for="c-razon">Nombre del comercio</label>
+          <input id="c-razon" name="razon_social" required maxlength="80" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="c-rubro">Rubro</label>
+          <input id="c-rubro" name="rubro" required maxlength="40" list="rubros" autocomplete="off">
+          <datalist id="rubros">
+            <option value="Alimentos"><option value="Librería"><option value="Indumentaria">
+            <option value="Gastronomía"><option value="Tecnología"><option value="Farmacia">
+          </datalist>
+        </div>
+        <div class="campo">
+          <label for="c-cuenta">Cuenta bancaria donde cobra</label>
+          <input id="c-cuenta" name="cuenta_destino" maxlength="64" autocomplete="off" placeholder="cuenta-comercio-9" spellcheck="false">
+          <p class="ayuda">Necesaria para cobrar con Banco.</p>
+        </div>
+        <p class="mensaje-error" id="comercio-error" role="alert" hidden></p>
+      </div>
+      <footer class="dialogo-pie">
+        <button type="button" class="boton boton-secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="boton boton-primario">Guardar comercio</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Conexiones -->
+  <dialog id="dialogo-conexiones" class="dialogo dialogo-chico" aria-labelledby="conexiones-titulo">
+    <header class="dialogo-cabecera">
+      <h2 id="conexiones-titulo">Servicios conectados</h2>
+      <button type="button" class="boton-icono" data-cerrar aria-label="Cerrar">&times;</button>
+    </header>
+    <div class="dialogo-cuerpo">
+      <ul class="lista-conexiones" id="lista-conexiones"></ul>
+      <p class="ayuda">Las direcciones se configuran con variables de entorno del TPV.</p>
+    </div>
+  </dialog>
+
+  <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const key = 'demo-auth-tpv-brisa';
+      const activate = () => { document.body.classList.add('demo-auth-ok'); document.querySelector('#demo-access').hidden = true; window.__DEMO_AUTH_OK__ = true; window.dispatchEvent(new Event('demo-authenticated')); };
+      if (sessionStorage.getItem(key) === 'ok') activate();
+      document.querySelector('#demo-login').addEventListener('submit', event => {
+        event.preventDefault(); const data = new FormData(event.currentTarget);
+        if (String(data.get('email')).trim().toLowerCase() !== 'demo.tpv.brisa.i26@gmail.com' || data.get('password') !== 'BrisaDemo2026') { document.querySelector('#demo-error').textContent = 'El correo o la contraseña no coinciden con el usuario demo.'; document.querySelector('#demo-error').hidden = false; return; }
+        sessionStorage.setItem(key, 'ok'); activate();
+      });
+    })();
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>

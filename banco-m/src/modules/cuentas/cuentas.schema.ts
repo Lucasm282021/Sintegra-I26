@@ -5,8 +5,4 @@ export const crearCuentaSchema = z.object({
   titularNombre: z.string().min(2).max(200),
 })
 
-export const buscarPorCuitSchema = z.object({
-  cuit: z.string().min(11).max(13),
-})
-
 export type CrearCuentaDTO = z.infer<typeof crearCuentaSchema>

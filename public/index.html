@@ -210,6 +210,7 @@
         background: #fff;
       }
       .logo-panel img { display: block; width: 100%; height: 100%; object-fit: contain; }
+      .bank-logo { color: #102242; font-size: 22px; font-weight: 800; letter-spacing: -.04em; }
       .open-label { display: inline-flex; align-items: center; gap: 6px; color: #9abaff; font-size: 12px; font-weight: 650; white-space: nowrap; }
       .open-label svg { width: 14px; height: 14px; transition: transform .2s ease; }
       .card:hover .open-label svg { transform: translate(2px, -2px); }
@@ -217,6 +218,7 @@
       .card-muni { --glow: rgb(255 133 61 / 22%); --card-accent: #ff985e; }
       .card-tpv { --glow: rgb(69 127 255 / 22%); --card-accent: #76a2ff; }
       .card-fintech { --glow: rgb(239 58 142 / 20%); --card-accent: #f36da7; }
+      .card-banco { --glow: rgb(69 143 255 / 22%); --card-accent: #72a7ff; }
       .card-arca { --glow: rgb(38 155 235 / 22%); --card-accent: #4fb5f2; }
       .card-coming { cursor: default; background: linear-gradient(145deg, rgb(18 30 46 / 75%), rgb(11 21 34 / 88%)); }
       .card-coming:hover { transform: none; border-color: #34465c; box-shadow: none; }
@@ -351,33 +353,43 @@
             <p class="section-kicker">Acceso directo</p>
             <h2 id="apps-title">Seleccioná una solución</h2>
           </div>
-          <span class="solution-count">02 demos activas · 03 interfaces</span>
+          <span class="solution-count">09 aplicaciones · API común disponible</span>
         </div>
 
         <div class="grid">
           <a class="card card-arba" href="https://arba-tomi.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir ARBA Tomi en una nueva pestaña">
-            <div class="card-head"><h3>ARBA · Tomi</h3><span class="tag tag-ready">Demo · API activa</span></div>
-            <p>Padrón de sujetos, altas, gestión fiscal y simulación de percepciones.</p>
+            <div class="card-head"><h3>ARBA · Tomi</h3><span class="tag tag-ready">Backend ARBA disponible</span></div>
+            <p>Padrón de sujetos, altas y percepciones. La API común expone consulta de inscripción y registro idempotente.</p>
             <div class="card-foot"><span class="logo-panel"><img src="./media/logo-arba.png" alt="i26 ARBA · Impuestos Provinciales" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
           </a>
           <a class="card card-arba" href="https://arba-lucas.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir ARBA Lucas en una nueva pestaña">
-            <div class="card-head"><h3>ARBA · Lucas</h3><span class="tag">Interfaz · API pendiente</span></div>
-            <p>Consola de padrón y percepciones. La interfaz abre; falta conectar su API.</p>
+            <div class="card-head"><h3>ARBA · Lucas</h3><span class="tag">API común lista · integrar interfaz</span></div>
+            <p>Consola de padrón y percepciones; requiere configurar el endpoint común en la interfaz.</p>
             <div class="card-foot"><span class="logo-panel"><img src="./media/logo-arba.png" alt="i26 ARBA · Impuestos Provinciales" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
           </a>
           <a class="card card-muni" href="https://municipio-cristian.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir Municipio Cristian en una nueva pestaña">
-            <div class="card-head"><h3>Municipio · Cristian</h3><span class="tag tag-ready">Demo local</span></div>
-            <p>Demo de tasas, habilitaciones, cuenta corriente y comprobantes municipales.</p>
+            <div class="card-head"><h3>Municipio · Cristian</h3><span class="tag tag-ready">API común conectable</span></div>
+            <p>Habilitaciones, cuenta corriente, pago con débito, comprobantes y certificado de libre deuda.</p>
             <div class="card-foot"><span class="logo-panel"><img src="./media/logo-muni.png" alt="i26 Muni · Tasas y Habilitaciones" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
           </a>
+          <a class="card card-banco" href="./banco/" aria-label="Abrir Banco M, panel de cuentas y movimientos">
+            <div class="card-head"><h3>Banco M · Rodrigo</h3><span class="tag tag-ready">Datos del banco común</span></div>
+            <p>Consultá cuentas, saldos y movimientos bancarios del ecosistema desde la base común.</p>
+            <div class="card-foot"><span class="logo-panel bank-logo" aria-hidden="true">i26 Banco</span><span class="open-label">Abrir Banco <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
+          <a class="card card-tpv" href="./brisa/" aria-label="Abrir TPV Brisa">
+            <div class="card-head"><h3>TPV · Brisa</h3><span class="tag tag-ready">Catálogo y ventas en API común</span></div>
+            <p>Punto de venta, gestión de productos y comercios con cobros, percepciones y comprobantes centralizados.</p>
+            <div class="card-foot"><span class="logo-panel"><img src="./media/logo-tpv.png" alt="i26 TPV · Punto de Venta" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          </a>
           <a class="card card-tpv" href="https://tpv-sebastian.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir TPV Sebastián en una nueva pestaña">
-            <div class="card-head"><h3>TPV · Sebastián</h3><span class="tag">Interfaz · API pendiente</span></div>
-            <p>Punto de venta y operaciones comerciales. Falta conectar el backend de ventas.</p>
+            <div class="card-head"><h3>TPV · Sebastián</h3><span class="tag tag-ready">Frontend conectado a API común</span></div>
+            <p>Catálogo y ventas aislados por terminal, con cobros Banco o Billetera, percepciones ARBA y comprobantes ARCA en la base compartida.</p>
             <div class="card-foot"><span class="logo-panel"><img src="./media/logo-tpv.png" alt="i26 TPV · Punto de Venta" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
           </a>
           <a class="card card-tpv" href="https://tpv-david.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir TPV David en una nueva pestaña">
-            <div class="card-head"><h3>TPV · David</h3><span class="tag tag-ready">Demo · API activa</span></div>
-            <p>Caja con catálogo y ventas. Banco, ARBA y ARCA están simulados; los datos se reinician.</p>
+            <div class="card-head"><h3>TPV · David</h3><span class="tag tag-ready">Backend común disponible</span></div>
+            <p>Caja con catálogo y ventas. El checkout compartido integra Banco, ARBA y ARCA; el frontend aún debe consumir la API común.</p>
             <div class="card-foot"><span class="logo-panel"><img src="./media/logo-tpv.png" alt="i26 TPV · Punto de Venta" /></span><span class="open-label">Abrir aplicación <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h8v8m0-8-9 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
           </a>
           <a class="card card-fintech" href="https://billetera-virtual-lucas-m.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Abrir Fintech Billetera Virtual en una nueva pestaña">
@@ -394,8 +406,9 @@
 
         <div class="note">
           <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 3.5 5v4.4c0 4.1 2.8 6.9 6.5 8.1 3.7-1.2 6.5-4 6.5-8.1V5L10 2.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 6.2v4.2m0 2.8v.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-          <span>Los módulos son proyectos independientes y algunos todavía están en etapa de integración. Este portal académico no almacena datos; no ingreses información fiscal o bancaria real.</span>
+          <span>La API compartida usa datos de demostración: saldos y CAE son ficticios, no existe conexión con ARCA ni con bancos reales. No ingreses información fiscal o bancaria real.</span>
         </div>
+        <p class="api-status"><a href="https://sintegra-backend.vercel.app/health" target="_blank" rel="noopener noreferrer">Consultar estado de la API unificada ↗</a></p>
       </section>
     </main>
     <footer>Sintegra I26 · Ecosistema de soluciones</footer>

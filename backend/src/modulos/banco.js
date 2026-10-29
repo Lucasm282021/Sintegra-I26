@@ -50,6 +50,26 @@ router.get('/cuentas', ruta(async (req) => {
   return { body: rows.map(filaCuenta) };
 }));
 
+// Vista consolidada del cliente: CUIT como clave funcional entre padrón,
+// cuenta bancaria y billetera. Solo expone datos, nunca credenciales.
+router.get('/clientes/:cuit', ruta(async (req) => {
+  const cuit=req.params.cuit;
+  if(!cuitValido(cuit)) throw falla(400,'CUIT debe tener 11 dígitos');
+  const identidad=(await query('select cuit,razon_social,tipo_persona,condicion_iva,estado from padron.contribuyentes where cuit=$1',[cuit])).rows[0];
+  if(!identidad) throw falla(404,'cliente no encontrado en el padrón');
+  const cuentas=(await query('select * from banco.cuentas where cuit=$1 order by creado_en',[cuit])).rows.map(filaCuenta);
+  const billetera=(await query('select * from billetera.cuentas where cuit=$1',[cuit])).rows[0];
+  let movimientosBilletera=[];
+  if(billetera) movimientosBilletera=(await query('select * from billetera.movimientos where cuenta_id=$1 order by creado_en desc limit 30',[billetera.id])).rows.map(m=>({
+    id:m.id,tipo:m.tipo,monto:num(m.monto),contraparte:m.contraparte||m.contraparte_cuit||null,
+    saldo_resultante:num(m.saldo_resultante),fecha:new Date(m.creado_en).toISOString(),
+  }));
+  return {body:{cliente:identidad,cuentas,billetera:billetera?{
+    id:billetera.id,cuit:billetera.cuit,titular:billetera.titular,alias:billetera.alias,saldo:num(billetera.saldo),
+    banco_cuenta_id:billetera.banco_cuenta_id, movimientos:movimientosBilletera,
+  }:null}};
+}));
+
 router.get('/cuentas/:id', ruta(async (req) => {
   const c = (await query('select * from banco.cuentas where id = $1', [req.params.id])).rows[0];
   if (!c) throw falla(404, 'cuenta no encontrada');

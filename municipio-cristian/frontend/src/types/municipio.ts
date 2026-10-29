@@ -12,7 +12,7 @@ export type ConceptoTasa =
 
 export type EstadoTributo = 'pendiente' | 'pagado';
 
-export type HttpStatusCode = 200 | 201 | 400 | 404 | 409;
+export type HttpStatusCode = 200 | 201 | 400 | 401 | 402 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503 | 504;
 
 export interface Comercio {
   cuit: string;

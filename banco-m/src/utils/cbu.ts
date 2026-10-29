@@ -23,7 +23,7 @@ export function generarCBU(cuit: string): string {
 
   // Bloque 2: número de cuenta (13) + dígito verificador (1)
   const cuitNumerico = cuit.replace(/\D/g, '').padEnd(11, '0').substring(0, 11)
-  const timestamp = Date.now().toString().substring(5, 7) // 2 dígitos variables
+  const timestamp = Date.now().toString().substring(5, 7)
   const numeroCuenta = (cuitNumerico + timestamp).substring(0, 13).padStart(13, '0')
   const dv2 = calcularDigitoVerificador(numeroCuenta, [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3])
   const bloque2 = numeroCuenta + dv2

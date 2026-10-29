@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  tpv-backend:
+    build:
+      context: ./tpv-backend
+      dockerfile: Dockerfile
+    container_name: tpv-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=file:./dev.db
+      - MUNICIPIO_URL=http://municipio:3005
+      - BANCO_URL=http://banco:3002
+      - BILLETERA_URL=http://billetera:3006
+      - ARBA_URL=http://arba:3003
+      - ARCA_URL=http://arca:3004
+      - MUNICIPIO_MOCK=false
+      - BANCO_MOCK=false
+      - BILLETERA_MOCK=false
+      - ARBA_MOCK=false
+      - ARCA_MOCK=true
+    networks:
+      - fintech-net
+    restart: always
+
+  tpv-frontend:
+    build:
+      context: ./tpv-frontend
+      dockerfile: Dockerfile
+    container_name: tpv-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - fintech-net
+    restart: always
+
+networks:
+  fintech-net:
+    name: fintech-net
+    external: true
+

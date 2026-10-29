@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="description" content="Banco M de Rodrigo · vista de cuentas y movimientos sobre la base compartida Sintegra I26." />
+  <title>Banco M · Rodrigo · Sintegra I26</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <section class="demo-access" id="demo-access" aria-labelledby="demo-title">
+    <div class="demo-card"><div class="demo-shield" aria-hidden="true">◇</div><p class="demo-eyebrow">BIENVENIDO · BANCO M · RODRIGO</p><h1 id="demo-title">Ingresá a tu cuenta</h1><p class="demo-subtitle">Accedé a cuentas y billeteras del entorno académico.</p>
+      <form id="demo-login"><label>Correo electrónico<input name="email" type="email" autocomplete="username" placeholder="nombre@correo.com" required></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" placeholder="Ingresá tu contraseña" required></label><p class="demo-error" id="demo-error" role="alert" hidden></p><button type="submit">Iniciar sesión</button></form>
+      <aside class="demo-credentials"><strong>Usuario de prueba (ayuda memoria)</strong><span>Correo: <b>demo.banco.rodrigo.i26@gmail.com</b></span><span>Contraseña: <b>BancoDemo2026</b></span></aside><footer>Entorno académico · Información de ejemplo</footer></div>
+  </section>
+  <header class="topbar">
+    <a class="brand" href="../" aria-label="Volver a Sintegra I26">
+      <span class="brand-icon">B</span>
+      <span><strong>Banco M · Rodrigo</strong><small>Integrado al ecosistema Sintegra</small></span>
+    </a>
+    <div class="top-actions"><span class="live"><i></i> API compartida</span><button id="refresh" class="button secondary" type="button">Actualizar</button></div>
+  </header>
+  <main class="shell">
+    <section class="intro">
+      <p class="eyebrow">BANCO M · RODRIGO · CUENTAS COMPARTIDAS</p>
+      <h1>Una vista clara de<br /><span>las cuentas del ecosistema.</span></h1>
+      <p>Consultá saldos y movimientos que comparten Banco, TPV, Municipio y Billetera.</p>
+    </section>
+    <section class="notice" aria-label="Aviso de simulación"><span class="notice-icon">i</span><p><strong>Entorno académico.</strong> Estas cuentas y movimientos son ficticios. No se realizan transferencias reales.</p></section>
+    <section class="workspace" aria-label="Consulta de cuentas">
+      <div class="accounts-panel">
+        <div class="section-title"><div><p class="eyebrow">CUENTAS</p><h2>Cuentas bancarias</h2></div><span id="account-count" class="count">—</span></div>
+        <label class="search-label" for="search">Buscar por titular, CUIT o alias</label>
+        <input id="search" class="search" type="search" placeholder="Ej. Almacén Don Mateo" autocomplete="off" />
+        <div id="accounts" class="accounts" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div></div>
+      </div>
+      <section class="detail-panel" aria-live="polite">
+        <div id="empty" class="empty"><span class="empty-icon">↗</span><h2>Elegí una cuenta</h2><p>Vas a ver su saldo y el historial de operaciones registradas.</p></div>
+        <div id="detail" hidden>
+          <div class="section-title"><div><p class="eyebrow">DETALLE DE CUENTA</p><h2 id="holder">Cuenta</h2></div><span class="status"><i></i> Activa</span></div>
+          <div class="balance-card"><span>Saldo disponible · ARS</span><strong id="balance">$ 0,00</strong><div class="account-meta"><span id="alias"></span><span id="cbu"></span></div></div>
+          <div class="section-title movement-heading"><div><p class="eyebrow">ACTIVIDAD</p><h2>Movimientos recientes</h2></div><span id="movement-count" class="muted"></span></div>
+          <div id="movements" class="movements"><p class="muted">Seleccioná una cuenta para consultar movimientos.</p></div>
+          <section class="wallet-panel" id="wallet-panel" aria-live="polite"><p class="muted">Consultando billetera virtual…</p></section>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+    </section>
+    <footer><a href="../">← Volver al portal Sintegra</a><span>Banco M · Sintegra I26</span></footer>
+  </main>
+</body>
+</html>

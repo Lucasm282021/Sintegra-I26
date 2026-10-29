@@ -21,6 +21,19 @@ model Cuenta {
   movimientos             Movimiento[]
   transferenciasEnviadas  Transferencia[] @relation("Origen")
   transferenciasRecibidas Transferencia[] @relation("Destino")
+  comercio                Comercio?
+  pagosQRDestino          PagoQR[] @relation("QRDestino")
+  pagosQRPagador          PagoQR[] @relation("QRPagador")
+}
+
+model Usuario {
+  id           String     @id @default(cuid())
+  cuit         String     @unique
+  nombre       String
+  rol          RolUsuario @default(CLIENTE)
+  passwordHash String
+  creadoEn     DateTime   @default(now())
+  actualizadoEn DateTime  @updatedAt
 }
 
 model Movimiento {
@@ -49,6 +62,7 @@ model Transferencia {
 
   origen  Cuenta @relation("Origen",  fields: [origenId],  references: [id])
   destino Cuenta @relation("Destino", fields: [destinoId], references: [id])
+  pagoQR  PagoQR?
 }
 
 enum TipoMovimiento {
@@ -60,4 +74,75 @@ enum EstadoTransferencia {
   PENDIENTE
   COMPLETADA
   RECHAZADA
+}
+
+
+model Comercio {
+  id            String   @id @default(cuid())
+  cuit          String   @unique
+  razonSocial   String
+  rubro         String?
+  cuentaId      String   @unique
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  cuenta  Cuenta   @relation(fields: [cuentaId], references: [id])
+  pagosQR PagoQR[]
+}
+
+model PagoQR {
+  id               String       @id @default(cuid())
+  comercioId       String?
+  cuentaDestinoId  String
+  monto            Decimal      @db.Decimal(15, 2)
+  descripcion      String?
+  referencia       String?
+  tipoOrigen       TipoOrigen   @default(COMERCIO)
+  estado           EstadoPagoQR @default(PENDIENTE)
+  qrPayload        String
+  cuentaOrigenId   String?
+  transferenciaId  String?      @unique
+  expiresAt        DateTime
+  creadoEn         DateTime     @default(now())
+  confirmadoEn     DateTime?
+
+  comercio      Comercio? @relation(fields: [comercioId], references: [id])
+  cuentaDestino Cuenta   @relation("QRDestino", fields: [cuentaDestinoId], references: [id])
+  cuentaOrigen  Cuenta?  @relation("QRPagador", fields: [cuentaOrigenId], references: [id])
+  transferencia Transferencia? @relation(fields: [transferenciaId], references: [id])
+}
+
+model WebhookLog {
+  id             String   @id @default(cuid())
+  idempotencyKey String   @unique
+  evento         String
+  payload        Json
+  origen         String
+  procesado      Boolean  @default(false)
+  error          String?
+  creadoEn       DateTime @default(now())
+}
+
+enum TipoOrigen {
+  COMERCIO
+  ARCA
+  ARBA
+  MUNICIPALIDAD
+}
+
+enum EstadoPagoQR {
+  PENDIENTE
+  PROCESANDO
+  PAGADO
+  COMPLETADO
+  EXPIRADO
+  CANCELADO
+}
+
+enum RolUsuario {
+  ADMIN
+  CLIENTE
+  COMERCIO
+  ORGANISMO
 }

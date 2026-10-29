@@ -22,7 +22,7 @@ app.get(['/', '/health'], async (_req, res) => {
   try { await query('select 1'); } catch { db = 'sin conexión'; }
   res.status(db === 'ok' ? 200 : 503).json({
     status: db === 'ok' ? 'ok' : 'error', servicio: 'sintegra-backend', db,
-    modulos: ['padron', 'banco', 'billetera', 'arba', 'arca'],
+    modulos: ['padron', 'banco', 'billetera', 'arba', 'arca', 'municipio', 'tpv'],
   });
 });
 
@@ -31,6 +31,8 @@ app.use('/banco', require('./modulos/banco').router);
 app.use('/billetera', require('./modulos/billetera').router);
 app.use('/arba', require('./modulos/arba').router);
 app.use('/arca', require('./modulos/arca').router);
+app.use('/municipio', require('./modulos/municipio'));
+app.use('/tpv', require('./modulos/tpv'));
 
 app.use((_req, res) => res.status(404).json({ error: 'ruta no encontrada' }));
 // eslint-disable-next-line no-unused-vars

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "TPV con simuladores": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "",
+      "applicationUrl": "http://localhost:3001",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "PORT": "3001",
+        "DB_PATH": "data/tpv.db",
+        "MUNICIPIO_URL": "http://localhost:3005",
+        "ARBA_URL": "http://localhost:3003",
+        "BANCO_URL": "http://localhost:3002",
+        "BILLETERA_URL": "http://localhost:3006",
+        "ARCA_URL": "http://localhost:3004"
+      }
+    }
+  }
+}

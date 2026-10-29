@@ -27,7 +27,7 @@ Importá el mismo repo una vez por cada frontend que se quiera publicar. Elegí 
 
 | Módulo | Root Directory | Framework | Build Command | Output Directory | URL y estado |
 |---|---|---|---|---|---|
-| Portal | `.` | Other | — | `public` | [sintegrai26.vercel.app](https://sintegrai26.vercel.app) · publicado |
+| Portal y panel Banco | `.` | Other | — | `public` | [sintegrai26.vercel.app](https://sintegrai26.vercel.app) · portal y `/banco/` publicados; panel Banco consulta la API común |
 | ARBA Tomi | `arba-tomi` | Other | `vite build` | `dist` | [arba-tomi.vercel.app](https://arba-tomi.vercel.app) · UI y API demo en memoria |
 | ARBA Lucas | `arba-lucas` | Other | `npm run build` | `dist` | [arba-lucas.vercel.app](https://arba-lucas.vercel.app) · interfaz publicada; API pendiente |
 | Municipio Cristian | `municipio-cristian/frontend` | Vite | `npm run build` | `dist` | [municipio-cristian.vercel.app](https://municipio-cristian.vercel.app) · demo local en navegador |
@@ -36,7 +36,7 @@ Importá el mismo repo una vez por cada frontend que se quiera publicar. Elegí 
 | ARCA Mateo | `arca-mateo` | Other | — | `public` | [arca-mateo.vercel.app](https://arca-mateo.vercel.app) · UI y API demo (padrón y comprobantes con CAE ficticio; requiere usuario) |
 | Billetera virtual | `Billetera_virtual-Lucas_M` | Other | — | `public` | [billetera-virtual-lucas-m.vercel.app](https://billetera-virtual-lucas-m.vercel.app) · interfaz publicada; backend pendiente |
 
-Los seis dominios de aplicaciones devuelven la interfaz publicada. Esto no significa que sus APIs estén listas: el menú marca las interfaces que todavía no tienen backend. No habilites **Include source files outside of the Root Directory** salvo que una app lo necesite de verdad.
+La sección Banco de la landing sirve el panel estático desde `public/banco/`; consulta en modo de solo lectura cuentas, saldos y movimientos del backend compartido. No depende del API Prisma independiente de `banco-m`. No habilites **Include source files outside of the Root Directory** salvo que una app lo necesite de verdad.
 
 ### TPV Sebastián, desde el repo que contiene el frontend
 

@@ -1,36 +1,31 @@
 # Ajuste de contrato — Municipio
 
-## Estado actual
+**Estado al 28/10/2026:** API común disponible en `https://sintegra-backend.vercel.app/municipio`. El frontend de Cristian consume este contrato en producción desde `municipioService.ts`; en desarrollo se configura `VITE_BACKEND_URL` o se deja vacío para usar el simulador local.
 
-La API de `municipio-cristian` usa Express/SQLite en 3005: `POST /municipio/comercios` recibe `{ cuit, razon_social, rubro }`; `GET /municipio/comercios/:cuit` consulta; `POST /municipio/tributos/pagos` recibe `{ cuit, periodo, monto }`; `GET /municipio/tributos/:cuit` lista pagos. La DB tiene `comercios_habilitados` y `tasas_municipales`.
+## Contrato implementado
 
-La interfaz Next/React tiene un modal React con CUIT, razón social y rubro. `page.tsx` carga tres comercios de ejemplo y `comercios-panel.tsx` solo agrega el formulario al estado de React; no llama a la API. Su objeto enviado usa `razonSocial` camelCase, mientras que la API espera `razon_social`.
+- `GET /health`: estado de módulo.
+- `GET /comercios`: lista habilitaciones con condición fiscal, rubro y resumen de deuda.
+- `POST /comercios`: `{ cuit, razon_social, condicion_fiscal, direccion, rubro_principal, rubro_secundario? }`. Da de alta en el padrón compartido, crea la habilitación y genera una obligación demo para el período corriente.
+- `GET /comercios/{cuit}`: ficha municipal del contribuyente.
+- `GET /tributos/{cuit}`: períodos, importes, estado y deuda agregada.
+- `POST /tributos/pagos`: `{ cuit, periodo, monto, cuenta_origen? }`. Debita Banco y marca la tasa pagada dentro de una transacción PostgreSQL.
+- `GET /comprobantes[?cuit=...]`: devuelve recibos persistidos, incluyendo la referencia de pago.
+- `GET /certificados/libre-deuda/{cuit}`: emite el certificado solo si no hay obligaciones pendientes.
 
-## Ajuste a la API unificada
+Los errores de negocio usan HTTP apropiado y `{ "error": "mensaje" }`; CUIT y período se validan en el servidor. Un pago repetido con mismo contenido no duplica el movimiento. Un importe incorrecto, saldo insuficiente o pago previo se rechaza.
 
-- Conectar el frontend a `/api/v1/municipio/comercios` y quitar datos hardcodeados como fuente visible cuando la API está activa.
-- Añadir carga, error de API, reintento y estado vacío; convertir el request con un cliente tipado y no mantener altas solo en memoria.
-- Normalizar `razon_social` a `legal_name`/referencia `commerce_id`; mantener CUIT como string.
-- Separar habilitación del comercio, liquidación de tasa y pago. El endpoint actual marca `estado_pago='pagado'` al insertar monto directo, sin liquidación ni pago externo; no usarlo como registro real de cobro.
-- Definir estados de habilitación explícitos (`pending`, `active`, `suspended`, `rejected`) y respuesta con metadata de jurisdicción/fecha.
-- La tasa municipal se calcula/consulta para un período `YYYY-MM`; una tasa no se agrega automáticamente al total de cada venta.
+## Ajustes pendientes en la aplicación
 
-### Rutas objetivo orientativas
+- El simulador local conserva datos de muestra distintos del seed compartido. En producción la fuente del servicio API es el backend; al probar altas y pagos, tener presente que se usan registros ficticios persistentes y compartidos.
+- Un contribuyente nuevo requiere una cuenta de Banco asociada antes de pagar. No crear una cuenta bancaria ficticia desde Municipio; informar el caso al usuario o permitir asociar una cuenta a través del módulo Banco.
+- Mantener claro en pantalla que los importes, comprobantes y certificados son demos. No son trámites ni pagos reales.
+- El detalle fiscal está simplificado a una obligación municipal por período en este prototipo. No representa liquidación municipal oficial ni todos los conceptos jurisdiccionales.
 
-- `GET /api/v1/municipio/comercios/{cuit}/habilitacion`
-- `POST /api/v1/municipio/comercios/{commerce_id}/habilitaciones` (solicitud)
-- `GET /api/v1/municipio/comercios/{commerce_id}/tasas?periodo=YYYY-MM`
-- `POST /api/v1/municipio/tasas/{tax_assessment_id}/pagos` con `Idempotency-Key` y referencia al proveedor de pago.
+## Persistencia
 
-Las rutas deberán respetar el contrato común descrito en `INFORME-UNIFICACION-APPS.md`; no mantener el campo `monto` ambiguo: usar importe menor y moneda.
+`padron.contribuyentes` es el perfil compartido; `municipio.habilitaciones` y `municipio.tasas` pertenecen a Municipio. La tasa guarda concepto, desglose, vencimiento, recibo, huella idempotente y referencia bancaria. El débito y la actualización se confirman juntos. La migración aditiva está en `backend/supabase/migrations/20261028000004_municipio_tpv_operativos.sql` y `...00005_municipio_operacion_bancaria.sql`.
 
-## Persistencia y migración
+## Verificación
 
-Migrar `comercios_habilitados` hacia la entidad compartida de comercio y una tabla propia de habilitaciones municipales; `tasas_municipales` se divide en liquidación por período y pagos. Añadir índices únicos por comercio/jurisdicción y período si la regla lo establece. No borrar pagos históricos ni fijar todo registro nuevo como pagado.
-
-## Criterios de aceptación del ajuste
-
-- Alta React persiste por API y sobrevive al refrescar.
-- API y UI usan el mismo esquema validado y los mismos estados.
-- Verificar habilitación no depende de una tabla local duplicada de comercios.
-- Crear liquidación y confirmar pago son operaciones distintas e idempotentes.
+La prueba `Municipio: padrón, pago transaccional, comprobante e idempotencia` en `backend/test/integracion.test.js` corre contra PGlite efímero. `npm run lint` y `npm run build` del frontend pasan.

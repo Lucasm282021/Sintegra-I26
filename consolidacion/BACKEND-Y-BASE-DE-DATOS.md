@@ -1,92 +1,63 @@
-# Backend unificado y base de datos
+# Backend unificado y base de datos — Sintegra I26
 
-**Estado:** base de datos diseñada y probada; backend pendiente. Decidido el 26/10/2026.
+**Estado al 28/10/2026:** API Express desplegada en Vercel y conectada a PostgreSQL de Supabase. Los módulos de Municipio y TPV ya tienen endpoints operativos en el repositorio; la migración `20261028000004_municipio_tpv_operativos.sql` extiende el esquema sin borrar datos. Las pruebas de integración corren contra PGlite y no tocan datos productivos.
 
-## Decisiones
+## Arquitectura y límites
 
-| Tema | Decisión |
-|---|---|
-| Hosting | Backend como funciones en **Vercel**; base **PostgreSQL en Supabase** |
-| Contrato | El de la [guía fundacional](https://github.com/Lucasm282021/Ecosistema-Fintech-simulado/blob/main/docs/guia-fundacional-equipos.html): rutas `/tpv`, `/banco`, `/billetera`, `/arba`, `/arca`, `/municipio`; recurso directo; errores `{"error":"mensaje"}`; CUIT string de 11 dígitos; `id_venta` como clave de idempotencia |
-| Arquitectura | **Un solo backend con un módulo por sistema** y una sola base |
+- API común: `https://sintegra-backend.vercel.app`.
+- PostgreSQL único en Supabase, separado por esquemas: `padron`, `municipio`, `arba`, `arca`, `banco`, `billetera`, `tpv`.
+- Los clientes web llaman al backend; no deben conectarse directamente a Supabase.
+- CUIT/CUIL se transporta como texto de 11 dígitos; importes en ARS con dos decimales; operaciones de cobro/pago idempotentes.
+- El entorno es académico: cuentas, cobros, tasas, comprobantes y CAE son simulados. No usar para operaciones fiscales, bancarias ni datos reales. ARCA no está conectado a los servicios oficiales y no emite CAE válido.
 
-Como el backend usa las mismas rutas de la guía, cada frontend se conecta cambiando solo su variable de URL de API (por ejemplo `VITE_API_BASE_URL`).
+## Contratos implementados
 
-## Cómo se separan y comparten los datos
-
-Cada sistema tiene su **esquema** de Postgres y solo escribe en el suyo. Lo compartido vive en el esquema `padron`.
-
-| Esquema | Dueño | Contiene |
+| Módulo | Endpoints principales | Persistencia y coordinación |
 |---|---|---|
-| `padron` | ARCA | `contribuyentes` por CUIT, que leen todos, y la vista `ficha_contribuyente` |
-| `municipio` | Municipio | `habilitaciones`, `tasas` por período |
-| `arba` | ARBA | `inscripciones` (actividad y alícuota), `percepciones` por venta |
-| `arca` | ARCA | `puntos_venta` (numeración correlativa), `comprobantes` con CAE simulado |
-| `banco` | Banco | `cuentas`, `movimientos` (ventas, cargas de billetera y transferencias) |
-| `billetera` | Billetera | `cuentas` asociadas a una cuenta del banco, `movimientos`, `usuarios` (ingreso con CUIT y contraseña) |
-| `tpv` | TPV | `terminales`, `productos`, `ventas`, `venta_items` |
+| Estado | `GET /health` | Comprueba PostgreSQL e informa módulos activos |
+| Padrón | `GET /padron/contribuyentes/{cuit}` | Vista compartida por CUIT |
+| Municipio | `GET /municipio/health`, `/comercios`, `/comercios/{cuit}`, `/tributos/{cuit}`, `/comprobantes[?cuit]`; `POST /comercios`, `/tributos/pagos`; `GET /certificados/libre-deuda/{cuit}` | Alta compartida en `padron` + habilitación + obligación inicial; pago de tasa y débito bancario en una transacción; recibos y libre deuda derivados de Postgres |
+| Banco | `GET /banco/cuentas[?cuit]`, `/cuentas/{id}`, `/cuentas/{id}/saldo`, `/cuentas/{id}/movimientos`; `POST /pagos` | Saldos y movimientos con clave idempotente |
+| Billetera | `/billetera/auth/login`, `/auth/registro`, `/cuentas`, `/cargas`, `/pagos`, `/qr/pagos`, `/qr/{cuit}`, `/demo/clientes` | Saldos y movimientos; cargas con reflejo bancario cuando hay cuenta vinculada |
+| ARBA | `GET /arba/padron/{cuit}`, `/percepciones/{cuit}`; `POST /percepciones` | Alícuota del padrón y percepción idempotente |
+| ARCA | `GET /arca/contribuyentes/{cuit}`, `/comprobantes[?cuit]`; `POST /comprobantes` | Numeración correlativa y CAE ficticio |
+| TPV | `GET /tpv/health`, `/terminales`, `/productos[?terminal_id&cuit]`, `/ventas[?terminal_id]`, `/ventas/{id}`; `POST /productos`, `/ventas` | Catálogo y venta en `tpv`; checkout transaccional con Banco o Billetera, percepción ARBA y comprobante ARCA |
 
-Reglas:
+### Venta TPV
 
-- **Para saber algo de otro sistema** se usa el padrón o la vista `padron.ficha_contribuyente`, que junta por CUIT los datos de ARBA, Municipio, Banco y Billetera. No se leen tablas internas de otro esquema.
-- **Los TPV son independientes.** David y Sebastián son dos terminales (`tpv.terminales`). Cada producto y cada venta pertenece a una terminal, y ninguna ve los datos de la otra.
-- **Billetera y Banco.** Una billetera puede tener `banco_cuenta_id`. Una carga fondeada desde el banco guarda el movimiento bancario que la respalda (`banco_movimiento_id`). Mientras el banco no esté operativo, ese campo queda vacío y las cargas son locales.
-- **Referencias del TPV.** La venta guarda los IDs de percepción, pago y comprobante que devolvió cada sistema, sin claves foráneas hacia otros esquemas.
+`POST /tpv/ventas` acepta `id_venta` (o `id`), `terminal_id` (por omisión `david`), `comercio_cuit` (o `comercio.cuit`), `items: [{producto_id, cantidad}]`, `medio_pago` y opcionalmente `cuenta_origen` o `cuit_cliente` para Billetera. Se valida el producto contra la terminal y el CUIT; el nombre/precio provienen del catálogo. La venta, el stock, el movimiento, la percepción y el comprobante se confirman dentro de la misma transacción. Si falla una etapa, se revierte el conjunto. Un reintento con igual `id_venta` y contenido devuelve el resultado previo; contenido distinto recibe `409`.
 
-La base impide por sí misma: CUIT mal formados, saldos negativos, dos tasas del mismo período, repetir una percepción, comprobante o movimiento con el mismo `id_venta`/`id_operacion`, un total de comprobante distinto de subtotal + percepción, y pagar tasas de un comercio no habilitado.
+### Municipio
 
-## Archivos
+El alta acepta `cuit`, `razon_social`, `condicion_fiscal`, `direccion`, `rubro_principal` y `rubro_secundario`. Crea la ficha compartida y una obligación municipal inicial del período corriente. El pago acepta `{cuit, periodo, monto, cuenta_origen?}`; usa la cuenta bancaria del contribuyente cuando existe, o exige `cuenta_origen`. Debita y acredita la tesorería demo junto con el marcado de la tasa como pagada. Un reintento idéntico es idempotente.
 
-- `backend/supabase/migrations/20261026000001_esquema_inicial.sql` — esquemas, tablas, vista y seguridad.
-- `backend/supabase/migrations/20261026000002_usuarios_billetera.sql` — usuarios de la billetera, con la contraseña guardada como hash bcrypt (`pgcrypto`, esquema `extensions` de Supabase).
-- `backend/supabase/seed.sql` — datos ficticios: contribuyentes, habilitaciones, tasas, cuentas, billeteras, usuarios demo y el catálogo de cada TPV.
+Para pagos, Municipio necesita una cuenta bancaria asociada al contribuyente. Las altas nuevas no crean una cuenta ficticia por defecto: Banco debe incorporar/asociar una cuenta antes de permitir el débito.
 
-## Usuarios demo de la billetera
+## Migraciones y datos
 
-| CUIT | Contraseña | Billetera | Cuenta de banco asociada |
-|---|---|---|---|
-| `20268326074` | `1234` | $50.000 | `cuenta-demo` ($200.000) |
-| `30000000001` | `demo1234` | $45.000 | — |
-| `30000000002` | `demo1234` | $18.000 | — |
-| `30000000003` | `demo1234` | $7.500 | — |
+- `backend/supabase/migrations/20261026000001_esquema_inicial.sql`: esquema y tablas base.
+- `backend/supabase/migrations/20261026000002_usuarios_billetera.sql`: autenticación demo de Billetera.
+- `backend/supabase/migrations/20261027000003_integracion.sql`: cuentas técnicas demo y ledger de migraciones.
+- `backend/supabase/migrations/20261028000004_municipio_tpv_operativos.sql`: detalle de tasas, identificador de recibo, huella idempotente TPV y cuenta recaudadora municipal demo. Solo añade columnas y datos faltantes; no elimina ni reinicia registros.
+- `backend/supabase/migrations/20261028000005_municipio_operacion_bancaria.sql`: referencia cruzada del movimiento bancario del pago municipal.
+- `backend/supabase/seed.sql`: exclusivamente datos ficticios para ambiente nuevo o base local vacía; no reejecutar sobre una base que ya tiene datos.
 
-El backend valida el ingreso así:
+La migración se ejecuta con `npm run migrar`, lee `backend/.env.supabase.local` y registra cada archivo en `public.sintegra_migraciones`. Confirmar el ledger y `/health` al terminar. No compartir ni versionar credenciales.
 
-```sql
-select c.*
-from billetera.usuarios u
-join billetera.cuentas c on c.id = u.cuenta_id
-where c.cuit = $1
-  and u.password_hash = extensions.crypt($2, u.password_hash);
+## Frontends
+
+Configurar `VITE_BACKEND_URL=https://sintegra-backend.vercel.app` en el proyecto Vercel del frontend. Municipio usa el backend automáticamente en build de producción y admite esa misma variable en desarrollo; sin variable en desarrollo sigue usando su simulador local. El backend ya expone contratos para TPV, pero cada cliente TPV debe dejar de usar su repositorio/mocks locales y enviar `terminal_id`, productos y `id_venta` al endpoint común. Sebastián y el cliente TPV de David aún requieren esa conexión en sus respectivas interfaces.
+
+## Ejecutar la prueba de integración
+
+```powershell
+cd backend
+npm ci
+npm test
 ```
 
-La app actual de Lucas-M exige contraseñas de 8 caracteres o más; el usuario `20268326074` / `1234` solo funciona contra el backend nuevo.
+Las pruebas levantan PGlite en memoria, aplican las migraciones y seed de demostración, y prueban padrón, Billetera, Banco, ARBA, ARCA, Municipio y TPV. No se conectan a Supabase.
 
-Están en el formato de la CLI de Supabase, así que también se pueden aplicar con `supabase db push`.
+## Despliegue
 
-## Aplicar en Supabase
-
-1. En el proyecto de Supabase, abrir **SQL Editor**.
-2. Pegar y ejecutar las dos migraciones, en orden.
-3. Pegar y ejecutar `seed.sql`.
-4. Comprobar con `select * from padron.ficha_contribuyente;`.
-
-Si se creó la tabla de ejemplo `notes` del tutorial de Supabase, se puede borrar: `drop table notes;`.
-
-### Seguridad
-
-Todas las tablas tienen RLS activado y ninguna política. Eso bloquea la API pública de Supabase (claves `anon` y `authenticated`): los frontends **no** se conectan a Supabase directamente. Solo el backend accede, con la cadena de conexión de Postgres.
-
-## Conectar el backend
-
-- En Supabase: **Project Settings → Database → Connection string**.
-- Para el backend en Vercel usar el **Transaction pooler** (puerto `6543`), pensado para funciones serverless.
-- Para migraciones desde una máquina usar la conexión directa o el **Session pooler** (puerto `5432`).
-- Guardar la cadena como variable de entorno `DATABASE_URL` en el proyecto de Vercel. Nunca commitearla.
-
-## Próximos pasos
-
-1. Crear las tablas en Supabase con la migración y el seed.
-2. Armar el esqueleto del backend en `backend/` (Express + TypeScript en Vercel): conexión a Postgres, `GET /health` con chequeo de la base y manejo de errores común.
-3. Implementar un módulo a la vez, empezando por los que no dependen de otros: Municipio, ARBA, Banco y Billetera; después ARCA, y al final el TPV, que coordina a todos.
-4. Apuntar cada frontend al backend nuevo y retirar sus datos de demo.
+Backend Vercel: `backend/` como raíz de proyecto, Node.js y `DATABASE_URL` configurada como secreto en Vercel (pooler transaccional). Revisar `backend/vercel.json`. Frontends: cada carpeta tiene su propio proyecto Vercel; la landing sirve desde la raíz pública del monorepo según `doc/VERCEL-MONOREPO.md`. Al desplegar cada app se debe probar su URL y el health API, no inferir disponibilidad a partir de un HTTP 200 aislado.
