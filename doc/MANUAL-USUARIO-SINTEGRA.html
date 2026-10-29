@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071526">
+  <meta name="description" content="Manual de usuario del ecosistema académico Sintegra I26: alta de comercios, módulos fiscales, Banco, billetera, TPV y resolución de problemas.">
+  <title>Manual de usuario · Sintegra I26</title>
+  <style>
+    :root{color-scheme:light;--ink:#142b3a;--muted:#526777;--teal:#087e82;--teal-dark:#075c62;--gold:#c29a37;--paper:#f3f7f8;--card:#fff;--line:#d8e3e7;--blue:#dcecf3;--green:#e3f5ed;--amber:#fff4d9;--red:#fff0ee;--shadow:0 12px 36px #102c3a12;--radius:20px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:var(--teal-dark);text-underline-offset:3px}a:hover{color:#034b50}button,input{font:inherit}.shell{display:grid;grid-template-columns:286px minmax(0,1fr);min-height:100vh}.side{position:sticky;top:0;height:100vh;overflow:auto;padding:24px 18px;background:#091a2b;color:#e6f0f3;border-right:1px solid #ffffff13}.brand{display:flex;align-items:center;gap:13px;padding:8px 8px 22px;border-bottom:1px solid #ffffff20}.brandmark{display:grid;place-items:center;width:45px;height:45px;border:1px solid #38c4b780;border-radius:15px;background:linear-gradient(145deg,#124456,#071526);color:#79e0ce;font-weight:800;font-size:20px}.brand strong{display:block;font-size:17px;letter-spacing:.02em}.brand small{display:block;color:#a6bac6;font-size:12px}.side label{display:block;margin:22px 9px 7px;color:#98aebc;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.search{width:100%;padding:11px 13px;border:1px solid #ffffff2b;border-radius:11px;background:#ffffff0c;color:#fff;outline:none}.search:focus{border-color:#62d6c8;box-shadow:0 0 0 3px #62d6c830}.nav{display:grid;gap:4px;margin-top:12px}.nav a{padding:9px 11px;border-radius:9px;color:#d7e3e9;text-decoration:none;font-size:14px}.nav a:hover,.nav a:focus-visible{background:#ffffff12;color:white;outline:2px solid #62d6c8;outline-offset:1px}.side-note{margin:24px 7px 0;padding:13px;border:1px solid #ffffff1c;border-radius:13px;color:#afc2cc;font-size:12px}.main{min-width:0;padding:32px clamp(18px,5vw,76px) 72px}.hero{position:relative;overflow:hidden;padding:clamp(28px,5vw,58px);border:1px solid #19414d;border-radius:28px;background:radial-gradient(ellipse at 90% 5%,#0d62566a,transparent 34%),linear-gradient(135deg,#071526,#12364a 70%,#0a4c4f);color:white;box-shadow:var(--shadow)}.eyebrow{color:#74dfcb;font-size:12px;font-weight:800;letter-spacing:.17em;text-transform:uppercase}.hero h1{max-width:800px;margin:12px 0 14px;font-size:clamp(34px,5vw,58px);line-height:1.08;letter-spacing:-.045em}.hero p{max-width:720px;margin:0;color:#d1e0e7;font-size:18px}.hero-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:25px}.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid #ffffff2c;border-radius:999px;color:#e1edf1;font-size:12px}.alert{display:flex;gap:14px;align-items:flex-start;margin:22px 0;padding:17px 19px;border:1px solid #ebd391;border-radius:15px;background:var(--amber);color:#513f12}.alert strong{display:block;margin-bottom:3px}.alert p{margin:0;font-size:14px}.alert .symbol{font-weight:900;color:#856312}.intro-grid,.module-grid,.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.intro-grid{margin:22px 0}.card{padding:21px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow)}.card h3{margin:0 0 8px;font-size:18px;line-height:1.3}.card p{margin:0;color:var(--muted)}.card .icon{display:grid;place-items:center;width:39px;height:39px;margin-bottom:13px;border-radius:12px;background:var(--blue);color:var(--teal-dark);font-weight:800}.status{display:inline-block;margin-top:13px;padding:4px 9px;border-radius:99px;background:var(--green);color:#176247;font-size:12px;font-weight:750}.status.demo{background:var(--amber);color:#72520d}.status.todo{background:#e9edf1;color:#455965}.section{margin-top:48px}.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:17px;padding-bottom:13px;border-bottom:1px solid var(--line)}.section-head h2{margin:0;font-size:clamp(24px,3vw,34px);line-height:1.2;letter-spacing:-.03em}.section-head p{max-width:630px;margin:5px 0 0;color:var(--muted)}.kicker{color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.steps{display:grid;gap:12px;counter-reset:step}.step{position:relative;display:grid;grid-template-columns:50px minmax(0,1fr);gap:14px;padding:19px;border:1px solid var(--line);border-radius:17px;background:#fff}.step:before{counter-increment:step;content:counter(step,decimal-leading-zero);display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#e5f3f1;color:var(--teal-dark);font-weight:850}.step h3{margin:0 0 5px;font-size:17px}.step p{margin:0;color:var(--muted)}.step ul,.card ul{margin:10px 0 0;padding-left:20px;color:var(--muted)}.callout{margin:13px 0 0;padding:12px 14px;border-left:3px solid var(--gold);border-radius:0 9px 9px 0;background:#fcf8ed;color:#57491f;font-size:14px}.callout.info{border-color:#188aa0;background:#edf8fa;color:#27505c}.module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.module{position:relative}.module h3{display:flex;align-items:center;gap:10px}.module .letter{display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:11px;background:#e7f2f4;color:var(--teal-dark);font-weight:900}.module p{font-size:14px}.module ul{font-size:14px}.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.flow article{padding:15px;border:1px solid var(--line);border-radius:15px;background:#fff}.flow b{display:block;margin-bottom:5px;color:var(--teal-dark)}.flow span{font-size:13px;color:var(--muted)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:15px;background:#fff}.table-wrap table{width:100%;border-collapse:collapse;min-width:640px}.table-wrap th,.table-wrap td{padding:13px 15px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table-wrap th{background:#edf4f6;font-size:13px}.table-wrap td{font-size:14px;color:var(--muted)}.table-wrap tr:last-child td{border-bottom:0}.faq details{padding:16px 18px;border:1px solid var(--line);border-radius:13px;background:#fff}.faq details+details{margin-top:9px}.faq summary{cursor:pointer;font-weight:750}.faq summary:focus-visible{outline:3px solid #23a49a;outline-offset:4px;border-radius:4px}.faq details p{margin:10px 0 0;color:var(--muted)}.links{display:flex;flex-wrap:wrap;gap:10px}.links a{display:inline-flex;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}.footer{margin-top:52px;padding-top:19px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}.hide{display:none!important}.empty{margin-top:14px;color:#d6e3e9;font-size:13px}.topline{display:none}
+    @media(max-width:1000px){.shell{grid-template-columns:230px minmax(0,1fr)}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.main{padding:24px}}
+    @media(max-width:720px){.shell{display:block}.side{position:relative;width:100%;height:auto;padding:13px 15px}.brand{padding:4px 2px 12px}.brandmark{width:38px;height:38px}.side label{margin-top:12px}.nav{grid-template-columns:repeat(2,minmax(0,1fr));max-height:155px;overflow:auto}.side-note{display:none}.main{padding:16px 14px 48px}.hero{border-radius:19px;padding:26px 21px}.hero p{font-size:16px}.intro-grid,.module-grid,.two-col{grid-template-columns:1fr}.section{margin-top:38px}.section-head{display:block}.flow{grid-template-columns:1fr}.step{grid-template-columns:39px minmax(0,1fr);gap:10px;padding:14px}.step:before{width:36px;height:36px}.card{padding:17px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+    @media print{body{background:white}.shell{display:block}.side{display:none}.main{padding:0}.hero{box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}.card,.step,.flow article{box-shadow:none;break-inside:avoid}.section{break-before:auto}.faq details{break-inside:avoid}a{color:inherit}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side" aria-label="Navegación del manual">
+    <div class="brand"><div class="brandmark" aria-hidden="true">S</div><div><strong>Sintegra I26</strong><small>Guía para usuarios</small></div></div>
+    <label for="buscar">Buscar en el manual</label>
+    <input class="search" id="buscar" type="search" placeholder="Ej.: QR, factura, cuenta" aria-label="Buscar en el manual">
+    <nav class="nav" id="nav">
+      <a href="#inicio">Inicio</a><a href="#mapa">Qué hace cada módulo</a><a href="#alta">Alta del comercio</a><a href="#cuenta">Cuenta y billetera</a><a href="#operacion">Operar un TPV</a><a href="#fiscal">Trámites fiscales</a><a href="#estados">Estados y comprobantes</a><a href="#problemas">Ayuda y errores</a><a href="#real">Demo y producción</a><a href="#fuentes">Fuentes y documentación</a>
+    </nav>
+    <div class="side-note">Manual autónomo: se abre sin instalar nada y no carga datos desde servicios externos.</div>
+  </aside>
+  <main class="main" id="inicio">
+    <header class="hero">
+      <div class="eyebrow">Manual de usuario · edición 1.0 · 28 oct 2026</div>
+      <h1>Una guía clara para operar Sintegra</h1>
+      <p>Cómo se relacionan el comercio, los trámites fiscales y municipales, la cuenta bancaria, la billetera y el punto de venta; qué puede hacer cada módulo y cómo reconocer el estado real de una operación.</p>
+      <div class="hero-meta"><span class="pill">Plataforma académica</span><span class="pill">Guía de extremo a extremo</span><span class="pill">Lectura en celular o computadora</span></div>
+    </header>
+    <div class="alert" role="note"><div class="symbol" aria-hidden="true">!</div><div><strong>Importante: este entorno es una demostración académica</strong><p>Los datos, saldos, pagos y comprobantes son de prueba. El CAE generado no es válido ni fue autorizado por ARCA. La conexión visible entre módulos o un indicador “API conectada” no significa que haya conexión oficial con ARCA, ARBA, un municipio o un banco real. No ingreses información personal ni uses esta plataforma para cobrar, facturar o presentar declaraciones reales.</p></div></div>
+    <section class="intro-grid" aria-label="Resumen de la guía">
+      <article class="card"><div class="icon" aria-hidden="true">01</div><h3>Primero identificá el comercio</h3><p>En las demos, las aplicaciones relacionan los registros mediante CUIT. Para un negocio real también se deben identificar sus sucursales, domicilios, responsables y permisos.</p><span class="status demo">Datos de demo</span></article>
+      <article class="card"><div class="icon" aria-hidden="true">02</div><h3>Banco administra cuenta y CBU</h3><p>La cuenta y el CBU pertenecen al módulo Banco. La billetera se vincula a esa cuenta y refleja el mismo saldo disponible.</p><span class="status">Regla de integración definida</span></article>
+      <article class="card"><div class="icon" aria-hidden="true">03</div><h3>El TPV cobra y registra</h3><p>El terminal usa el catálogo, arma una venta y comunica el resultado del pago. Una venta de prueba no equivale a una factura fiscal válida.</p><span class="status demo">Flujo simulado</span></article>
+      <article class="card"><div class="icon" aria-hidden="true">04</div><h3>Los permisos dependen de cada autoridad</h3><p>ARCA, ARBA y el municipio tienen registros y requisitos diferentes. Un alta en un sistema no reemplaza los otros trámites.</p><span class="status todo">Verificar con cada jurisdicción</span></article>
+    </section>
+
+    <section class="section" id="mapa">
+      <div class="section-head"><div><div class="kicker">Orientación</div><h2>Qué hace cada módulo</h2><p>Elegí el sistema según la tarea. Los módulos intercambian referencias del comercio, pero cada uno conserva una responsabilidad distinta.</p></div></div>
+      <div class="module-grid">
+        <article class="card module"><h3><span class="letter">C</span> Padrón común</h3><p>Registro base usado para relacionar un CUIT con los módulos del entorno.</p><ul><li>Busca o registra sujetos de demostración.</li><li>El CUIT funciona como referencia compartida en varios contratos.</li><li>No reemplaza una constancia oficial ni crea una identidad verificada.</li></ul></article>
+        <article class="card module"><h3><span class="letter">A</span> ARCA</h3><p>La demo muestra datos fiscales, puntos de venta y comprobantes de prueba.</p><ul><li>En operación real, el titular debe tener su situación fiscal y autorización.</li><li>El punto de venta debe existir y corresponder a la modalidad autorizada.</li><li>Solo ARCA puede autorizar un CAE oficial.</li></ul><span class="status demo">CAE de demo, no válido</span></article>
+        <article class="card module"><h3><span class="letter">B</span> ARBA</h3><p>La demo representa padrón de Ingresos Brutos, alícuotas y simulación de percepciones.</p><ul><li>La inscripción y obligaciones dependen de la actividad y jurisdicción.</li><li>Una alícuota de ejemplo no debe usarse como impuesto final de una venta real.</li><li>Los regímenes de recaudación pueden depender del sujeto, padrón, agente y vigencia.</li></ul><span class="status demo">Padrón/tributos de muestra</span></article>
+        <article class="card module"><h3><span class="letter">M</span> Municipalidad</h3><p>Representa trámites locales, habilitación del establecimiento, tasas y deuda municipal.</p><ul><li>Los requisitos cambian según el municipio, domicilio y rubro.</li><li>Una habilitación en trámite no es una habilitación vigente.</li><li>Consultá la jurisdicción local para confirmar si aplica.</li></ul><span class="status demo">Reglas locales simuladas</span></article>
+        <article class="card module" id="banco"><h3><span class="letter">$</span> Banco</h3><p>Es el dueño del registro de cuenta bancaria del ecosistema, saldo, CBU y movimientos.</p><ul><li>Desde Banco se solicita/aprueba la apertura en la demo.</li><li>El Banco asigna el CBU y puede asociar la billetera.</li><li>Los movimientos de prueba se consultan en la actividad de la cuenta.</li></ul><span class="status demo">No es una entidad financiera real</span></article>
+        <article class="card module"><h3><span class="letter">W</span> Billetera</h3><p>Interfaz asociada a una cuenta bancaria y CUIT. Su saldo disponible debe coincidir con Banco.</p><ul><li>La billetera no crea cuentas bancarias ni otros saldos por separado.</li><li>Permite consultar saldo, actividad y pagar por QR en el flujo demo.</li><li>Un movimiento debe quedar relacionado con el asiento de Banco.</li></ul><span class="status">Saldo compartido definido</span></article>
+        <article class="card module"><h3><span class="letter">T</span> TPV</h3><p>Terminal de punto de venta: comercio vinculado, productos, carrito, medio de pago e historial.</p><ul><li>El comercio debe estar asociado al terminal y a su cuenta receptora de Banco.</li><li>Puede iniciar cobro con Banco o billetera, según el terminal disponible.</li><li>Las demos pueden simular los pasos ARBA/ARCA; el CAE no es fiscal.</li></ul><span class="status">Ventas QA / demo</span></article>
+      </div>
+    </section>
+
+    <section class="section" id="alta">
+      <div class="section-head"><div><div class="kicker">Preparación</div><h2>Alta de un comercio: recorrido recomendado</h2><p>En la vida real no es un único formulario. Cada registro se tramita con la autoridad o proveedor que corresponde, y puede avanzar en paralelo según los requisitos locales.</p></div></div>
+      <div class="steps">
+        <article class="step"><div><h3>Reuní los datos y definí la titularidad</h3><p>Identificá si opera una persona humana o una persona jurídica. Prepará CUIT, razón social/nombre legal, domicilio fiscal, actividad, responsables y documentación respaldatoria. Para una empresa, verificá quién tiene facultades para representarla.</p><div class="callout">No cargues datos reales en las pantallas académicas de este repositorio.</div></div></article>
+        <article class="step"><div><h3>Formalizá la situación en ARCA</h3><p>El titular obtiene CUIT y registra actividades, domicilio y condición fiscal en los servicios oficiales. Si emitirá comprobantes electrónicos, configura el punto de venta para la modalidad correspondiente y gestiona certificados/servicios cuando usa web services.</p><div class="callout info">El punto de venta no se debe crear automáticamente al cobrar. La autorización oficial y el tipo de comprobante deben validarse antes de facturar.</div></div></article>
+        <article class="step"><div><h3>Registrá Ingresos Brutos en ARBA cuando corresponda</h3><p>Verificá el régimen aplicable: local o Convenio Multilateral, actividad, jurisdicciones, condición frente a regímenes de recaudación y vigencia del padrón. La obligación puede no ser igual para todos los comercios.</p></div></article>
+        <article class="step"><div><h3>Gestioná la habilitación municipal por establecimiento</h3><p>Indicá municipio, domicilio del local, rubro, superficie y documentación que solicite esa jurisdicción. El alta en el padrón del prototipo queda en estado <strong>pendiente</strong>; no genera habilitación, libre deuda ni tasas automáticamente. Esperá la resolución y guardá número, fecha, estado y vencimiento. Si el trámite no aplica, registrá esa condición con su fundamento.</p></div></article>
+        <article class="step"><div><h3>Abrí la cuenta bancaria</h3><p>El banco verifica identidad, titularidad y requisitos propios. Al aprobar el alta asigna la cuenta, CBU y alias. En Sintegra demo, el módulo Banco representa esta autoridad y provisiona la billetera vinculada; el comercio/TPV no debe inventar un CBU.</p></div></article>
+        <article class="step"><div><h3>Configurá el comercio y el terminal</h3><p>Vinculá el CUIT del titular, cuenta de cobro de Banco, sucursal/establecimiento y terminal TPV. Cargá productos, precios e impuestos según configuración aprobada. En producción, confirmá que el punto de venta sea el autorizado en ARCA.</p></div></article>
+        <article class="step"><div><h3>Hacé una prueba controlada y conciliá</h3><p>En sandbox, usá datos sintéticos. En producción, seguí las instrucciones de homologación de cada proveedor, verificá comprobante y autorización, pago, saldo, webhook del terminal y conciliación bancaria antes de habilitar la operación habitual.</p></div></article>
+      </div>
+      <div class="callout info">La inscripción en ARCA no da automáticamente el alta en ARBA, la habilitación municipal ni una cuenta bancaria. Tampoco una cuenta bancaria autoriza a facturar.</div>
+    </section>
+
+    <section class="section" id="cuenta">
+      <div class="section-head"><div><div class="kicker">Banco y billetera</div><h2>Consultar y vincular una cuenta</h2><p>La cuenta bancaria es la fuente del saldo. La billetera muestra esa misma disponibilidad y sus movimientos asociados.</p></div></div>
+      <div class="steps">
+        <article class="step"><div><h3>Buscá al titular por CUIT</h3><p>En la consola Banco, elegí el sujeto demo que querés consultar. Confirmá el nombre/titular que devuelve el padrón antes de operar. No uses el CUIT para inferir que quien está frente al sistema está autenticado: en algunas interfaces actuales es solo un filtro.</p></div></article>
+        <article class="step"><div><h3>Revisá cuenta, CBU, alias y estado</h3><p>Una cuenta se abre desde Banco tras verificar al titular en el flujo correspondiente. El Banco genera su identificador, CBU y alias. Confirmá que la cuenta esté activa y que pertenezca al mismo CUIT del comercio.</p><div class="callout info">Si el TPV pregunta por una cuenta de cobro, seleccioná la ya abierta en Banco. No inventes un CBU ni uses el campo “cuenta” como texto libre si el sistema espera un ID de cuenta.</div></div></article>
+        <article class="step"><div><h3>Vinculá la billetera desde Banco</h3><p>Usá la acción de crear/provisionar billetera del módulo Banco. La persona titular puede acceder a la billetera que se le asignó; no crea otra cuenta bancaria ni una billetera con saldo independiente. Verificá CUIT, ID de cuenta, alias y vínculo que muestra la ficha.</p></div></article>
+        <article class="step"><div><h3>Compará saldo y actividad</h3><p>Banco y billetera deben reflejar el mismo saldo disponible para la cuenta asociada. Consultá fecha, importe, tipo de movimiento y referencia bancaria. Cargar saldo desde la cuenta debe dejar un movimiento reconocible en Banco; no es dinero externo a la cuenta.</p></div></article>
+        <article class="step"><div><h3>Pagá con QR y conservá la referencia</h3><p>Desde el TPV se genera una solicitud QR para una venta concreta. La app de billetera pagadora escanea o confirma el código, revisa comercio e importe y confirma. El sistema acredita la cuenta del comercio y debita la del cliente; guardá el ID de venta y del movimiento para consultas.</p><div class="callout">En esta implementación el QR y los movimientos son sintéticos. No escanees ni envíes dinero real a partir de estas pantallas.</div></div></article>
+      </div>
+    </section>
+
+    <section class="section" id="operacion">
+      <div class="section-head"><div><div class="kicker">Caja y cobro</div><h2>Cómo hacer una venta desde un TPV</h2><p>Los nombres de los botones pueden variar entre Brisa, Sebastián y David; usá el recorrido y revisá siempre el resultado final.</p></div></div>
+      <div class="steps">
+        <article class="step"><div><h3>Entrá al terminal y confirmá el comercio</h3><p>Revisá nombre, CUIT, sucursal/terminal y cuenta bancaria receptora. Si el comercio o la cuenta no aparecen, no continúes: Banco debe asignar la cuenta y el administrador debe vincular el comercio al terminal.</p></div></article>
+        <article class="step"><div><h3>Armá el carrito</h3><p>Buscá cada producto, agregalo y ajustá cantidades. Confirmá stock, precio, descuentos y total. En sistemas reales, el precio y las reglas deben verificarse en el servidor para evitar cambios desde el navegador.</p></div></article>
+        <article class="step"><div><h3>Elegí el medio de pago</h3><p>Con Banco se debita o autoriza según el flujo bancario. Con billetera, identificá al pagador y generá un QR para esa venta. El QR debe estar ligado a un identificador único, comercio, importe y vencimiento; no confirmes el pago manualmente fuera de la respuesta del servicio.</p></div></article>
+        <article class="step"><div><h3>Esperá la confirmación</h3><p>El TPV debe recibir el resultado del Banco/Billetera. En el flujo acordado, un webhook `payment.confirmed` llega al terminal específico. Revisá el estado del evento y no repitas un cobro si la pantalla está esperando: consultá la venta por su identificador.</p><div class="callout">Si el pago se confirmó pero el TPV no lo muestra, conservá el ID de venta y pedí conciliación. No vuelvas a cobrar a ciegas.</div></div></article>
+        <article class="step"><div><h3>Verificá comprobante y cierre</h3><p>Consultá el historial por ID, confirmá importe y medio de pago, referencia bancaria y estado fiscal. En esta demo, el CAE se marca como `FICTICIO-` y `validez_fiscal:false`; no entregar esa salida como factura válida.</p></div></article>
+      </div>
+    </section>
+
+    <section class="section" id="fiscal">
+      <div class="section-head"><div><div class="kicker">Impuestos y permisos</div><h2>Qué significa cada estado fiscal</h2><p>Una pantalla puede guardar una simulación de padrón, percepción o comprobante. Para tomar decisiones fiscales reales, contrastá la fuente oficial y el período aplicable.</p></div></div>
+      <div class="two-col">
+        <article class="card"><h3>ARCA y el CAE</h3><p>El CAE es una autorización de emisión. En el flujo real lo devuelve el servicio habilitado para el contribuyente y comprobante solicitado. Deben respetarse punto de venta, tipo, numeración y respuesta oficial. En Sintegra demo, los CAE con prefijo `FICTICIO-` son identificadores de simulación, no autorizaciones.</p></article>
+        <article class="card"><h3>ARBA y las percepciones</h3><p>No deduzcas automáticamente una percepción multiplicando la venta por la alícuota del comercio. La aplicación depende del régimen, agente de recaudación, sujeto, padrón y fecha. La tasa fija que aparezca en una pantalla es solo una estimación de demo salvo que provenga de una regla oficial configurada y vigente.</p></article>
+        <article class="card"><h3>Habilitación municipal</h3><p>La licencia/permiso corresponde a un establecimiento y a una jurisdicción. Verificá el estado (por ejemplo: iniciado, observado, vigente, vencido o no aplicable), domicilio y actividad. La pantalla académica no sustituye inspección ni resolución municipal.</p></article>
+        <article class="card"><h3>Comprobantes y certificados</h3><p>Un recibo de pago, constancia de sistema o libre deuda generado en demo solo documenta la simulación. Para producir efectos jurídicos debe ser emitido y validado por el organismo o entidad competente.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="estados">
+      <div class="section-head"><div><div class="kicker">Lectura de pantalla</div><h2>Estados y comprobantes</h2><p>Usá las etiquetas y referencias para distinguir qué ocurrió y qué queda pendiente.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Lo que ves</th><th>Qué significa en la demo</th><th>Qué verificar en un flujo real</th></tr></thead><tbody>
+        <tr><td>Activo / habilitado</td><td>El registro de ese módulo permite continuar en el escenario de prueba.</td><td>Resolución, autoridad, jurisdicción, vigencia y titular correctos.</td></tr>
+        <tr><td>API conectada</td><td>El frontend alcanzó una API configurada o recibió una respuesta.</td><td>Identidad, permisos, entorno, servicio operativo y autorización del organismo/proveedor.</td></tr>
+        <tr><td>Pago confirmado</td><td>La transacción de simulación quedó registrada y el evento puede notificarse al TPV.</td><td>Estado definitivo del proveedor, referencia, idempotencia y liquidación/conciliación.</td></tr>
+        <tr><td>CAE `FICTICIO-…`</td><td>Comprobante de prueba sin validez fiscal.</td><td>CAE oficial, fecha de autorización, tipo/número, CUIT emisor/receptor y resultado de consulta ARCA.</td></tr>
+        <tr><td>Saldo billetera</td><td>Debe reflejar el saldo de la cuenta bancaria asociada, no una cuenta paralela.</td><td>Cuenta/CVU/CBU y saldo del proveedor real; movimientos conciliados.</td></tr>
+        <tr><td>Webhook pendiente</td><td>El pago pudo quedar asentado, pero el terminal no confirmó recepción.</td><td>Revisar el ID del evento, intentos, firma y conciliación antes de reintentar.</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section class="section" id="problemas">
+      <div class="section-head"><div><div class="kicker">Resolución</div><h2>Problemas frecuentes</h2><p>Antes de repetir una operación, anotá módulo, CUIT de prueba, hora, ID de venta/evento y mensaje visible. No compartas contraseñas ni tokens.</p></div></div>
+      <div class="faq">
+        <details><summary>No encuentro el comercio en el TPV</summary><p>Verificá que exista en el padrón común, que esté vinculado al terminal correcto y que Banco tenga una cuenta cuya titularidad coincida con el CUIT. El alias escrito a mano no reemplaza el identificador de la cuenta del Banco.</p></details>
+        <details><summary>El QR aparece, pero no llega la confirmación</summary><p>Consultá si el QR sigue vigente y si el pago ya figura en Banco/Billetera. Después revisá el estado del webhook de esa terminal. Usá el mismo ID de venta para consultar; no generes cobros duplicados.</p></details>
+        <details><summary>El saldo de Banco y Billetera no coincide</summary><p>La regla de integración es un saldo compartido. Dejá de operar esa cuenta demo y revisá el vínculo, referencia y movimientos en Banco. No “compenses” saldos editando una billetera manualmente.</p></details>
+        <details><summary>ARBA devuelve cero resultados</summary><p>Comprobá que el CUIT sea el correcto para los datos sintéticos de esa aplicación y que el filtro esté limpio. Las bases demo de cada proyecto no siempre contienen los mismos sujetos; la auditoría documenta duplicaciones y contratos desalineados.</p></details>
+        <details><summary>El comprobante tiene CAE, pero dice ficticio</summary><p>Es una salida de prueba. No tiene validez fiscal y no debe contabilizarse como factura autorizada. La conexión oficial ARCA no está acreditada en este entorno.</p></details>
+        <details><summary>La pantalla dice “API conectada”, pero una acción falla</summary><p>Ese indicador solo informa conectividad técnica básica. Revisá el mensaje de la acción, permisos, identificadores, terminal configurado y entorno. El estado de una conexión técnica no confirma que una transacción haya finalizado.</p></details>
+        <details><summary>¿Puedo crear un CBU o una billetera desde el TPV?</summary><p>No. La cuenta y el CBU los asigna Banco. Banco provisiona/vincula la billetera. El TPV elige una cuenta receptora ya asociada al comercio y no genera cuentas o saldos.</p></details>
+      </div>
+    </section>
+
+    <section class="section" id="real">
+      <div class="section-head"><div><div class="kicker">Alcance</div><h2>Demo académica y operación real</h2><p>La interfaz ayuda a explicar el recorrido, pero el estado de producción requiere controles adicionales.</p></div></div>
+      <div class="flow">
+        <article><b>Lo que permite esta demo</b><span>Ensayar altas y consultas con sujetos sintéticos, simular pagos y revisar relaciones entre módulos.</span></article>
+        <article><b>Lo que no acredita</b><span>Identidad real, saldo en una entidad financiera, inscripción tributaria, habilitación ni factura autorizada.</span></article>
+        <article><b>Antes de producción</b><span>Autenticación y roles de backend, aislamiento por comercio, auditoría, secretos seguros y protección de datos.</span></article>
+        <article><b>Integraciones oficiales</b><span>Homologación, certificados y credenciales del titular, endpoints vigentes, pruebas y contrato de soporte.</span></article>
+        <article><b>Control operativo</b><span>Idempotencia, outbox/reintentos, conciliación, reversas y manejo de fallas parciales entre servicios.</span></article>
+      </div>
+      <div class="callout">La auditoría del repositorio registra riesgos abiertos de autenticación/autorización, CUIT, fiscalidad, jurisdicción municipal, persistencias duplicadas y conexiones externas. “Consolidado” o “integrado” describe partes del software y no una habilitación para operar dinero o impuestos reales.</div>
+    </section>
+
+    <section class="section" id="fuentes">
+      <div class="section-head"><div><div class="kicker">Material de consulta</div><h2>Fuentes y documentación del proyecto</h2><p>Las reglas legales y operativas cambian: antes de realizar un trámite, confirmá requisitos y vigencia en el organismo correspondiente.</p></div></div>
+      <div class="links">
+        <a href="https://www.arca.gob.ar/fe/emision-autorizacion/solicitud-autorizacion.asp" target="_blank" rel="noopener noreferrer">ARCA · autorización de comprobantes</a>
+        <a href="https://www.arca.gob.ar/ws/documentacion/ws-factura-electronica.asp" target="_blank" rel="noopener noreferrer">ARCA · web services de factura electrónica</a>
+        <a href="https://www.arba.gov.ar/GuiaTramites/TramiteSeleccionado.asp?tramite=232" target="_blank" rel="noopener noreferrer">ARBA · inscripción en Ingresos Brutos</a>
+        <a href="https://web.arba.gov.ar/regimen-de-recaudacion-por-sujeto" target="_blank" rel="noopener noreferrer">ARBA · régimen por sujeto</a>
+      </div>
+      <div class="links" style="margin-top:12px">
+        <a href="AUDITORIA-ECOSISTEMA.md">Auditoría por aplicación</a>
+        <a href="AVANCES-UNIFICACION.md">Bitácora de avances y pruebas</a>
+        <a href="INTEGRACION-E2E-SINTETICA-Y-QA.md">Flujo sintético y QA</a>
+        <a href="USUARIOS-DEMO-Y-ACCESO-POR-APP.md">Accesos de demo</a>
+        <a href="PROMPT-MAESTRO-ECOSISTEMA.md">Especificación de unificación</a>
+      </div>
+      <div class="callout info">Las fuentes ARCA y ARBA se enlazan como referencia general; no constituyen asesoramiento fiscal ni reemplazan la consulta profesional o la información particular del contribuyente. No se verificó una API municipal universal porque las reglas dependen de la jurisdicción.</div>
+    </section>
+    <footer class="footer"><strong>Sintegra I26 · Manual de usuario</strong><br>Versión documental 1.0 · 28/10/2026 · Alcance académico. Para comunicar un problema, incluí el módulo, el paso realizado y el identificador sintético de operación; nunca incluyas secretos o datos personales.</footer>
+    <p class="empty hide" id="sin-resultados" role="status">No se encontraron coincidencias en esta página. Probá con “billetera”, “QR”, “ARCA” o “municipio”.</p>
+  </main>
+</div>
+<script>
+  (()=>{
+    const input=document.getElementById('buscar');
+    const searchable=[...document.querySelectorAll('main section, main .alert, main .intro-grid, main .hero')];
+    const empty=document.getElementById('sin-resultados');
+    input.addEventListener('input',()=>{
+      const q=input.value.trim().toLocaleLowerCase('es-AR');let hits=0;
+      searchable.forEach(el=>{const match=!q||el.innerText.toLocaleLowerCase('es-AR').includes(q);el.classList.toggle('hide',!match);if(match)hits++});
+      empty.classList.toggle('hide',hits>0);
+    });
+  })();
+</script>
+</body>
+</html>

@@ -4,6 +4,8 @@ Sistema Integral Fiscal para coordinar ventas, servicios tributarios, habilitaci
 
 Consulta la [documentación del sistema](doc/sistema.md) para conocer el alcance, los módulos y el flujo de una venta.
 
+Para operar o recorrer la plataforma, abrí el [manual de usuario HTML](doc/MANUAL-USUARIO-SINTEGRA.html). Es una guía autocontenida y distingue las funciones simuladas de las integraciones oficiales.
+
 El portal de acceso está en [`public/index.html`](public/index.html). Para desplegarlo y publicar los frontends del monorepo en Vercel, seguí la [guía de despliegue](doc/VERCEL-MONOREPO.md).
 
 Consulta la [documentación del frontend ARBA Tomi](doc/FRONTEND-ARBA-TOMI.md) para conocer su interfaz y contrato de integración.

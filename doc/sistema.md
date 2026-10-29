@@ -33,13 +33,13 @@ Cada servicio mantiene sus propios datos y expone las rutas acordadas en el cont
 
 1. El operador carga los productos y cantidades en el TPV.
 2. El TPV busca los precios vigentes en su catálogo y calcula el subtotal. No toma como confiables los precios ni el total que pudiera enviar la interfaz.
-3. El TPV valida con Municipio que el comercio esté habilitado.
-4. Solicita a ARBA el cálculo de la percepción usando el identificador de venta.
+3. El TPV debe consultar la habilitación municipal del establecimiento cuando corresponda. El contrato por sucursal/jurisdicción todavía está pendiente; las nuevas altas municipales no quedan activas automáticamente.
+4. ARBA solo debe calcular una percepción cuando coincidan régimen, agente, sujeto, padrón y vigencia. La simulación actual usa datos de prueba y no acredita que la percepción corresponda a una venta real.
 5. Cobra el total mediante **Banco o Billetera**, según la opción elegida.
-6. Cuando el pago está confirmado, solicita a ARCA el comprobante con el total y el desglose acordados.
+6. Cuando el pago está confirmado, solicita a ARCA el comprobante con el total y el desglose acordados. El punto de venta/tipo deben estar configurados previamente; el backend actual responde un CAE `FICTICIO-` de sandbox, no una autorización fiscal.
 7. Guarda el resultado y los identificadores devueltos por los servicios, y muestra el estado de la venta.
 
-El monto total incluye el subtotal más la percepción aplicable. Los importes se expresan en pesos con hasta dos decimales.
+En producción el total incluye solo los conceptos aplicables según reglas vigentes; en el prototipo puede aparecer una percepción simulada. Los importes se expresan en pesos con hasta dos decimales.
 
 ## Usuarios
 
@@ -48,7 +48,7 @@ El monto total incluye el subtotal más la percepción aplicable. Los importes s
 - **Servicios del ecosistema:** consumen las APIs para intercambiar datos de la operación.
 - **Cliente:** participa del pago y recibe el comprobante; no requiere un panel propio en el alcance inicial.
 
-La autenticación y los permisos no forman parte del contrato mínimo del TPV. Se agregan solo si la cátedra los solicita.
+La autenticación y los permisos son requisitos para una operación real. El backend común todavía no ofrece autorización transversal por comercio; usar solo con datos sintéticos.
 
 ## Componentes del TPV
 

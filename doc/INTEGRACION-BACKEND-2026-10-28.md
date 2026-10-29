@@ -1,5 +1,7 @@
 # Informe de integración — Backend Sintegra I26
 
+> **Corte histórico:** este informe describe una versión previamente desplegada. Las correcciones locales del 28/10/2026 (PV obligatorio, CAE marcado como ficticio y alta municipal pendiente) no están incluidas en ese despliegue. Consultá [AVANCES-UNIFICACION.md](AVANCES-UNIFICACION.md) para la validación local y el estado de la migración.
+
 **Fecha:** 28/10/2026  
 **Resultado:** módulos Municipio y TPV implementados sobre PostgreSQL; migración de base aplicada; prueba de integración automatizada aprobada.
 

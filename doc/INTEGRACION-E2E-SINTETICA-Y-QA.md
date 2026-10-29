@@ -1,5 +1,7 @@
 # Integración de extremo a extremo y datos sintéticos
 
+> **Actualización local 28/10/2026:** este informe refleja una batería anterior de **13/13**. Las correcciones locales posteriores exigen PV registrado antes de emitir, muestran los comprobantes como ficticios, y dejan nuevas altas municipales pendientes sin crear tasas. La suite actual en PGlite pasa **14/14**. Estos cambios y la migración municipal nueva todavía no se aplicaron ni desplegaron; el contenido histórico de producción aquí abajo no los incluye.
+
 **Estado:** publicado en producción y verificado  
 **Fecha:** 28 de octubre de 2026  
 **Uso:** guía compartida para el equipo y para Claude; el contrato vigente vive en el backend de este repositorio.
@@ -29,7 +31,7 @@ El fixture agrega productos, terminal, cuentas y una obligación municipal para 
 ## Flujos cubiertos
 
 1. **QR dinámico:** crear solicitud por importe y CUIT comercio; recibir un `data:image/png;base64`; confirmar con CUIT pagador; debitar su billetera; acreditar al comercio en Banco si no tiene billetera; conservar referencia del movimiento bancario; rechazar otro pagador y hacer idempotente el reintento.
-2. **Alta de punto de venta:** `POST /arca/puntos-venta` valida sujeto y número, y crea los tipos permitidos por condición fiscal. `GET /arca/puntos-venta?cuit=...` lista puntos y numeración.
+2. **Alta de punto de venta:** `POST /arca/puntos-venta` registra en el sandbox los tipos permitidos por la condición configurada. La venta ahora exige que el PV y tipo ya existan; no los crea al vuelo. `GET /arca/puntos-venta?cuit=...` lista puntos y numeración.
 3. **Venta TPV:** procesa inventario, cobro Banco o Billetera, percepción ARBA, comprobante ARCA simulado y estado final en una transacción. El punto se selecciona con `punto_venta` y se refleja en el comprobante.
 4. **Pago con billetera a comercio con billetera:** debita al comprador y acredita al comercio; la venta incluye percepción de ARBA y comprobante ARCA.
 5. **Municipio:** debita una cuenta bancaria, acredita la recaudación municipal, actualiza la tasa, emite comprobante y habilita la consulta de libre deuda.
@@ -104,7 +106,7 @@ Para operación real se requieren credenciales y certificados autorizados por or
 - El frontend de la landing y las aplicaciones está servido por `sintegrai26`.
 - El backend común está publicado en [sintegra-backend.vercel.app](https://sintegra-backend.vercel.app); sus migraciones QR y webhook ya están aplicadas.
 - Los callbacks de Brisa, Sebastián y David están desplegados y asociados a sus terminales. Una firma inválida devuelve `401` en los tres destinos.
-- La batería sintética pasó **13/13 pruebas** en PGlite. No se generó ningún pago sintético en la base productiva.
+- La batería sintética pasó inicialmente **13/13** y, tras las correcciones locales posteriores, **14/14 pruebas** en PGlite. No se generó ningún pago sintético en la base productiva.
 - Una aplicación no debe publicar un backend local duplicado si sus datos y transacciones deben usar el contrato central.
 - Aplicar migraciones aditivas con `npm run migrar` solo después de validar el cambio en QA y verificar el proyecto/credenciales de base. Nunca ejecutar `seed.sql` sobre una base ya poblada.
 
