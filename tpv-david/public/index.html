@@ -81,6 +81,8 @@
   .field label{font-size:13px;font-weight:600;color:var(--text-muted);}
   .field input,.field select{min-height:40px;padding:0 10px;border:1px solid #AEB5C9;border-radius:var(--radius-sm);background:#fff;}
   .field .err{color:var(--error);font-size:13px;}
+  .field.wallet-field{padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--info-bg);}
+  .field[hidden]{display:none;}
   .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
   .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;}
@@ -240,7 +242,7 @@
   ];
   const state = {
     catalogo: [], busqueda: "", carrito: new Map(),
-    comercio: { cuit: "20345678901", razonSocial: "Kiosco Don José" }, medioPago: "efectivo",
+    comercio: { cuit: "20345678901", razonSocial: "Kiosco Don José" }, medioPago: "efectivo", cuitCliente: "",
     cobrando: false, resultado: null,
     ventas: { page: 1, filtros: { desde: "", hasta: "", estado: "", medioPago: "" } },
     drawerOrigen: null
@@ -376,7 +378,7 @@
   function etapas(v) {
     const err = v.estado === "error";
     const lista = [
-      { n: "Pago (Banco)", ok: !!v.pago, ref: v.pago ? `Movimiento ${v.pago.movimientoId}` : "" },
+      { n: v.medioPago === "billetera_virtual" ? "Pago (Billetera / Banco)" : "Pago (Banco)", ok: !!v.pago, ref: v.pago ? `Movimiento ${v.pago.movimientoId}${v.cuitCliente ? ` · cliente ${v.cuitCliente}` : ""}` : "" },
       { n: "Percepción IIBB (ARBA)", ok: !!v.percepcion, ref: v.percepcion ? `${money(v.percepcion.montoPercepcion)} · alícuota ${(v.percepcion.alicuotaAplicada * 100).toFixed(2)}%` : "" },
       { n: "Comprobante (ARCA)", ok: !!v.factura, ref: v.factura ? `CAE ${v.factura.cae} · vto. ${v.factura.vencimientoCae}` : "" }
     ];
@@ -461,6 +463,12 @@
             <div class="field"><label for="cuit">CUIT del comercio</label><input id="cuit" inputmode="numeric" maxlength="11" value="${esc(state.comercio.cuit)}"><span class="err" id="cuit-err"></span></div>
             <div class="field"><label for="rs">Razón social</label><input id="rs" value="${esc(state.comercio.razonSocial)}"></div>
             <div class="field"><label for="medio">Medio de pago</label><select id="medio">${Object.entries(MEDIOS).map(([k, t]) => `<option value="${k}" ${state.medioPago === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+            <div class="field wallet-field" id="wallet-field" ${state.medioPago === "billetera_virtual" ? "" : "hidden"}>
+              <label for="cuit-cliente">CUIT del cliente que paga con billetera</label>
+              <input id="cuit-cliente" inputmode="numeric" maxlength="11" autocomplete="off" value="${esc(state.cuitCliente)}" placeholder="11 dígitos, sin guiones" aria-describedby="cuit-cliente-ayuda cuit-cliente-err">
+              <span id="cuit-cliente-ayuda">Se debita de la billetera vinculada a la cuenta bancaria de este cliente.</span>
+              <span class="err" id="cuit-cliente-err"></span>
+            </div>
           </div>
           <div id="ticket" style="margin-top:12px"></div>
           <div id="resultado" aria-live="polite"></div>
@@ -470,7 +478,8 @@
     $("busca").addEventListener("input", (e) => { state.busqueda = e.target.value; renderCatalogo(); });
     $("cuit").addEventListener("input", (e) => { state.comercio.cuit = e.target.value.replace(/\D/g, ""); e.target.value = state.comercio.cuit; });
     $("rs").addEventListener("input", (e) => { state.comercio.razonSocial = e.target.value; });
-    $("medio").addEventListener("change", (e) => { state.medioPago = e.target.value; });
+    $("medio").addEventListener("change", (e) => { state.medioPago = e.target.value; $("wallet-field").hidden = state.medioPago !== "billetera_virtual"; });
+    $("cuit-cliente").addEventListener("input", (e) => { state.cuitCliente = e.target.value.replace(/\D/g, ""); e.target.value = state.cuitCliente; });
   }
 
   function renderCatalogo() {
@@ -508,11 +517,15 @@
     if (state.cobrando) return;
     if (!/^\d{11}$/.test(state.comercio.cuit)) { $("cuit-err").textContent = "El CUIT debe tener 11 dígitos, sin puntos ni guiones."; $("cuit").focus(); return; }
     $("cuit-err").textContent = "";
+    if (state.medioPago === "billetera_virtual" && !/^\d{11}$/.test(state.cuitCliente)) { $("cuit-cliente-err").textContent = "Ingresá el CUIT del cliente con 11 dígitos."; $("cuit-cliente").focus(); return; }
+    if (state.medioPago === "billetera_virtual" && state.cuitCliente === state.comercio.cuit) { $("cuit-cliente-err").textContent = "El cliente no puede pagar a su propio comercio."; $("cuit-cliente").focus(); return; }
+    if (state.medioPago === "billetera_virtual") $("cuit-cliente-err").textContent = "";
     state.cobrando = true; state.resultado = null; renderTicket(); renderResultado();
     const items = [...state.carrito.entries()].map(([productoId, cantidad]) => ({ productoId, cantidad }));
     try {
       const v = await api("/tpv/ventas", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comercio: state.comercio, items, medioPago: state.medioPago }) });
+        body: JSON.stringify({ comercio: state.comercio, items, medioPago: state.medioPago,
+          ...(state.medioPago === "billetera_virtual" ? { cuitCliente: state.cuitCliente } : {}) }) });
       state.resultado = { venta: v }; state.carrito.clear();
     } catch (e) { state.resultado = { error: e.message }; }
     state.cobrando = false; renderTicket(); renderResultado();

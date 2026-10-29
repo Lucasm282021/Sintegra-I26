@@ -156,6 +156,24 @@ header.tpv-header {
   outline: none;
 }
 
+.cuit-selector select {
+  max-width: 290px;
+  border: 0;
+  outline: 0;
+  color: var(--text-main);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+.merchant-bank-link {
+  display: block;
+  margin-top: 4px;
+  color: #9dd6ee;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 /* Main Grid */
 .main-layout {
   display: grid;

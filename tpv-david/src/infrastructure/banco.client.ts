@@ -25,6 +25,61 @@ export interface BancoClient {
   pagar(pedido: PedidoDePago): Promise<PagoConfirmado>;
 }
 
+export interface PedidoDeBilletera {
+  id_venta: string;
+  cuit: string;
+  comercio_cuit: string;
+  monto: number;
+  terminal_id: string;
+}
+
+export interface BilleteraClient {
+  pagar(pedido: PedidoDeBilletera): Promise<PagoConfirmado>;
+}
+
+/** Cliente del contrato común. El Banco provisiona la billetera y el endpoint
+ * común registra el débito, acredita la cuenta destino y notifica al terminal. */
+export class HttpBilleteraClient implements BilleteraClient {
+  constructor(private readonly baseUrl: string) {}
+
+  async pagar(pedido: PedidoDeBilletera): Promise<PagoConfirmado> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/billetera/pagos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pedido),
+      });
+    } catch {
+      throw new UpstreamUnavailableError("billetera no disponible");
+    }
+    const data = (await response.json().catch(() => ({}))) as {
+      movimiento?: { id?: string };
+      id?: string;
+      confirmadoEn?: string;
+      error?: string;
+      message?: string;
+    };
+    if (response.status === 200 || response.status === 201) {
+      const id = data.movimiento?.id ?? data.id;
+      if (!id) throw new UpstreamUnavailableError("billetera respondió sin referencia de pago");
+      return { movimientoId: id, confirmadoEn: data.confirmadoEn ?? new Date().toISOString() };
+    }
+    if (response.status >= 400 && response.status < 500) {
+      throw new UpstreamRejectedError(data.error ?? data.message ?? "pago rechazado por la billetera");
+    }
+    throw new UpstreamUnavailableError("billetera no disponible");
+  }
+}
+
+/** Solo desarrollo aislado; nunca debe confundirse con un débito real. */
+export class MockBilleteraClient implements BilleteraClient {
+  async pagar(pedido: PedidoDeBilletera): Promise<PagoConfirmado> {
+    console.log(`[billetera:mock] pago simulado de $${pedido.monto} para comercio ${pedido.comercio_cuit}`);
+    return { movimientoId: `mock-wallet-${pedido.id_venta}`, confirmadoEn: new Date().toISOString() };
+  }
+}
+
 export class HttpBancoClient implements BancoClient {
   constructor(private readonly baseUrl: string) {}
 

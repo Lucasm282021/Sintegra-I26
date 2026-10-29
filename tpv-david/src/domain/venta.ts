@@ -34,6 +34,8 @@ export interface NuevaVentaInput {
   comercio: Comercio;
   items: ItemVentaInput[];
   medioPago: MedioPago;
+  /** CUIT del cliente que paga; obligatorio solo con billetera_virtual. */
+  cuitCliente?: string;
 }
 
 // Datos del pago confirmado por el Banco. Se completa cuando el estado pasa a "cobrada".
@@ -63,6 +65,7 @@ export interface Venta {
   items: ItemVenta[];
   total: number;
   medioPago: MedioPago;
+  cuitCliente?: string;
   estado: EstadoVenta;
   createdAt: string;
   pago?: PagoConfirmado;

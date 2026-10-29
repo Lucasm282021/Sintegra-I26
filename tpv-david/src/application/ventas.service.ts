@@ -20,7 +20,7 @@ import {
 import { calcularResumen, filtrarVentas, FiltroVentas, ResumenPanel } from "../domain/resumen";
 import { VentaRepository } from "../infrastructure/venta.repository";
 import { ProductoRepository } from "../infrastructure/producto.repository";
-import { BancoClient } from "../infrastructure/banco.client";
+import { BancoClient, BilleteraClient } from "../infrastructure/banco.client";
 import { ArbaClient } from "../infrastructure/arba.client";
 import { ArcaClient } from "../infrastructure/arca.client";
 
@@ -41,7 +41,9 @@ export class VentasService {
     private readonly productoRepo: ProductoRepository,
     private readonly bancoClient: BancoClient,
     private readonly arbaClient: ArbaClient,
-    private readonly arcaClient: ArcaClient
+    private readonly arcaClient: ArcaClient,
+    private readonly billeteraClient?: BilleteraClient,
+    private readonly terminalId = "david"
   ) {}
 
   async crear(input: NuevaVentaInput): Promise<Venta> {
@@ -69,6 +71,7 @@ export class VentasService {
       items,
       total: calcularTotal(items),
       medioPago: input.medioPago,
+      cuitCliente: input.cuitCliente,
       estado: "pendiente_cobro",
       createdAt: new Date().toISOString(),
     };
@@ -97,12 +100,20 @@ export class VentasService {
     // --- Paso 2: cobro contra Banco ---
     if (!venta.pago) {
       try {
-        const pago = await this.bancoClient.pagar({
-          ventaId: venta.id,
-          cuit: venta.comercio.cuit,
-          monto: venta.total,
-          medioPago: venta.medioPago,
-        });
+        const pago = venta.medioPago === "billetera_virtual"
+          ? await this.billeteraClient!.pagar({
+              id_venta: `tpv:${venta.id}`,
+              cuit: venta.cuitCliente!,
+              comercio_cuit: venta.comercio.cuit,
+              monto: venta.total,
+              terminal_id: this.terminalId,
+            })
+          : await this.bancoClient.pagar({
+              ventaId: venta.id,
+              cuit: venta.comercio.cuit,
+              monto: venta.total,
+              medioPago: venta.medioPago,
+            });
         venta.estado = "cobrada";
         venta.pago = pago;
         await this.repo.save(venta);
@@ -211,6 +222,17 @@ export class VentasService {
       throw new ValidationError(
         "medioPago inválido: debe ser efectivo, tarjeta, transferencia o billetera_virtual"
       );
+    }
+    if (input.medioPago === "billetera_virtual") {
+      if (!this.billeteraClient) {
+        throw new UpstreamUnavailableError("la integración de billetera no está configurada");
+      }
+      if (!esCuitValido(input.cuitCliente)) {
+        throw new ValidationError("cuitCliente es obligatorio y debe tener 11 dígitos para pagar con billetera");
+      }
+      if (input.cuitCliente === input.comercio.cuit) {
+        throw new ValidationError("el cliente no puede pagar a su propio comercio");
+      }
     }
   }
 }

@@ -33,13 +33,13 @@ function apiUrl(path) {
 
 function TpvApp() {
   const [cuit, setCuit] = useState('30712345678');
+  const [comercios, setComercios] = useState([]);
   const [productos, setProductos] = useState([]);
   const [categoriaSel, setCategoriaSel] = useState('Todos');
   const [busqueda, setBusqueda] = useState('');
   const [carrito, setCarrito] = useState([]);
   const [medioPago, setMedioPago] = useState('BANCO');
   const [cuentaOrigen, setCuentaOrigen] = useState('cuenta-mostrador');
-  const [cuentaDestino, setCuentaDestino] = useState('1111111111111111111111');
   const [cuitPagador, setCuitPagador] = useState('20268326074');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -49,10 +49,29 @@ function TpvApp() {
   const [backendConectado, setBackendConectado] = useState(false);
   const [pendingSale, setPendingSale] = useState(null);
 
-  // Cargar productos del Backend TPV
-  const cargarProductos = async () => {
+  // Un terminal puede operar solo con comercios que Banco vinculó a una cuenta.
+  const cargarComercios = async () => {
     try {
-      const res = await fetch(apiUrl('/productos?terminal_id=sebastian&cuit=' + encodeURIComponent(cuit.trim())));
+      const res = await fetch(apiUrl('/comercios?terminal_id=sebastian'));
+      if (!res.ok) throw new Error('No se pudieron consultar los comercios del terminal');
+      const data = (await res.json()).filter((item) => item.activo);
+      setComercios(data);
+      const preferido = localStorage.getItem('tpv-sebastian-comercio');
+      const selected = data.find((item) => item.cuit === preferido) || data[0];
+      if (!selected) { setCuit(''); setProductos([]); return; }
+      setCuit(selected.cuit);
+      await cargarProductos(selected.cuit);
+    } catch (err) {
+      setBackendConectado(false);
+      setErrorMsg(err.message || 'No se pudo conectar con Banco M');
+    }
+  };
+
+  // Cargar catálogo del comercio asociado a la terminal.
+  const cargarProductos = async (cuitComercio = cuit) => {
+    if (!cuitComercio) { setProductos([]); return; }
+    try {
+      const res = await fetch(apiUrl('/productos?terminal_id=sebastian&cuit=' + encodeURIComponent(cuitComercio.trim())));
       if (res.ok) {
         const data = await res.json();
         setProductos(data);
@@ -87,8 +106,10 @@ function TpvApp() {
   };
 
   useEffect(() => {
-    cargarProductos();
+    cargarComercios();
   }, []);
+
+  const comercioActual = comercios.find((item) => item.cuit === cuit) || null;
 
   // Agregar item al carrito
   const agregarAlCarrito = (prod) => {
@@ -146,13 +167,14 @@ function TpvApp() {
       id_venta: `vta-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       terminal_id: 'sebastian',
       comercio_cuit: cuit.trim(),
+      cuenta_destino: comercioActual?.cuenta_destino,
       items: carrito.map((item) => ({
         producto_id: String(item.productoId),
         cantidad: item.cantidad,
       })),
       medio_pago: medioPago.toLowerCase(),
       ...(medioPago === 'BANCO'
-        ? { cuenta_origen: cuentaOrigen, cuenta_destino: cuentaDestino }
+        ? { cuenta_origen: cuentaOrigen }
         : { cuit_pagador: cuitPagador }),
     };
     if (!pendingSale) setPendingSale(payload);
@@ -206,14 +228,23 @@ function TpvApp() {
         <div className="header-status">
           <div className="cuit-selector">
             <Building2 size={16} className="text-cyan-400" />
-            <label>CUIT Comercio:</label>
-            <input
-              type="text"
+            <label htmlFor="merchant-select">Comercio asociado:</label>
+            <select
+              id="merchant-select"
               value={cuit}
-              disabled={Boolean(pendingSale)}
-              onChange={(e) => setCuit(e.target.value)}
-              placeholder="30712345678"
-            />
+              disabled={Boolean(pendingSale) || !comercios.length}
+              onChange={async (e) => {
+                const next = e.target.value;
+                setCuit(next);
+                localStorage.setItem('tpv-sebastian-comercio', next);
+                setCarrito([]);
+                setErrorMsg(null);
+                await cargarProductos(next);
+              }}
+            >
+              {comercios.length ? comercios.map((item) => <option key={item.cuit} value={item.cuit}>{item.razon_social} · {item.cuit}</option>) : <option value="">Sin comercio vinculado</option>}
+            </select>
+            {comercioActual && <small className="merchant-bank-link">Banco M · {comercioActual.cuenta_alias || 'Cuenta asociada'} · CBU {comercioActual.cuenta_cbu || 'pendiente'}</small>}
           </div>
 
           <div
@@ -430,14 +461,7 @@ function TpvApp() {
                     placeholder="Cuenta Origen CBU"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #374151', padding: '6px 8px', borderRadius: 4, color: '#fff' }}
                   />
-                  <input
-                    type="text"
-                    value={cuentaDestino}
-                    disabled={Boolean(pendingSale)}
-                    onChange={(e) => setCuentaDestino(e.target.value)}
-                    placeholder="Cuenta Destino CBU"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #374151', padding: '6px 8px', borderRadius: 4, color: '#fff' }}
-                  />
+                  <small className="merchant-bank-link">El cobro se acredita en {comercioActual?.cuenta_alias || 'la cuenta bancaria vinculada'} · CBU {comercioActual?.cuenta_cbu || 'pendiente'}</small>
                 </div>
               )}
 
@@ -458,7 +482,7 @@ function TpvApp() {
             {/* BOTÓN PROCESAR COBRO */}
             <button
               className="btn-checkout"
-              disabled={carrito.length === 0 || loading}
+              disabled={carrito.length === 0 || loading || !comercioActual?.cuenta_destino}
               onClick={procesarCobro}
             >
               {loading ? (

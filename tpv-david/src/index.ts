@@ -4,7 +4,7 @@ import express from "express";
 import { FileVentaRepository } from "./infrastructure/venta.repository";
 import { FileProductoRepository } from "./infrastructure/producto.repository";
 import { FileComercioRepository } from "./infrastructure/comercio.repository";
-import { HttpBancoClient, MockBancoClient } from "./infrastructure/banco.client";
+import { HttpBancoClient, MockBancoClient, HttpBilleteraClient, MockBilleteraClient } from "./infrastructure/banco.client";
 import { HttpArbaClient, MockArbaClient } from "./infrastructure/arba.client";
 import { HttpArcaClient, MockArcaClient } from "./infrastructure/arca.client";
 import { HttpMunicipioClient, MockMunicipioClient } from "./infrastructure/municipio.client";
@@ -35,8 +35,9 @@ const MUNICIPIO_MOCK = process.env.MUNICIPIO_MOCK !== "false";
 
 // La Billetera todavía no participa del flujo de venta (solo se muestra su
 // estado en "Conexiones"), por eso no tiene un cliente propio todavía.
-const BILLETERA_URL = process.env.BILLETERA_URL ?? "http://localhost:3006";
-const BILLETERA_MOCK = process.env.BILLETERA_MOCK !== "false";
+const BILLETERA_URL = process.env.BILLETERA_URL ?? "http://localhost:3000";
+// La billetera se simula solo si la configuración lo pide expresamente.
+const BILLETERA_MOCK = process.env.BILLETERA_MOCK === "true";
 
 // Repositorios en archivo JSON (data/*.json): sobreviven a un reinicio del
 // proceso, a diferencia de los In-Memory.
@@ -45,6 +46,7 @@ const productoRepository = new FileProductoRepository();
 const comercioRepository = new FileComercioRepository();
 
 const bancoClient = BANCO_MOCK ? new MockBancoClient() : new HttpBancoClient(BANCO_URL);
+const billeteraClient = BILLETERA_MOCK ? new MockBilleteraClient() : new HttpBilleteraClient(BILLETERA_URL);
 const arbaClient = ARBA_MOCK ? new MockArbaClient() : new HttpArbaClient(ARBA_URL);
 const arcaClient = ARCA_MOCK ? new MockArcaClient() : new HttpArcaClient(ARCA_URL);
 const municipioClient = MUNICIPIO_MOCK ? new MockMunicipioClient() : new HttpMunicipioClient(MUNICIPIO_URL);
@@ -63,8 +65,11 @@ if (ARCA_MOCK) {
 if (MUNICIPIO_MOCK) {
   console.log("[tpv] MUNICIPIO_MOCK=true → usando MockMunicipioClient (no llama al servicio real de Municipio)");
 }
+if (BILLETERA_MOCK) {
+  console.log("[tpv] BILLETERA_MOCK=true → pagos con billetera simulados, no se debita Banco M");
+}
 
-const ventasService = new VentasService(ventaRepository, productoRepository, bancoClient, arbaClient, arcaClient);
+const ventasService = new VentasService(ventaRepository, productoRepository, bancoClient, arbaClient, arcaClient, billeteraClient, process.env.TPV_TERMINAL_ID ?? "david");
 const productosService = new ProductosService(productoRepository);
 const comerciosService = new ComerciosService(comercioRepository, municipioClient);
 
