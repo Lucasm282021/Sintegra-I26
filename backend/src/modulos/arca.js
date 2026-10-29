@@ -2,7 +2,7 @@
 const crypto = require('node:crypto');
 const express = require('express');
 const { query, tx } = require('../db');
-const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('../http');
+const { falla, cuitValido, cuitChecksumValido, idValido, montoValido, num, hash, ruta } = require('../http');
 
 const router = express.Router();
 const TIPOS = { A: 'FACTURA_A', B: 'FACTURA_B', C: 'FACTURA_C' };
@@ -29,6 +29,28 @@ router.get('/contribuyentes/:cuit', ruta(async (req) => {
   const c = (await query('select * from padron.contribuyentes where cuit = $1', [req.params.cuit])).rows[0];
   if (!c) throw falla(404, 'contribuyente no encontrado');
   return { body: { cuit: c.cuit, razon_social: c.razon_social, condicion_fiscal: CONDICION[c.condicion_iva], condicion_iva: c.condicion_iva, estado: c.estado } };
+}));
+
+// Inscripción en el padrón fiscal (sandbox): simula el alta de CUIT ante ARCA.
+// Es el dominio fiscal; la identidad del comercio la registra el CORE.
+router.post('/contribuyentes', ruta(async (req) => {
+  const b = req.body || {};
+  if (!cuitChecksumValido(b.cuit)) throw falla(400, 'CUIT inválido: 11 dígitos con dígito verificador correcto');
+  const razon = String(b.razon_social || '').trim();
+  if (!razon) throw falla(400, 'la razón social es obligatoria');
+  if (!CONDICION[b.condicion_iva]) throw falla(400, 'condicion_iva debe ser responsable_inscripto, monotributo, exento o consumidor_final');
+  const tipo = b.tipo_persona || (b.cuit.startsWith('3') ? 'juridica' : 'fisica');
+  if (!['fisica', 'juridica'].includes(tipo)) throw falla(400, 'tipo_persona inválido');
+  try {
+    const { rows } = await query(`insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_iva, domicilio_fiscal)
+      values ($1,$2,$3,$4,$5) returning *`, [b.cuit, razon, tipo, b.condicion_iva, String(b.domicilio_fiscal || '').trim() || null]);
+    const c = rows[0];
+    return { status: 201, body: { cuit: c.cuit, razon_social: c.razon_social, condicion_fiscal: CONDICION[c.condicion_iva],
+      condicion_iva: c.condicion_iva, estado: c.estado, simulacion: true } };
+  } catch (err) {
+    if (err.code === '23505' || /duplicate|unique/i.test(err.message)) throw falla(409, 'el CUIT ya está inscripto en ARCA');
+    throw err;
+  }
 }));
 
 router.get('/puntos-venta', ruta(async (req) => {

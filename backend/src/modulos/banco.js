@@ -155,4 +155,26 @@ router.post('/pagos', ruta(async (req) => {
   return result;
 }));
 
-module.exports = { router, transferir, cuentaPorCuit };
+// Apertura de cuenta (sandbox). Banco es el único que asigna CBU y alias. Si el
+// CUIT ya tiene cuenta, la devuelve (idempotente). Exige el CUIT en el padrón.
+async function abrirCuenta(c, { cuit, titular }) {
+  const existente = await cuentaPorCuit(c, cuit);
+  if (existente) return { cuenta: existente, creada: false };
+  const sujeto = (await c.query('select razon_social from padron.contribuyentes where cuit = $1', [cuit])).rows[0];
+  if (!sujeto) throw falla(409, 'el CUIT debe figurar en el padrón fiscal antes de abrir una cuenta');
+  const cuenta = (await c.query(
+    `insert into banco.cuentas (id, cuit, titular, cbu, alias, saldo)
+     values ($1, $2, $3, $4, $5, 0) returning *`,
+    [`cuenta-${cuit}`, cuit, titular || sujeto.razon_social, `0000003100${cuit}0`, `${cuit}.banco.m`],
+  )).rows[0];
+  return { cuenta, creada: true };
+}
+
+router.post('/cuentas', ruta(async (req) => {
+  const { cuit, titular } = req.body || {};
+  if (!cuitValido(cuit)) throw falla(400, 'cuit debe tener 11 dígitos, sin puntos ni guiones');
+  const { cuenta, creada } = await tx((c) => abrirCuenta(c, { cuit, titular }));
+  return { status: creada ? 201 : 200, body: filaCuenta(cuenta) };
+}));
+
+module.exports = { router, transferir, cuentaPorCuit, abrirCuenta };

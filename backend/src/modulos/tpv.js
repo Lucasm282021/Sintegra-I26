@@ -31,23 +31,27 @@ router.get('/comercios', ruta(async (req) => {
     where tc.terminal_id=$1 order by c.razon_social`, [terminal]);
   return { body: rows };
 }));
+// Vincula un comercio del padrón con una terminal y su cuenta de cobro. La usan
+// la ruta POST /tpv/comercios y la activación desde el CORE de comercios.
+async function vincularComercio(c,b){
+  const cuit=String(b.cuit||''); const terminal=String(b.terminal_id||'brisa');
+  const contributor=(await c.query('select cuit,razon_social from padron.contribuyentes where cuit=$1 for update',[cuit])).rows[0];
+  if(!contributor) throw falla(404,'El CUIT debe existir antes en el padrón central');
+  const terminalRow=(await c.query('select id from tpv.terminales where id=$1',[terminal])).rows[0];
+  if(!terminalRow) throw falla(404,'terminal TPV no encontrada');
+  const cuenta=(await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1',[cuit])).rows[0];
+  const cuentaDestino=b.cuenta_destino||cuenta?.id||null;
+  if(!cuentaDestino) throw falla(409,'el CUIT debe tener una cuenta bancaria abierta en Banco M');
+  if(cuentaDestino && !(await c.query('select 1 from banco.cuentas where id=$1 and cuit=$2',[cuentaDestino,cuit])).rows[0]) throw falla(400,'La cuenta de cobro no pertenece al CUIT');
+  await c.query(`insert into tpv.comercios(terminal_id,cuit,rubro,cuenta_destino) values($1,$2,$3,$4)
+    on conflict(terminal_id,cuit) do update set rubro=excluded.rubro,cuenta_destino=excluded.cuenta_destino,activo=true`,[terminal,cuit,b.rubro||'Comercio',cuentaDestino]);
+  return {terminal_id:terminal,cuit,razon_social:contributor.razon_social,rubro:b.rubro||'Comercio',cuenta_destino:cuentaDestino,activo:true};
+}
 router.post('/comercios', ruta(async (req) => {
   const b=req.body||{}; const cuit=String(b.cuit||''); const terminal=String(b.terminal_id||'brisa');
   if(!idValido(terminal)) throw falla(400,'terminal_id inválido');
   if(!cuitValido(cuit)||!String(b.razon_social||'').trim()) throw falla(400,'CUIT y razón social son obligatorios');
-  const result=await tx(async c=>{
-    const contributor=(await c.query('select cuit,razon_social from padron.contribuyentes where cuit=$1 for update',[cuit])).rows[0];
-    if(!contributor) throw falla(404,'El CUIT debe existir antes en el padrón central');
-    const terminalRow=(await c.query('select id from tpv.terminales where id=$1',[terminal])).rows[0];
-    if(!terminalRow) throw falla(404,'terminal TPV no encontrada');
-    const cuenta=(await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1',[cuit])).rows[0];
-    const cuentaDestino=b.cuenta_destino||cuenta?.id||null;
-    if(!cuentaDestino) throw falla(409,'el CUIT debe tener una cuenta bancaria abierta en Banco M');
-    if(cuentaDestino && !(await c.query('select 1 from banco.cuentas where id=$1 and cuit=$2',[cuentaDestino,cuit])).rows[0]) throw falla(400,'La cuenta de cobro no pertenece al CUIT');
-    await c.query(`insert into tpv.comercios(terminal_id,cuit,rubro,cuenta_destino) values($1,$2,$3,$4)
-      on conflict(terminal_id,cuit) do update set rubro=excluded.rubro,cuenta_destino=excluded.cuenta_destino,activo=true`,[terminal,cuit,b.rubro||'Comercio',cuentaDestino]);
-    return {terminal_id:terminal,cuit,razon_social:contributor.razon_social,rubro:b.rubro||'Comercio',cuenta_destino:cuentaDestino,activo:true};
-  });
+  const result=await tx(c=>vincularComercio(c,b));
   return {status:201,body:result};
 }));
 router.put('/comercios/:cuit', ruta(async(req)=>{
@@ -219,4 +223,5 @@ router.post('/ventas', ruta(async (req) => {
   return result;
 }));
 
+router.vincularComercio = vincularComercio;
 module.exports = router;

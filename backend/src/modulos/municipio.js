@@ -53,10 +53,16 @@ router.post('/comercios', ruta(async (req) => {
   const iva = ({ responsable_inscripto: 'responsable_inscripto', responsable_inscripto_: 'responsable_inscripto', monotributista: 'monotributo', monotributo: 'monotributo', exento: 'exento', consumidor_final: 'consumidor_final' })[condicion];
   if (!razon || !iva || !direccion || !rubro) throw falla(400, 'razon_social, condicion_fiscal, direccion y rubro_principal son obligatorios');
   return tx(async (c) => {
+    if ((await c.query('select 1 from municipio.habilitaciones where cuit=$1', [b.cuit])).rows[0]) {
+      throw falla(409, 'el comercio ya tiene un trámite de habilitación en el municipio');
+    }
+    // Si ARCA ya informó el CUIT, se reutiliza sin pisar sus datos. Crear el CUIT
+    // desde Municipio queda solo por compatibilidad (deprecado: lo hace ARCA).
     const previo = (await c.query('select cuit from padron.contribuyentes where cuit=$1', [b.cuit])).rows[0];
-    if (previo) throw falla(409, 'el CUIT ya existe en el padrón compartido');
-    await c.query(`insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_iva, domicilio_fiscal)
-      values ($1,$2,$3,$4,$5)`, [b.cuit, razon, /^[23]/.test(b.cuit) ? 'fisica' : 'juridica', iva, direccion]);
+    if (!previo) {
+      await c.query(`insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_iva, domicilio_fiscal)
+        values ($1,$2,$3,$4,$5)`, [b.cuit, razon, /^[23]/.test(b.cuit) ? 'fisica' : 'juridica', iva, direccion]);
+    }
     const comercio = (await c.query(`insert into municipio.habilitaciones (cuit, rubro, domicilio, estado)
       values ($1,$2,$3,'pendiente') returning *`, [b.cuit, rubro, direccion])).rows[0];
     return { status: 201, body: { comercio: {
@@ -65,6 +71,19 @@ router.post('/comercios', ruta(async (req) => {
       estado: estadoComercioDto(comercio.estado), fecha_alta: new Date(comercio.fecha_alta).toISOString().slice(0, 10),
     }, tributos_generados: [], mensaje: 'Solicitud registrada. La habilitación requiere revisión y resolución municipal.' } };
   });
+}));
+
+// Resolución del trámite (sandbox). En la realidad la dicta el municipio
+// según su normativa; acá se simula y queda el expediente como evidencia.
+router.post('/comercios/:cuit/resolucion', ruta(async (req) => {
+  if (!cuitValido(req.params.cuit)) throw falla(400, 'CUIT inválido');
+  const estado = req.body?.estado;
+  if (!['activa', 'suspendida', 'baja'].includes(estado)) throw falla(400, 'estado debe ser activa, suspendida o baja');
+  const expediente = String(req.body?.expediente || '').trim();
+  if (expediente.length < 3) throw falla(400, 'indicá el número de expediente o resolución');
+  const { rows } = await query('update municipio.habilitaciones set estado=$2 where cuit=$1 returning *', [req.params.cuit, estado]);
+  if (!rows[0]) throw falla(404, 'no hay trámite de habilitación para ese CUIT');
+  return { body: { cuit: rows[0].cuit, estado: estadoComercioDto(rows[0].estado), expediente, simulacion: true } };
 }));
 
 router.get('/comercios/:cuit', ruta(async (req) => {
