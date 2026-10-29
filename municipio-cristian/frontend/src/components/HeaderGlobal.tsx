@@ -7,7 +7,7 @@ export const NAV_ITEMS: { id: ActiveTabId; label: string; Icon: React.ComponentT
   { id: 'padron', label: 'Altas y padrón', Icon: Building2 },
   { id: 'cuentas', label: 'Cuentas y pagos', Icon: ReceiptText },
   { id: 'comprobantes', label: 'Comprobantes', Icon: FileCheck2 },
-  { id: 'inspector', label: 'Inspector API', Icon: Terminal },
+//{ id: 'inspector', label: 'Inspector API', Icon: Terminal },
 ];
 
 interface SidebarProps {
@@ -123,4 +123,6 @@ export const Topbar: React.FC<TopbarProps> = ({ title, apiOnline, lastHealthLate
       </button>
     </div>
   </header>
+
 );
+

@@ -239,14 +239,14 @@ export default function App() {
       </main>
 
       {/* Docked API Traffic Inspector (visible on Tabs 1-3 so user can inspect JSON in real time) */}
-      {activeTab !== 'inspector' && (
+      {/* {activeTab !== 'inspector' && (
         <DockedTrafficInspector
           logs={trafficLogs}
           isOpen={dockOpen}
           onToggle={() => setDockOpen((prev) => !prev)}
           onOpenFullTab={() => setActiveTab('inspector')}
         />
-      )}
+      )} */}
       </div>
     </div>
   );
