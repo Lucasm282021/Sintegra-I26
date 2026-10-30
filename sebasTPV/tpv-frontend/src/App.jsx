@@ -154,8 +154,9 @@ function TpvApp() {
     (acc, item) => acc + item.precioUnitario * item.cantidad,
     0
   );
-  const percepcionEstimada = Math.round(subtotal * 0.03 * 100) / 100;
-  const totalEstimado = Math.round((subtotal + percepcionEstimada) * 100) / 100;
+  // La percepción la decide ARBA al cobrar (agente, padrón del comprador y mínimo):
+  // no se estima con una alícuota fija. Ver doc/IMPUESTOS-Y-PERCEPCIONES.md.
+  const totalEstimado = subtotal;
 
   // Procesar venta en POST /tpv/ventas
   const procesarCobro = async () => {
@@ -420,15 +421,15 @@ function TpvApp() {
           {/* RESUMEN Y TOTALES */}
           <div className="cart-summary">
             <div className="summary-row">
-              <span>Subtotal Neto</span>
+              <span>Productos (IVA incluido)</span>
               <span>${subtotal.toLocaleString('es-AR')}</span>
             </div>
             <div className="summary-row">
-              <span>Percepción estimada (ARBA ~3%)</span>
-              <span>${percepcionEstimada.toLocaleString('es-AR')}</span>
+              <span>Percepción IIBB</span>
+              <span>se calcula al cobrar</span>
             </div>
             <div className="summary-row total">
-              <span>TOTAL ESTIMADO</span>
+              <span>TOTAL (sin percepción)</span>
               <span className="total-price">${totalEstimado.toLocaleString('es-AR')}</span>
             </div>
 
@@ -458,7 +459,7 @@ function TpvApp() {
                     value={cuentaOrigen}
                     disabled={Boolean(pendingSale)}
                     onChange={(e) => setCuentaOrigen(e.target.value)}
-                    placeholder="Cuenta Origen CBU"
+                    placeholder="Alias o CBU de quien paga"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #374151', padding: '6px 8px', borderRadius: 4, color: '#fff' }}
                   />
                   <small className="merchant-bank-link">El cobro se acredita en {comercioActual?.cuenta_alias || 'la cuenta bancaria vinculada'} · CBU {comercioActual?.cuenta_cbu || 'pendiente'}</small>
