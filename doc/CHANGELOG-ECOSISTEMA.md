@@ -2,6 +2,14 @@
 
 Qué se conserva, modifica, reemplaza, depreca o elimina en cada entrega. Lo anterior al 2026-10-29 está en [AVANCES-UNIFICACION.md](AVANCES-UNIFICACION.md).
 
+## 2026-10-29 (noche) — Gestión de cuentas en el Banco y visitas guiadas
+
+### Agregado
+- Migración `20261029000016_banco_operaciones.sql`: tipos de movimiento `deposito` y `extraccion`, y la caja de efectivo del banco (`cuenta-caja`). Solo amplía.
+- Banco: `POST /banco/cuentas/:id/depositos`, `POST /banco/cuentas/:id/extracciones` y `POST /banco/transferencias` (destino por id, CBU o alias), idempotentes por `id_operacion`. 3 pruebas nuevas; suite 38/38.
+- Panel del Banco (`public/banco/`): botón "Abrir cuenta" y, en cada cuenta, Depositar, Extraer y Transferir.
+- Visitas guiadas con Driver.js en las 12 pantallas del ecosistema (botón "¿Cómo se usa?"). Ver [VISITAS-GUIADAS.md](VISITAS-GUIADAS.md).
+
 ## 2026-10-29 (tarde) — Impuestos configurables y solo modo real
 
 ### Agregado

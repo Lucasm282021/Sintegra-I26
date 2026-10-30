@@ -66,6 +66,7 @@ Diseño: [ARQUITECTURA-COMERCIOS.md](ARQUITECTURA-COMERCIOS.md) · Flujo: [FLUJO
 | Módulo | Endpoint | Qué agrega |
 |---|---|---|
 | ARCA | `POST /arca/contribuyentes` | Inscripción en el padrón fiscal **sandbox** (`cuit` con DV, `razon_social`, `condicion_iva`, `tipo_persona`, `domicilio_fiscal`). `201` · `409` ya inscripto. |
+| Banco | `POST /banco/cuentas/:id/depositos` · `POST /banco/cuentas/:id/extracciones` · `POST /banco/transferencias` | Operaciones del cliente: depósito y extracción en efectivo (contra `cuenta-caja`) y transferencia por id, CBU o alias. Cuerpo: `id_operacion`, `monto`, `concepto`; la transferencia agrega `origen` y `destino`. `201` · `200` reintento · `402` sin saldo · `404`. |
 | Banco | `POST /banco/cuentas` | Apertura de cuenta (sandbox). Banco asigna CBU y alias. Idempotente: `201` nueva, `200` existente; `409` sin padrón fiscal. |
 | Municipio | `POST /municipio/comercios` | **Cambio de comportamiento compatible:** si el CUIT ya está en el padrón (lo informó ARCA) se reutiliza sin pisarlo; `409` solo si ya hay un trámite de habilitación. Crear el CUIT desde Municipio queda deprecado. |
 | Municipio | `POST /municipio/comercios/:cuit/resolucion` | Resolución simulada del trámite (`estado`: `activa`, `suspendida` o `baja`; `expediente` obligatorio). |
