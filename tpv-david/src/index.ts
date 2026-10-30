@@ -1,6 +1,7 @@
 import "dotenv/config";
 import path from "path";
 import express from "express";
+import { BackendComercioRepository, BackendProductoRepository, BackendTpv, BackendVentaRepository, checkoutEnBackend } from "./infrastructure/backend.repositories";
 import { FileVentaRepository } from "./infrastructure/venta.repository";
 import { FileProductoRepository } from "./infrastructure/producto.repository";
 import { FileComercioRepository } from "./infrastructure/comercio.repository";
@@ -41,9 +42,18 @@ const BILLETERA_MOCK = process.env.BILLETERA_MOCK === "true";
 
 // Repositorios en archivo JSON (data/*.json): sobreviven a un reinicio del
 // proceso, a diferencia de los In-Memory.
-const ventaRepository = new FileVentaRepository();
-const productoRepository = new FileProductoRepository();
-const comercioRepository = new FileComercioRepository();
+// Con TPV_BACKEND_URL, catálogo, comercios y ventas viven en la base común del
+// ecosistema y la venta se procesa con el motor común (impuestos incluidos).
+// Sin esa variable, se usan los archivos JSON locales como antes.
+const TPV_BACKEND_URL = process.env.TPV_BACKEND_URL;
+const backendTpv = TPV_BACKEND_URL
+  ? new BackendTpv({ url: TPV_BACKEND_URL, terminalId: process.env.TPV_TERMINAL_ID ?? "david",
+      comercioCuit: process.env.TPV_COMERCIO_CUIT ?? "30712345678" })
+  : null;
+const ventaRepository = backendTpv ? new BackendVentaRepository(backendTpv) : new FileVentaRepository();
+const productoRepository = backendTpv ? new BackendProductoRepository(backendTpv) : new FileProductoRepository();
+const comercioRepository = backendTpv ? new BackendComercioRepository(backendTpv) : new FileComercioRepository();
+if (backendTpv) console.log(`[tpv] usando el backend común ${TPV_BACKEND_URL} (terminal ${backendTpv.cfg.terminalId})`);
 
 const bancoClient = BANCO_MOCK ? new MockBancoClient() : new HttpBancoClient(BANCO_URL);
 const billeteraClient = BILLETERA_MOCK ? new MockBilleteraClient() : new HttpBilleteraClient(BILLETERA_URL);
@@ -69,7 +79,8 @@ if (BILLETERA_MOCK) {
   console.log("[tpv] BILLETERA_MOCK=true → pagos con billetera simulados, no se debita Banco M");
 }
 
-const ventasService = new VentasService(ventaRepository, productoRepository, bancoClient, arbaClient, arcaClient, billeteraClient, process.env.TPV_TERMINAL_ID ?? "david");
+const ventasService = new VentasService(ventaRepository, productoRepository, bancoClient, arbaClient, arcaClient, billeteraClient,
+  process.env.TPV_TERMINAL_ID ?? "david", backendTpv ? (venta) => checkoutEnBackend(backendTpv, venta) : undefined);
 const productosService = new ProductosService(productoRepository);
 const comerciosService = new ComerciosService(comercioRepository, municipioClient);
 

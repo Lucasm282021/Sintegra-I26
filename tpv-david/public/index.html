@@ -242,7 +242,7 @@
   ];
   const state = {
     catalogo: [], busqueda: "", carrito: new Map(),
-    comercio: { cuit: "20345678901", razonSocial: "Kiosco Don José" }, medioPago: "efectivo", cuitCliente: "",
+    comercio: { cuit: "30712345678", razonSocial: "Almacén Don Mateo SRL" }, medioPago: "efectivo", cuitCliente: "",
     cobrando: false, resultado: null,
     ventas: { page: 1, filtros: { desde: "", hasta: "", estado: "", medioPago: "" } },
     drawerOrigen: null
@@ -463,10 +463,10 @@
             <div class="field"><label for="cuit">CUIT del comercio</label><input id="cuit" inputmode="numeric" maxlength="11" value="${esc(state.comercio.cuit)}"><span class="err" id="cuit-err"></span></div>
             <div class="field"><label for="rs">Razón social</label><input id="rs" value="${esc(state.comercio.razonSocial)}"></div>
             <div class="field"><label for="medio">Medio de pago</label><select id="medio">${Object.entries(MEDIOS).map(([k, t]) => `<option value="${k}" ${state.medioPago === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
-            <div class="field wallet-field" id="wallet-field" ${state.medioPago === "billetera_virtual" ? "" : "hidden"}>
-              <label for="cuit-cliente">CUIT del cliente que paga con billetera</label>
+            <div class="field wallet-field" id="wallet-field">
+              <label for="cuit-cliente" id="cuit-cliente-label">${state.medioPago === "billetera_virtual" ? "CUIT del cliente que paga con billetera" : "CUIT del cliente (opcional)"}</label>
               <input id="cuit-cliente" inputmode="numeric" maxlength="11" autocomplete="off" value="${esc(state.cuitCliente)}" placeholder="11 dígitos, sin guiones" aria-describedby="cuit-cliente-ayuda cuit-cliente-err">
-              <span id="cuit-cliente-ayuda">Se debita de la billetera vinculada a la cuenta bancaria de este cliente.</span>
+              <span id="cuit-cliente-ayuda">${state.medioPago === "billetera_virtual" ? "Se debita de la billetera vinculada a la cuenta bancaria de este cliente." : "Si lo da, se aplica su percepción de IIBB y la factura que le corresponde (A si es Responsable Inscripto)."}</span>
               <span class="err" id="cuit-cliente-err"></span>
             </div>
           </div>
@@ -478,7 +478,12 @@
     $("busca").addEventListener("input", (e) => { state.busqueda = e.target.value; renderCatalogo(); });
     $("cuit").addEventListener("input", (e) => { state.comercio.cuit = e.target.value.replace(/\D/g, ""); e.target.value = state.comercio.cuit; });
     $("rs").addEventListener("input", (e) => { state.comercio.razonSocial = e.target.value; });
-    $("medio").addEventListener("change", (e) => { state.medioPago = e.target.value; $("wallet-field").hidden = state.medioPago !== "billetera_virtual"; });
+    $("medio").addEventListener("change", (e) => {
+      state.medioPago = e.target.value;
+      const billetera = state.medioPago === "billetera_virtual";
+      $("cuit-cliente-label").textContent = billetera ? "CUIT del cliente que paga con billetera" : "CUIT del cliente (opcional)";
+      $("cuit-cliente-ayuda").textContent = billetera ? "Se debita de la billetera vinculada a la cuenta bancaria de este cliente." : "Si lo da, se aplica su percepción de IIBB y la factura que le corresponde (A si es Responsable Inscripto).";
+    });
     $("cuit-cliente").addEventListener("input", (e) => { state.cuitCliente = e.target.value.replace(/\D/g, ""); e.target.value = state.cuitCliente; });
   }
 
@@ -518,6 +523,7 @@
     if (!/^\d{11}$/.test(state.comercio.cuit)) { $("cuit-err").textContent = "El CUIT debe tener 11 dígitos, sin puntos ni guiones."; $("cuit").focus(); return; }
     $("cuit-err").textContent = "";
     if (state.medioPago === "billetera_virtual" && !/^\d{11}$/.test(state.cuitCliente)) { $("cuit-cliente-err").textContent = "Ingresá el CUIT del cliente con 11 dígitos."; $("cuit-cliente").focus(); return; }
+    if (state.cuitCliente && !/^\d{11}$/.test(state.cuitCliente)) { $("cuit-cliente-err").textContent = "El CUIT del cliente tiene que tener 11 dígitos (o dejalo vacío)."; $("cuit-cliente").focus(); return; }
     if (state.medioPago === "billetera_virtual" && state.cuitCliente === state.comercio.cuit) { $("cuit-cliente-err").textContent = "El cliente no puede pagar a su propio comercio."; $("cuit-cliente").focus(); return; }
     if (state.medioPago === "billetera_virtual") $("cuit-cliente-err").textContent = "";
     state.cobrando = true; state.resultado = null; renderTicket(); renderResultado();
@@ -525,7 +531,7 @@
     try {
       const v = await api("/tpv/ventas", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comercio: state.comercio, items, medioPago: state.medioPago,
-          ...(state.medioPago === "billetera_virtual" ? { cuitCliente: state.cuitCliente } : {}) }) });
+          ...(state.cuitCliente ? { cuitCliente: state.cuitCliente } : {}) }) });
       state.resultado = { venta: v }; state.carrito.clear();
     } catch (e) { state.resultado = { error: e.message }; }
     state.cobrando = false; renderTicket(); renderResultado();

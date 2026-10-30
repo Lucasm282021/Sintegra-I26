@@ -43,7 +43,10 @@ export class VentasService {
     private readonly arbaClient: ArbaClient,
     private readonly arcaClient: ArcaClient,
     private readonly billeteraClient?: BilleteraClient,
-    private readonly terminalId = "david"
+    private readonly terminalId = "david",
+    // Si se configura, la venta se procesa en el backend común (cobro, IVA,
+    // percepción y factura en una sola transacción) en lugar de paso a paso.
+    private readonly checkoutRemoto?: (venta: Venta) => Promise<Venta>
   ) {}
 
   async crear(input: NuevaVentaInput): Promise<Venta> {
@@ -76,6 +79,7 @@ export class VentasService {
       createdAt: new Date().toISOString(),
     };
 
+    if (this.checkoutRemoto) return this.checkoutRemoto(venta);
     return this.procesar(venta);
   }
 
