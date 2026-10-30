@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="description" content="Homebanking de Banco M: cada cliente entra con su CUIT y su clave." />
+  <title>Homebanking · Banco M · Sintegra I26</title>
+  <link rel="stylesheet" href="../banco/styles.css" />
+  <link rel="stylesheet" href="./hb.css" />
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <section class="demo-access" id="acceso" aria-labelledby="hb-titulo">
+    <div class="demo-card"><div class="demo-shield" aria-hidden="true">◇</div><p class="demo-eyebrow">HOMEBANKING · BANCO M</p><h1 id="hb-titulo">Ingresá con tu CUIT</h1><p class="demo-subtitle">Tus cuentas, transferencias, cheques y eCheq.</p>
+      <form id="f-login"><label>CUIT / CUIL<input name="cuit" inputmode="numeric" maxlength="11" autocomplete="username" placeholder="11 dígitos, sin guiones" required></label><label>Clave<input name="clave" type="password" autocomplete="current-password" placeholder="Tu clave de homebanking" required></label><p class="demo-error" id="login-error" role="alert" hidden></p><button type="submit">Ingresar</button></form>
+      <aside class="demo-credentials"><strong>Ayuda memoria (simulación)</strong><span>Clave de todos los clientes: <b>demo1234</b></span><span>Comercio i26 (RI): <b>20268326074</b></span><span>Cualquier CUIT con cuenta en Banco M sirve.</span></aside><footer>Entorno académico · Información de ejemplo</footer></div>
+  </section>
+
+  <header class="topbar">
+    <a class="brand" href="../" aria-label="Volver a Sintegra I26"><span class="brand-icon">B</span><span><strong>Homebanking · Banco M</strong><small id="hb-cliente">Cliente</small></span></a>
+    <div class="top-actions"><button id="btn-clave" class="button secondary" type="button">Cambiar clave</button><button id="btn-salir" class="button secondary" type="button">Salir</button></div>
+  </header>
+  <main class="shell">
+    <section class="intro"><p class="eyebrow" id="hb-condicion">CLIENTE</p><h1 id="hb-nombre">Hola</h1><p id="hb-domicilio"></p></section>
+    <section class="hb-grid">
+      <div class="accounts-panel">
+        <div class="section-title"><div><p class="eyebrow">MIS CUENTAS</p><h2>Saldos</h2></div><button id="btn-actualizar" class="button secondary" type="button">Actualizar</button></div>
+        <div id="cuentas" class="accounts"></div>
+        <div id="billetera" class="hb-billetera"></div>
+        <div class="hb-acciones" id="acciones">
+          <button class="button primary" type="button" id="btn-transferir">⇄ Transferir</button>
+          <button class="button secondary" type="button" id="btn-echeq">✎ Emitir eCheq</button>
+        </div>
+        <p class="muted" id="echeq-nota"></p>
+      </div>
+      <div class="detail-panel">
+        <div class="section-title"><div><p class="eyebrow">eCHEQ Y CHEQUES</p><h2>Cheques</h2></div></div>
+        <div id="cheques" class="movements"></div>
+        <div class="section-title movement-heading"><div><p class="eyebrow">ACTIVIDAD</p><h2>Últimos movimientos</h2></div></div>
+        <div id="movimientos" class="movements"></div>
+        <p id="error" class="error" role="alert" hidden></p>
+      </div>
+    </section>
+    <footer><a href="../banco/">← Panel del banco</a><span>Banco M · Sintegra I26</span></footer>
+  </main>
+
+  <dialog id="d-transferir" aria-labelledby="dt-t"><form id="f-transferir" class="dlg">
+    <h2 id="dt-t">Transferir</h2>
+    <label>Desde<select id="tr-origen"></select></label>
+    <label>Destino (alias o CBU)<input id="tr-destino" required placeholder="ej.: 20268326074.banco.m"></label>
+    <p class="muted" id="tr-ficha"></p>
+    <label>Importe en ARS<input id="tr-monto" type="number" min="0.01" step="0.01" required></label>
+    <label>Concepto (opcional)<input id="tr-concepto" maxlength="120"></label>
+    <p class="error" id="tr-error" hidden></p>
+    <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit">Transferir</button></div>
+  </form></dialog>
+
+  <dialog id="d-echeq" aria-labelledby="de-t"><form id="f-echeq" class="dlg">
+    <h2 id="de-t">Emitir eCheq</h2>
+    <p class="muted">Se libra contra tu cuenta corriente a favor de un CUIT. El beneficiario lo cobra desde su homebanking o su billetera.</p>
+    <label>Beneficiario (CUIT o alias)<input id="ec-destino" required></label>
+    <p class="muted" id="ec-ficha"></p>
+    <label>Importe en ARS<input id="ec-monto" type="number" min="0.01" step="0.01" required></label>
+    <label>Fecha de pago<input id="ec-fecha" type="date"></label>
+    <p class="error" id="ec-error" hidden></p>
+    <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit">Emitir eCheq</button></div>
+  </form></dialog>
+
+  <dialog id="d-clave" aria-labelledby="dk-t"><form id="f-clave" class="dlg">
+    <h2 id="dk-t">Cambiar clave</h2>
+    <label>Clave actual<input id="k-actual" type="password" required></label>
+    <label>Clave nueva (mínimo 6)<input id="k-nueva" type="password" minlength="6" required></label>
+    <p class="error" id="k-error" hidden></p>
+    <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit">Guardar</button></div>
+  </form></dialog>
+<script src="../tour/sintegra-tour.js" defer></script>
+<script src="tour.js" defer></script>
+</body>
+</html>

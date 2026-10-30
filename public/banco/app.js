@@ -34,7 +34,7 @@ function renderAccounts() {
     return;
   }
   accountsNode.innerHTML = visible.map((a) => `<button class="account ${a.id === selectedId ? 'selected' : ''}" type="button" data-id="${a.id}">
-    <span class="account-mark" aria-hidden="true">B</span><span class="account-content"><strong>${escapeHtml(a.titular)}</strong><small>${a.cuit} · ${escapeHtml(a.alias || 'Sin alias')}</small></span>
+    <span class="account-mark" aria-hidden="true">B</span><span class="account-content"><strong>${escapeHtml(a.titular)}</strong><small>${a.tipo === 'cuenta_corriente' ? 'Cta. cte.' : 'Caja ahorro'} · ${a.cuit} · ${escapeHtml(a.alias || 'Sin alias')}</small></span>
     <span class="account-balance">${fmt.format(Number(a.saldo))}</span></button>`).join('');
   accountsNode.querySelectorAll('[data-id]').forEach((button) => button.addEventListener('click', () => selectAccount(button.dataset.id)));
 }
@@ -55,6 +55,7 @@ async function selectAccount(id) {
   document.querySelector('#balance').textContent = fmt.format(Number(account.saldo));
   document.querySelector('#alias').textContent = `Alias: ${account.alias || '—'}`;
   document.querySelector('#cbu').textContent = `CBU: ${account.cbu || '—'}`;
+  renderCheques(account);
   const movementsNode = document.querySelector('#movements');
   movementsNode.innerHTML = '<p class="muted">Cargando movimientos…</p>';
   try {
@@ -138,14 +139,85 @@ let opActual = null;
 function errorEn(id, msg) { const n = document.getElementById(id); n.textContent = msg; n.hidden = !msg; }
 
 document.querySelector('#btn-abrir').addEventListener('click', () => {
-  document.querySelector('#f-abrir').reset(); errorEn('ab-error', ''); document.querySelector('#d-abrir').showModal();
+  document.querySelector('#f-abrir').reset(); errorEn('ab-error', ''); document.querySelector('#ab-ficha').hidden = true;
+  document.querySelector('#d-abrir').showModal();
+});
+// Al completar el CUIT, el banco consulta el padrón general y muestra la ficha.
+document.querySelector('#ab-cuit').addEventListener('input', async (e) => {
+  const cuit = e.target.value.replace(/\D/g, ''); const ficha = document.querySelector('#ab-ficha');
+  if (cuit.length !== 11) { ficha.hidden = true; return; }
+  try {
+    const f = await getJson('/padron/general/' + cuit);
+    const cuentas = (f.banco || []).map((c) => c.tipo === 'cuenta_corriente' ? 'cuenta corriente' : 'caja de ahorro');
+    ficha.innerHTML = `<strong>${escapeHtml(f.razon_social)}</strong><span>${escapeHtml(f.condicion_fiscal)} · ${f.tipo_persona === 'juridica' ? 'Persona jurídica' : 'Persona humana'}</span>` +
+      `<span>${escapeHtml(f.domicilio_fiscal || 'Sin domicilio cargado')}</span>` +
+      `<span>ARCA: ${f.arca.inscripto ? 'inscripto' : 'NO inscripto (no se puede abrir cuenta)'}${cuentas.length ? ' · Ya tiene: ' + cuentas.join(', ') : ''}</span>`;
+    ficha.className = 'ficha' + (f.arca.inscripto ? '' : ' mal');
+  } catch (error) { ficha.innerHTML = `<span>${escapeHtml(error.message)}</span>`; ficha.className = 'ficha mal'; }
+  ficha.hidden = false;
+});
+
+// ---------- Cheques de la cuenta ----------
+const ESTADO_CHEQUE = { emitido: 'Emitido', depositado: 'Depositado (en clearing)', acreditado: 'Acreditado', rechazado: 'Rechazado', anulado: 'Anulado' };
+async function renderCheques(account) {
+  const panel = document.querySelector('#cheques-panel');
+  const cc = account.tipo === 'cuenta_corriente';
+  document.querySelector('#btn-cheque').hidden = !cc;
+  document.querySelector('#cheques-nota').textContent = cc
+    ? 'Emití cheques contra esta cuenta. El beneficiario lo deposita y el banco lo acredita en el clearing si hay fondos y llegó la fecha.'
+    : 'Cheques depositados en esta caja de ahorro. Para emitir cheques hace falta una cuenta corriente.';
+  let lista = [];
+  try { lista = await getJson('/banco/cheques?cuenta=' + encodeURIComponent(account.id)); } catch { lista = []; }
+  if (selectedId !== account.id) return;
+  panel.hidden = !cc && !lista.length;
+  document.querySelector('#cheques').innerHTML = lista.length ? lista.map((q) => {
+    const propio = q.cuenta_librador === account.id;
+    const acciones = [
+      propio && q.estado === 'emitido' ? `<button class="button secondary" data-ch="depositar" data-n="${q.numero}">Depositar</button><button class="button secondary" data-ch="anular" data-n="${q.numero}">Anular</button>` : '',
+      q.estado === 'depositado' ? `<button class="button secondary" data-ch="acreditar" data-n="${q.numero}">Acreditar (clearing)</button>` : '',
+    ].join('');
+    return `<article class="movement ${propio ? 'out' : 'in'}"><span class="movement-icon">${q.canal === 'echeq' ? 'e' : '✎'}</span>
+      <span><strong>${q.canal === 'echeq' ? 'eCheq' : 'Cheque'} N° ${q.numero} · ${escapeHtml(ESTADO_CHEQUE[q.estado] || q.estado)}</strong>
+      <small>${propio ? 'A favor de ' + escapeHtml(q.beneficiario) : 'Depositado en esta cuenta'} · pago ${q.fecha_pago}${q.motivo_rechazo ? ' · ' + escapeHtml(q.motivo_rechazo) : ''}</small>
+      <span class="ch-acciones">${acciones}</span></span>
+      <span class="movement-amount">${fmt.format(q.monto)}</span></article>`;
+  }).join('') : '<p class="muted">Todavía no hay cheques en esta cuenta.</p>';
+}
+document.querySelector('#cheques').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-ch]'); if (!b) return;
+  const n = b.dataset.n; const accion = b.dataset.ch; let body = {};
+  if (accion === 'depositar') {
+    const cuenta = prompt('¿En qué cuenta lo deposita el beneficiario? (alias o CBU)');
+    if (!cuenta) return; body = { cuenta: cuenta.trim() };
+  }
+  if (accion === 'anular' && !confirm('¿Anular el cheque N° ' + n + '?')) return;
+  b.disabled = true;
+  try {
+    const r = await postJson(`/banco/cheques/${n}/${accion}`, body);
+    if (r.estado === 'rechazado') alert('Cheque rechazado: ' + r.motivo_rechazo);
+    await loadAccounts();
+  } catch (error) { showError(error.message); b.disabled = false; }
+});
+document.querySelector('#btn-cheque').addEventListener('click', () => {
+  document.querySelector('#f-cheque').reset(); errorEn('ch-error', '');
+  document.querySelector('#ch-fecha').value = new Date().toISOString().slice(0, 10);
+  document.querySelector('#d-cheque').showModal();
+});
+document.querySelector('#f-cheque').addEventListener('submit', async (e) => {
+  e.preventDefault(); const btn = e.currentTarget.querySelector('[type=submit]'); btn.disabled = true;
+  try {
+    const q = await postJson('/banco/cheques', { cuenta_librador: selectedId, beneficiario: document.querySelector('#ch-benef').value.trim(),
+      monto: Number(document.querySelector('#ch-monto').value), fecha_pago: document.querySelector('#ch-fecha').value || undefined });
+    document.querySelector('#d-cheque').close(); alert('Cheque N° ' + q.numero + ' emitido.');
+    await loadAccounts();
+  } catch (error) { errorEn('ch-error', error.message); } finally { btn.disabled = false; }
 });
 document.querySelector('#f-abrir').addEventListener('submit', async (e) => {
   e.preventDefault();
   const cuit = document.querySelector('#ab-cuit').value.replace(/\D/g, '');
   const btn = e.currentTarget.querySelector('[type=submit]'); btn.disabled = true;
   try {
-    const cuenta = await postJson('/banco/cuentas', { cuit });
+    const cuenta = await postJson('/banco/cuentas', { cuit, tipo: document.querySelector('#ab-tipo').value });
     document.querySelector('#d-abrir').close();
     selectedId = cuenta.id; await loadAccounts();
   } catch (error) { errorEn('ab-error', error.message); } finally { btn.disabled = false; }
@@ -195,3 +267,6 @@ document.querySelector('#demo-login').addEventListener('submit', (event) => {
   }
   sessionStorage.setItem(bancoDemoKey, 'ok'); activateBanco();
 });
+
+// Los botones Cancelar cierran el diálogo sin pasar por el envío del formulario.
+document.querySelectorAll('dialog [value="cancel"]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); b.closest('dialog').close(); }));

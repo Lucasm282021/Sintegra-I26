@@ -5,13 +5,34 @@
 .demo-access{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;overflow:auto;padding:24px;background:#f5f6fa;color:#14214f;font-family:system-ui,sans-serif}.demo-card{width:min(100%,516px);padding:44px 42px 36px;border:1px solid #e0e5ef;border-radius:16px;background:#fff;box-shadow:0 4px 16px #14214f12}.demo-shield{margin-bottom:28px;color:#14214f;font-size:25px}.demo-eyebrow{margin:0 0 12px;color:#89743a;font-size:14px;letter-spacing:.06em}.demo-card h1{margin:0;font-size:30px;letter-spacing:-.03em}.demo-subtitle{margin:12px 0 34px;color:#4b5470}.demo-card form{display:grid;gap:22px}.demo-card label{display:grid;gap:8px;font-size:14px;font-weight:600;text-transform:uppercase}.demo-card input{width:100%;height:54px;padding:0 15px;border:1px solid #c4cde0;border-radius:10px;background:#fff;color:#14214f;font:inherit;font-weight:400;text-transform:none}.demo-card input:focus{outline:3px solid #3f78b633;border-color:#3f78b6}.demo-card form button{height:54px;border:0;border-radius:10px;background:#14214f;color:#fff;font:600 16px system-ui;cursor:pointer}.demo-credentials{display:grid;gap:8px;margin-top:24px;padding:15px;border:1px dashed #af9b63;border-radius:10px;background:#faf8f1;font-size:14px}.demo-card footer{margin-top:26px;text-align:center;color:#596887;font-size:13px}.demo-error{margin:-10px 0;color:#a72e2e;font-size:14px}.demo-access[hidden]{display:none!important}@media(max-width:540px){.demo-access{padding:16px}.demo-card{padding:32px 24px}.demo-card h1{font-size:26px}}
 
 /* Gestión de cuentas */
-.button.primary{background:#14214F;color:#fff;border:1px solid #14214F}
+.button.primary{background:#45d5bd;color:#04211c;border:1px solid #45d5bd;font-weight:700}
+.button.primary:hover{background:#6ee3cf}
 .button.full{width:100%;margin:.4rem 0 .8rem}
 .ops{display:flex;gap:.5rem;flex-wrap:wrap;margin:.9rem 0}
 .ops .button{flex:1 1 120px;min-height:44px}
-dialog{border:1px solid #E3E6EF;border-radius:14px;padding:1.2rem;width:min(92vw,440px);margin:auto;color:#14214F}
+dialog{border:1px solid #3a5878;border-radius:16px;padding:1.4rem;width:min(92vw,460px);margin:auto;background:#10203a;color:#eef4fc;box-shadow:0 24px 60px #000a}
+dialog h2{margin:0 0 .2rem;color:#fff;font-size:1.3rem}
+dialog .muted{color:#b4c6dc;font-size:.85rem;line-height:1.5}
 dialog::backdrop{background:rgb(14 24 56/.5)}
 .dlg{display:grid;gap:.6rem}
-.dlg label{display:grid;gap:.25rem;font-weight:600;font-size:.9rem}
-.dlg input{min-height:44px;border:1px solid #C9CEDC;border-radius:8px;padding:.5rem .7rem;font:inherit}
+.dlg label{display:grid;gap:.3rem;font-weight:600;font-size:.88rem;color:#d9e6f5}
+.dlg input,.dlg select{min-height:44px;border:1px solid #4a6a8e;border-radius:9px;padding:.5rem .7rem;font:inherit;background:#07111f;color:#fff}
+.dlg input:focus,.dlg select:focus{outline:none;border-color:#45d5bd;box-shadow:0 0 0 3px #45d5bd33}
+.dlg input::placeholder{color:#7f93ad}
 .dlg-actions{display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap}
+
+/* Padrón y cheques */
+.ficha{display:grid;gap:.2rem;padding:.7rem .8rem;border:1px solid #2f8f7d;border-radius:10px;background:#0c2b2a;color:#c9f3ea;font-size:.85rem}
+.ficha strong{color:#fff}
+.ficha.mal{border-color:#a24b55;background:#33161c;color:#ffd0d3}
+.cheques-panel{margin-top:24px;padding:18px;border:1px solid #2c4560;border-radius:15px;background:#0d1b2c}
+.cheques-panel .section-title .button{min-height:38px}
+.ch-acciones{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.45rem}
+.ch-acciones .button{padding:6px 10px;font-size:11px}
+.top-actions a.button{text-decoration:none;font-size:13px}
+@media(max-width:760px){.top-actions a.button{display:none}}
+
+dialog{max-width:calc(100vw - 32px);overflow-x:hidden}
+.dlg input,.dlg select{width:100%;min-width:0}
+.dlg label{min-width:0}
+@media(max-width:420px){.account{flex-wrap:wrap}.account-balance{width:100%;text-align:right}}

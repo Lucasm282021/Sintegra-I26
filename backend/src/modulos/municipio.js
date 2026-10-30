@@ -56,13 +56,10 @@ router.post('/comercios', ruta(async (req) => {
     if ((await c.query('select 1 from municipio.habilitaciones where cuit=$1', [b.cuit])).rows[0]) {
       throw falla(409, 'el comercio ya tiene un trámite de habilitación en el municipio');
     }
-    // Si ARCA ya informó el CUIT, se reutiliza sin pisar sus datos. Crear el CUIT
-    // desde Municipio queda solo por compatibilidad (deprecado: lo hace ARCA).
+    // Como en la realidad, el municipio habilita a un contribuyente que ya tiene
+    // CUIT en ARCA. Municipio no crea identidades fiscales ni pisa los datos de ARCA.
     const previo = (await c.query('select cuit from padron.contribuyentes where cuit=$1', [b.cuit])).rows[0];
-    if (!previo) {
-      await c.query(`insert into padron.contribuyentes (cuit, razon_social, tipo_persona, condicion_iva, domicilio_fiscal)
-        values ($1,$2,$3,$4,$5)`, [b.cuit, razon, /^[23]/.test(b.cuit) ? 'fisica' : 'juridica', iva, direccion]);
-    }
+    if (!previo) throw falla(409, 'el CUIT no está inscripto en ARCA: primero hay que inscribirlo en ARCA');
     const comercio = (await c.query(`insert into municipio.habilitaciones (cuit, rubro, domicilio, estado)
       values ($1,$2,$3,'pendiente') returning *`, [b.cuit, rubro, direccion])).rows[0];
     return { status: 201, body: { comercio: {

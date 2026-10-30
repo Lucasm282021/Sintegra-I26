@@ -7,7 +7,8 @@ const { registrarEvento, entregarEvento } = require('./webhooks');
 
 const router = express.Router();
 
-const filaCuenta = (c) => ({ id: c.id, cuit: c.cuit, titular: c.titular, cbu: c.cbu, alias: c.alias, saldo: num(c.saldo) });
+const CLAVE_DEMO = 'demo1234';
+const filaCuenta = (c) => ({ id: c.id, cuit: c.cuit, titular: c.titular, cbu: c.cbu, alias: c.alias, saldo: num(c.saldo), tipo: c.tipo || 'caja_ahorro' });
 const filaMovimiento = (m) => ({
   id: m.id, id_operacion: m.id_operacion, tipo: m.tipo, cuenta_origen: m.cuenta_origen,
   cuenta_destino: m.cuenta_destino, monto: num(m.monto), estado: m.estado, fecha: new Date(m.creado_en).toISOString(),
@@ -157,23 +158,28 @@ router.post('/pagos', ruta(async (req) => {
 
 // Apertura de cuenta (sandbox). Banco es el único que asigna CBU y alias. Si el
 // CUIT ya tiene cuenta, la devuelve (idempotente). Exige el CUIT en el padrón.
-async function abrirCuenta(c, { cuit, titular }) {
-  const existente = await cuentaPorCuit(c, cuit);
+async function abrirCuenta(c, { cuit, titular, tipo = 'caja_ahorro' }) {
+  if (!['caja_ahorro', 'cuenta_corriente'].includes(tipo)) throw falla(400, 'tipo debe ser caja_ahorro o cuenta_corriente');
+  const existente = (await c.query("select * from banco.cuentas where cuit = $1 and coalesce(tipo, 'caja_ahorro') = $2 order by creado_en limit 1", [cuit, tipo])).rows[0];
   if (existente) return { cuenta: existente, creada: false };
   const sujeto = (await c.query('select razon_social from padron.contribuyentes where cuit = $1', [cuit])).rows[0];
-  if (!sujeto) throw falla(409, 'el CUIT debe figurar en el padrón fiscal antes de abrir una cuenta');
+  if (!sujeto) throw falla(409, 'el CUIT debe figurar en el padrón fiscal (inscripto en ARCA) antes de abrir una cuenta');
+  const cc = tipo === 'cuenta_corriente';
   const cuenta = (await c.query(
-    `insert into banco.cuentas (id, cuit, titular, cbu, alias, saldo)
-     values ($1, $2, $3, $4, $5, 0) returning *`,
-    [`cuenta-${cuit}`, cuit, titular || sujeto.razon_social, `0000003100${cuit}0`, `${cuit}.banco.m`],
+    `insert into banco.cuentas (id, cuit, titular, cbu, alias, saldo, tipo)
+     values ($1, $2, $3, $4, $5, 0, $6) returning *`,
+    [cc ? `cc-${cuit}` : `cuenta-${cuit}`, cuit, titular || sujeto.razon_social,
+      `0000003100${cuit}${cc ? 1 : 0}`, cc ? `${cuit}.cc.banco.m` : `${cuit}.banco.m`, tipo],
   )).rows[0];
+  await c.query(`insert into banco.homebanking (cuit, password_hash)
+    values ($1, extensions.crypt($2, extensions.gen_salt('bf'))) on conflict (cuit) do nothing`, [cuit, CLAVE_DEMO]);
   return { cuenta, creada: true };
 }
 
 router.post('/cuentas', ruta(async (req) => {
-  const { cuit, titular } = req.body || {};
+  const { cuit, titular, tipo } = req.body || {};
   if (!cuitValido(cuit)) throw falla(400, 'cuit debe tener 11 dígitos, sin puntos ni guiones');
-  const { cuenta, creada } = await tx((c) => abrirCuenta(c, { cuit, titular }));
+  const { cuenta, creada } = await tx((c) => abrirCuenta(c, { cuit, titular, tipo: tipo || 'caja_ahorro' }));
   return { status: creada ? 201 : 200, body: filaCuenta(cuenta) };
 }));
 
@@ -231,4 +237,132 @@ router.post('/transferencias', ruta(async (req) => {
   });
 }));
 
-module.exports = { router, transferir, cuentaPorCuit, abrirCuenta, cuentaPorReferencia };
+// ---------- Cheques (cuentas corrientes) ----------
+// Circuito real simplificado: el titular de una cuenta corriente emite (libra) un
+// cheque; el beneficiario lo deposita en su cuenta; el banco lo acredita en el
+// clearing si llegó la fecha de pago y el librador tiene fondos, o lo rechaza.
+const filaCheque = (q) => ({
+  id: q.id, numero: q.numero, cuenta_librador: q.cuenta_librador, beneficiario: q.beneficiario, monto: num(q.monto),
+  fecha_emision: q.fecha_emision, fecha_pago: q.fecha_pago, estado: q.estado, cuenta_deposito: q.cuenta_deposito,
+  movimiento_id: q.movimiento_id, motivo_rechazo: q.motivo_rechazo, canal: q.canal, beneficiario_cuit: q.beneficiario_cuit,
+});
+const SELECT_CHEQUE = `select id, numero, cuenta_librador, beneficiario, monto, fecha_emision::text as fecha_emision,
+  fecha_pago::text as fecha_pago, estado, cuenta_deposito, movimiento_id, motivo_rechazo, canal, beneficiario_cuit, creado_en from banco.cheques`;
+
+async function emitirCheque(c, { cuenta_librador, beneficiario, monto, fecha_pago, canal = 'fisico', beneficiario_cuit = null }) {
+  const cuenta = await cuentaPorReferencia(c, cuenta_librador);
+  if (!cuenta) throw falla(404, 'cuenta del librador no encontrada');
+  if (cuenta.tipo !== 'cuenta_corriente') throw falla(409, 'solo una cuenta corriente puede emitir cheques');
+  if (!String(beneficiario || '').trim()) throw falla(400, 'indicá el beneficiario del cheque');
+  if (!montoValido(monto)) throw falla(400, 'monto inválido');
+  if (fecha_pago && !/^\d{4}-\d{2}-\d{2}$/.test(String(fecha_pago))) throw falla(400, 'fecha_pago debe tener formato AAAA-MM-DD');
+  const n = num((await c.query('select count(*) n from banco.cheques')).rows[0].n) + 1;
+  const numero = String(10000000 + n);
+  return (await c.query(`insert into banco.cheques (numero, cuenta_librador, beneficiario, monto, fecha_pago, canal, beneficiario_cuit)
+    values ($1, $2, $3, $4, coalesce($5::date, current_date), $6, $7) returning id, numero`,
+    [numero, cuenta.id, String(beneficiario).trim().slice(0, 120), monto, fecha_pago || null, canal, beneficiario_cuit])).rows[0];
+}
+
+router.get('/cheques', ruta(async (req) => {
+  const cuenta = req.query.cuenta ? await cuentaPorReferencia({ query }, req.query.cuenta) : null;
+  if (req.query.cuenta && !cuenta) throw falla(404, 'cuenta no encontrada');
+  const { rows } = await query(`${SELECT_CHEQUE} where ($1::text is null or cuenta_librador = $1 or cuenta_deposito = $1)
+    order by creado_en desc limit 200`, [cuenta?.id || null]);
+  return { body: rows.map(filaCheque) };
+}));
+
+router.post('/cheques', ruta(async (req) => {
+  const b = req.body || {};
+  const { id } = await tx((c) => emitirCheque(c, b));
+  return { status: 201, body: filaCheque((await query(`${SELECT_CHEQUE} where id = $1`, [id])).rows[0]) };
+}));
+
+async function chequePorNumero(c, numero) {
+  const q = (await c.query(`${SELECT_CHEQUE} where numero = $1 for update`, [String(numero)])).rows[0];
+  if (!q) throw falla(404, 'cheque no encontrado');
+  return q;
+}
+
+async function depositarCheque(c, numero, cuentaRef) {
+  const q = await chequePorNumero(c, numero);
+  if (q.estado !== 'emitido') throw falla(409, `el cheque está ${q.estado}`);
+  const destino = await cuentaPorReferencia(c, cuentaRef);
+  if (!destino) throw falla(404, 'no existe la cuenta donde se deposita (revisá alias o CBU)');
+  if (destino.id === q.cuenta_librador) throw falla(409, 'no se puede depositar en la misma cuenta que lo emitió');
+  if (q.beneficiario_cuit && destino.cuit !== q.beneficiario_cuit) throw falla(409, 'el eCheq solo se deposita en una cuenta de su beneficiario');
+  await c.query("update banco.cheques set estado = 'depositado', cuenta_deposito = $2, actualizado_en = now() where id = $1", [q.id, destino.id]);
+  return filaCheque((await c.query(`${SELECT_CHEQUE} where id = $1`, [q.id])).rows[0]);
+}
+
+router.post('/cheques/:numero/depositar', ruta(async (req) => tx(async (c) => ({ body: await depositarCheque(c, req.params.numero, req.body?.cuenta) }))));
+
+// Clearing: acredita si llegó la fecha y hay fondos; si no hay fondos, lo rechaza.
+router.post('/cheques/:numero/acreditar', ruta(async (req) => tx(async (c) => ({ body: await acreditarCheque(c, req.params.numero) }))));
+
+async function acreditarCheque(c, numero) {
+  const q = await chequePorNumero(c, numero);
+  if (q.estado !== 'depositado') throw falla(409, `el cheque está ${q.estado}: primero hay que depositarlo`);
+  if ((await c.query('select $1::date > current_date as futuro', [q.fecha_pago])).rows[0].futuro) {
+    throw falla(409, `cheque de pago diferido: se puede cobrar desde el ${q.fecha_pago}`);
+  }
+  const librador = (await c.query('select saldo from banco.cuentas where id = $1', [q.cuenta_librador])).rows[0];
+  if (num(librador.saldo) < num(q.monto)) {
+    await c.query("update banco.cheques set estado = 'rechazado', motivo_rechazo = 'sin fondos suficientes', actualizado_en = now() where id = $1", [q.id]);
+  } else {
+    const { movimiento } = await transferir(c, { id_operacion: `cheque:${q.numero}`, tipo: 'cheque', origen: q.cuenta_librador,
+      destino: q.cuenta_deposito, monto: num(q.monto), payload: { cheque: q.numero } });
+    await c.query("update banco.cheques set estado = 'acreditado', movimiento_id = $2, actualizado_en = now() where id = $1", [q.id, movimiento.id]);
+  }
+  return filaCheque((await c.query(`${SELECT_CHEQUE} where id = $1`, [q.id])).rows[0]);
+}
+
+router.post('/cheques/:numero/anular', ruta(async (req) => tx(async (c) => {
+  const q = await chequePorNumero(c, req.params.numero);
+  if (q.estado !== 'emitido') throw falla(409, 'solo se anula un cheque que todavía no se depositó');
+  await c.query("update banco.cheques set estado = 'anulado', actualizado_en = now() where id = $1", [q.id]);
+  return { body: filaCheque((await c.query(`${SELECT_CHEQUE} where id = $1`, [q.id])).rows[0]) };
+})));
+
+// ---------- Homebanking ----------
+// Cada cliente entra con su CUIT y su clave (simulación: demo1234 al abrir la cuenta).
+const SISTEMA = ['20000000001', '30000000097', '30000000098', '30000000099'];
+async function resumenCliente(cuit) {
+  const cliente = (await query(`select cuit, razon_social, condicion_iva, domicilio_fiscal from padron.contribuyentes where cuit = $1`, [cuit])).rows[0];
+  const cuentas = (await query('select * from banco.cuentas where cuit = $1 order by creado_en', [cuit])).rows.map(filaCuenta);
+  const ids = cuentas.map((x) => x.id);
+  const movimientos = (await query(`select * from banco.movimientos where cuenta_origen = any($1) or cuenta_destino = any($1)
+    order by creado_en desc limit 30`, [ids])).rows.map((m) => ({ ...filaMovimiento(m),
+    sentido: ids.includes(m.cuenta_destino) && !ids.includes(m.cuenta_origen) ? 'credito' : ids.includes(m.cuenta_origen) && !ids.includes(m.cuenta_destino) ? 'debito' : 'interno' }));
+  const cheques = (await query(`${SELECT_CHEQUE} where cuenta_librador = any($1) or cuenta_deposito = any($1) or beneficiario_cuit = $2
+    order by creado_en desc limit 50`, [ids, cuit])).rows.map((q) => ({ ...filaCheque(q), rol: ids.includes(q.cuenta_librador) ? 'emitido' : 'recibido' }));
+  const billetera = (await query('select alias, saldo from billetera.cuentas where cuit = $1', [cuit])).rows[0];
+  return { cliente, cuentas, movimientos, cheques, billetera: billetera ? { alias: billetera.alias, saldo: num(billetera.saldo) } : null,
+    echeq_disponible: cuentas.some((x) => x.tipo === 'cuenta_corriente') };
+}
+
+router.post('/homebanking/login', ruta(async (req) => {
+  const { cuit, clave } = req.body || {};
+  if (!cuitValido(cuit) || SISTEMA.includes(cuit)) throw falla(400, 'ingresá tu CUIT de 11 dígitos, sin guiones');
+  if (typeof clave !== 'string' || !clave) throw falla(400, 'la clave es obligatoria');
+  const u = (await query('select (password_hash = extensions.crypt($2, password_hash)) as ok from banco.homebanking where cuit = $1', [cuit, clave])).rows[0];
+  if (!u || !u.ok) throw falla(401, 'CUIT o clave incorrectos (¿tenés cuenta en Banco M?)');
+  await query('update banco.homebanking set ultimo_ingreso = now() where cuit = $1', [cuit]);
+  return { body: await resumenCliente(cuit) };
+}));
+
+router.get('/homebanking/:cuit/resumen', ruta(async (req) => {
+  if (!cuitValido(req.params.cuit)) throw falla(400, 'CUIT inválido');
+  if (!(await query('select 1 from banco.homebanking where cuit = $1', [req.params.cuit])).rows[0]) throw falla(404, 'el CUIT no tiene homebanking');
+  return { body: await resumenCliente(req.params.cuit) };
+}));
+
+router.post('/homebanking/clave', ruta(async (req) => {
+  const { cuit, clave_actual, clave_nueva } = req.body || {};
+  if (typeof clave_nueva !== 'string' || clave_nueva.length < 6) throw falla(400, 'la clave nueva debe tener al menos 6 caracteres');
+  const { rows } = await query(`update banco.homebanking set password_hash = extensions.crypt($3, extensions.gen_salt('bf'))
+    where cuit = $1 and password_hash = extensions.crypt($2, password_hash) returning cuit`, [cuit, String(clave_actual || ''), clave_nueva]);
+  if (!rows[0]) throw falla(401, 'la clave actual no es correcta');
+  return { body: { ok: true } };
+}));
+
+module.exports = { router, transferir, cuentaPorCuit, abrirCuenta, cuentaPorReferencia, emitirCheque, depositarCheque, acreditarCheque, filaCheque, SELECT_CHEQUE };

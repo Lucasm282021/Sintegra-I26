@@ -57,4 +57,12 @@ async function calcularPercepcion(c, { agenteCuit, sujetoCuit, base }) {
     motivo: padron ? 'alícuota del padrón ARBA del comprador' : 'comprador fuera del padrón: alícuota para no inscriptos' };
 }
 
-module.exports = { calcularIva, tipoComprobante, calcularPercepcion, r2, TASAS_IVA };
+// Precio de venta al público desde el costo: costo + margen de ganancia, y el IVA
+// encima solo si el comercio es Responsable Inscripto (el monotributista no lo factura).
+function precioDesdeCosto(costo, margen, iva, condicionEmisor) {
+  const conGanancia = Number(costo) * (1 + Number(margen || 0));
+  const tasa = condicionEmisor === 'responsable_inscripto' && String(iva) !== 'exento' ? (TASAS_IVA[String(iva)] ?? 0.21) : 0;
+  return r2(conGanancia * (1 + tasa));
+}
+
+module.exports = { calcularIva, tipoComprobante, calcularPercepcion, precioDesdeCosto, r2, TASAS_IVA };

@@ -7,7 +7,7 @@ const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('.
 const { transferir, cuentaPorReferencia } = require('./banco');
 const { pagar: pagarBilletera } = require('./billetera');
 const { registrarEvento, entregarEvento } = require('./webhooks');
-const { calcularIva, tipoComprobante, calcularPercepcion } = require('./impuestos');
+const { calcularIva, tipoComprobante, calcularPercepcion, precioDesdeCosto } = require('./impuestos');
 
 const router = express.Router();
 const IVAS = ['21', '10.5', '27', '0', 'exento'];
@@ -76,32 +76,51 @@ router.get('/productos', ruta(async (req) => {
     and ($1::text is null or p.terminal_id=$1) and ($2::text is null or p.comercio_cuit=$2)
     order by p.nombre`, [terminal_id || null, comercioCuit || null,incluirInactivos]);
   return { body: rows.map((r) => ({ id: r.id, terminal_id: r.terminal_id, comercio_cuit: r.comercio_cuit,
-    codigo: r.codigo, nombre: r.nombre, categoria:r.categoria||'General', precio: num(r.precio), stock: r.stock, activo: r.activo })) };
+    codigo: r.codigo, nombre: r.nombre, categoria:r.categoria||'General', precio: num(r.precio), stock: r.stock, activo: r.activo,
+    iva: r.iva || '21', costo: r.costo === null ? null : num(r.costo), margen: r.margen === null ? null : num(r.margen) })) };
 }));
+
+// Precio de venta: si llega costo (y margen), se calcula; si no, se usa el precio informado.
+async function resolverPrecio(b, comercioCuit) {
+  if (b.costo === undefined || b.costo === null || b.costo === '') {
+    if (!montoValido(b.precio)) throw falla(400, 'indicá el precio de venta o el costo del producto');
+    return { precio: b.precio, costo: null, margen: null };
+  }
+  if (!montoValido(Number(b.costo))) throw falla(400, 'el costo debe ser positivo y con hasta dos decimales');
+  const margen = Number(b.margen ?? 0);
+  if (!(margen >= 0 && margen < 10)) throw falla(400, 'margen debe ser una fracción entre 0 y 10 (ej.: 0.3 = 30 %)');
+  const emisor = (await query('select condicion_iva from padron.contribuyentes where cuit=$1', [comercioCuit])).rows[0];
+  return { precio: precioDesdeCosto(Number(b.costo), margen, b.iva ?? '21', emisor?.condicion_iva), costo: Number(b.costo), margen };
+}
+const filaProducto = (p) => ({ ...p, precio: num(p.precio), costo: p.costo === null ? null : num(p.costo), margen: p.margen === null ? null : num(p.margen) });
 
 router.post('/productos', ruta(async (req) => {
   const b = req.body || {};
-  if (!idValido(b.terminal_id) || !cuitValido(b.comercio_cuit) || !String(b.nombre || '').trim() || !montoValido(b.precio)) {
-    throw falla(400, 'terminal_id, comercio_cuit, nombre y precio positivo son obligatorios');
+  if (!idValido(b.terminal_id) || !cuitValido(b.comercio_cuit) || !String(b.nombre || '').trim()) {
+    throw falla(400, 'terminal_id, comercio_cuit y nombre son obligatorios');
   }
   const iva = String(b.iva ?? '21');
   if (!IVAS.includes(iva)) throw falla(400, 'iva debe ser 21, 10.5, 27, 0 o exento');
-  const { rows } = await query(`insert into tpv.productos(terminal_id,comercio_cuit,codigo,nombre,categoria,precio,stock,activo,iva)
-    select $1,$2::padron.cuit,$3,$4,$5,$6,$7,$8,$9 where exists(select 1 from tpv.terminales where id=$1)
+  const precios = await resolverPrecio(b, b.comercio_cuit);
+  b.precio = precios.precio;
+  const { rows } = await query(`insert into tpv.productos(terminal_id,comercio_cuit,codigo,nombre,categoria,precio,stock,activo,iva,costo,margen)
+    select $1,$2::padron.cuit,$3,$4,$5,$6,$7,$8,$9,$10,$11 where exists(select 1 from tpv.terminales where id=$1)
       and exists(select 1 from padron.contribuyentes where cuit=$2::padron.cuit)
     returning *`, [b.terminal_id, b.comercio_cuit, b.codigo || null, String(b.nombre).trim(), b.categoria||'General',b.precio,
-    b.stock === undefined ? null : b.stock,b.activo!==false,iva]);
+    b.stock === undefined ? null : b.stock,b.activo!==false,iva,precios.costo,precios.margen]);
   if (!rows[0]) throw falla(404, 'terminal o comercio no encontrado');
-  const p = rows[0]; return { status: 201, body: { ...p, precio: num(p.precio) } };
+  return { status: 201, body: filaProducto(rows[0]) };
 }));
 router.put('/productos/:id', ruta(async(req)=>{
   const b=req.body||{};
-  if(!idValido(req.params.id)||!String(b.nombre||'').trim()||!montoValido(b.precio)) throw falla(400,'producto, nombre y precio positivo son obligatorios');
+  if(!idValido(req.params.id)||!String(b.nombre||'').trim()) throw falla(400,'producto y nombre son obligatorios');
   if(b.iva!==undefined&&!IVAS.includes(String(b.iva))) throw falla(400,'iva debe ser 21, 10.5, 27, 0 o exento');
-  const {rows}=await query(`update tpv.productos set nombre=$2,categoria=$3,precio=$4,stock=$5,activo=$6,iva=coalesce($7,iva)
-    where id=$1 returning *`,[req.params.id,String(b.nombre).trim(),b.categoria||'General',b.precio,b.stock===undefined?null:b.stock,b.activo!==false,b.iva===undefined?null:String(b.iva)]);
-  if(!rows[0]) throw falla(404,'producto no encontrado');
-  return {body:{...rows[0],precio:num(rows[0].precio)}};
+  const actual=(await query('select * from tpv.productos where id=$1',[req.params.id])).rows[0];
+  if(!actual) throw falla(404,'producto no encontrado');
+  const precios=await resolverPrecio({ ...b, iva: b.iva ?? actual.iva }, actual.comercio_cuit);
+  const {rows}=await query(`update tpv.productos set nombre=$2,categoria=$3,precio=$4,stock=$5,activo=$6,iva=coalesce($7,iva),costo=$8,margen=$9
+    where id=$1 returning *`,[req.params.id,String(b.nombre).trim(),b.categoria||'General',precios.precio,b.stock===undefined?null:b.stock,b.activo!==false,b.iva===undefined?null:String(b.iva),precios.costo,precios.margen]);
+  return {body:filaProducto(rows[0])};
 }));
 
 // Listado con detalle (líneas, comprobante, percepción y cliente) para las cajas
@@ -151,7 +170,7 @@ router.get('/ventas/:id', ruta(async (req) => {
   const factura=v.ref_comprobante?(await query('select * from arca.comprobantes where id=$1',[v.ref_comprobante])).rows[0]:null;
   return { body: { ...v, estado:v.estado.toUpperCase(), creada:v.creado_en, subtotal: num(v.subtotal), percepcion: num(v.percepcion), total: num(v.total),
     createdAt:v.creado_en,lineas:items.map((i)=>({producto_id:i.producto_id,nombre:i.nombre,descripcion:i.nombre,cantidad:i.cantidad,precio_unitario:num(i.precio_unitario),subtotal:num(i.precio_unitario)*i.cantidad})),
-    pago:{medio:v.medio_pago,medio_pago:v.medio_pago,id_movimiento:movimiento?.id||billetera?.id||v.ref_pago,transaccion_id:movimiento?.id||billetera?.id||v.ref_pago,cuenta_origen:movimiento?.cuenta_origen||null,cuit_pagador:billetera?.cuit||null},
+    pago:{medio:v.medio_detalle==='efectivo'?'efectivo':v.medio_pago,medio_pago:v.medio_detalle==='efectivo'?'efectivo':v.medio_pago,id_movimiento:movimiento?.id||billetera?.id||v.ref_pago,transaccion_id:movimiento?.id||billetera?.id||v.ref_pago,cuenta_origen:movimiento?.cuenta_origen||null,cuit_pagador:billetera?.cuit||null},
     comprobante:factura?{id:factura.id,tipo_comprobante:factura.tipo_comprobante,numero_comprobante:factura.numero,
       cae:`FICTICIO-${factura.cae}`,estado:'simulado',validez_fiscal:false}:null,
     intentos:1,etapa_pendiente:null,ultimo_error:null,items:items.map((i) => ({ ...i, precio_unitario: num(i.precio_unitario) })) } };
@@ -234,6 +253,10 @@ router.post('/ventas', ruta(async (req) => {
       if (!cuitValido(b.cuit_cliente || b.cuitComprador || b.cuit_pagador)) throw falla(400, 'cuit_cliente es obligatorio para pagar con billetera');
       const pago = await pagarBilletera(c, { id_venta: `tpv:${idVenta}`, origenCuit: b.cuit_cliente || b.cuitComprador || b.cuit_pagador, destinoCuit: comercioCuit, monto: total, op: 'pago', exigirDestino: false, liquidarBanco: true });
       pagoId = pago.body.movimiento.id;
+    } else if (medio === 'efectivo') {
+      // Efectivo: el dinero queda en la caja del comercio; no hay movimiento bancario.
+      // La venta igual se factura en ARCA y percibe en ARBA. Se deposita luego en el Banco.
+      pagoId = null;
     } else {
       const cuentaDestino = vinculacion?.cuenta_destino || (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [comercioCuit])).rows[0]?.id;
       if (!cuentaDestino) throw falla(404, 'comercio sin cuenta bancaria asociada');

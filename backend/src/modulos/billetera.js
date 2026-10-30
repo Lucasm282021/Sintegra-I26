@@ -213,7 +213,7 @@ async function pagar(c, { id_venta, origenCuit, destinoCuit, monto, op, exigirDe
   const saldoDestino = num(cuentaDestino.saldo) + monto;
   const m = await movimiento(c, {
     id_operacion: id_venta, cuenta: origen, tipo: 'pago', monto, saldo: saldoOrigen, payload_hash,
-    contraparte: destino ? `Pago a ${destino.alias}` : `Pago a comercio ${destinoCuit}`, contraparte_cuit: destinoCuit,
+    contraparte: op === 'transferencia' ? `Transferencia a ${destino?.alias || destinoCuit}` : destino ? `Pago a ${destino.alias}` : `Pago a comercio ${destinoCuit}`, contraparte_cuit: destinoCuit,
     banco_movimiento_id: bancoMovimiento.id,
   });
   if (destino) {
@@ -315,6 +315,104 @@ router.post('/pagos', ruta(async (req) => {
   const result = await tx((c) => pagar(c, { id_venta, origenCuit: cuit, destinoCuit: comercio_cuit, monto, op: 'pago', exigirDestino: false, liquidarBanco: true, terminal_id }));
   if (result.body._webhookEventId) { result.body.webhook=await entregarEvento(result.body._webhookEventId); delete result.body._webhookEventId; }
   return result;
+}));
+
+// Transferencia desde la billetera a otra persona por CUIT, alias de billetera o
+// alias/CBU bancario. Si el destinatario tiene billetera, se le acredita; si no,
+// va a su cuenta bancaria. Todo queda en el libro del Banco.
+router.post('/transferencias', ruta(async (req) => {
+  const { id_venta, cuit_origen, destino, monto } = req.body || {};
+  if (!idValido(id_venta)) throw falla(400, 'id_venta es obligatorio');
+  if (!cuitValido(cuit_origen)) throw falla(400, 'cuit_origen debe tener 11 dígitos');
+  if (!montoValido(monto)) throw falla(400, 'monto debe ser un número positivo de hasta dos decimales');
+  const ref = String(destino || '').trim();
+  if (!ref) throw falla(400, 'indicá el CUIT, alias o CBU del destinatario');
+  const result = await tx(async (c) => {
+    let destinoCuit = /^\d{11}$/.test(ref) ? ref : null;
+    if (!destinoCuit) destinoCuit = (await c.query('select cuit from billetera.cuentas where lower(alias) = lower($1)', [ref])).rows[0]?.cuit;
+    if (!destinoCuit) destinoCuit = (await c.query('select cuit from banco.cuentas where lower(alias) = lower($1) or cbu = $1 limit 1', [ref])).rows[0]?.cuit;
+    if (!destinoCuit) throw falla(404, 'no encontramos una billetera ni una cuenta con ese CUIT, alias o CBU');
+    if (destinoCuit === cuit_origen) throw falla(400, 'no podés transferirte a vos mismo');
+    return pagar(c, { id_venta, origenCuit: cuit_origen, destinoCuit, monto, op: 'transferencia', exigirDestino: false, liquidarBanco: true });
+  });
+  delete result.body._webhookEventId;
+  return result;
+}));
+
+// ---------- eCheq ----------
+// Disponible si el titular tiene cuenta corriente en Banco M. Se libra a un CUIT
+// (o al alias de su billetera/cuenta); el beneficiario lo cobra desde su billetera
+// y se acredita en su caja de ahorro cuando llega la fecha de pago y hay fondos.
+const bancoM = () => require('./banco');
+async function cuitDesdeReferencia(c, ref) {
+  ref = String(ref || '').trim();
+  if (/^\d{11}$/.test(ref)) return ref;
+  return (await c.query('select cuit from billetera.cuentas where lower(alias) = lower($1)', [ref])).rows[0]?.cuit
+    || (await c.query('select cuit from banco.cuentas where lower(alias) = lower($1) or cbu = $1 limit 1', [ref])).rows[0]?.cuit;
+}
+
+router.get('/echeqs', ruta(async (req) => {
+  const cuit = req.query.cuit;
+  if (!cuitValido(cuit)) throw falla(400, 'cuit es obligatorio');
+  const { filaCheque, SELECT_CHEQUE } = bancoM();
+  const cc = (await query("select id, saldo from banco.cuentas where cuit = $1 and tipo = 'cuenta_corriente'", [cuit])).rows[0];
+  const emitidos = cc ? (await query(`${SELECT_CHEQUE} where canal = 'echeq' and cuenta_librador = $1 order by creado_en desc limit 50`, [cc.id])).rows.map(filaCheque) : [];
+  const recibidos = (await query(`${SELECT_CHEQUE} where canal = 'echeq' and beneficiario_cuit = $1 order by creado_en desc limit 50`, [cuit])).rows.map(filaCheque);
+  return { body: { disponible: Boolean(cc), cuenta_corriente: cc ? { id: cc.id, saldo: num(cc.saldo) } : null, emitidos, recibidos,
+    motivo: cc ? null : 'Para emitir eCheq necesitás una cuenta corriente en Banco M. Igual podés recibir y cobrar eCheq.' } };
+}));
+
+router.post('/echeqs', ruta(async (req) => {
+  const { cuit_origen, destino, monto, fecha_pago } = req.body || {};
+  if (!cuitValido(cuit_origen)) throw falla(400, 'cuit_origen debe tener 11 dígitos');
+  if (!montoValido(monto)) throw falla(400, 'monto debe ser un número positivo de hasta dos decimales');
+  const { emitirCheque, filaCheque, SELECT_CHEQUE } = bancoM();
+  const cheque = await tx(async (c) => {
+    const cc = (await c.query("select id from banco.cuentas where cuit = $1 and tipo = 'cuenta_corriente'", [cuit_origen])).rows[0];
+    if (!cc) throw falla(409, 'eCheq no disponible: necesitás una cuenta corriente en Banco M');
+    const benef = await cuitDesdeReferencia(c, destino);
+    if (!benef) throw falla(404, 'no encontramos ese CUIT, alias o CBU');
+    if (benef === cuit_origen) throw falla(400, 'no podés librarte un eCheq a vos mismo');
+    const sujeto = (await c.query('select razon_social from padron.contribuyentes where cuit = $1', [benef])).rows[0];
+    if (!sujeto) throw falla(409, 'el beneficiario tiene que figurar en el padrón (inscripto en ARCA)');
+    const { id } = await emitirCheque(c, { cuenta_librador: cc.id, beneficiario: sujeto.razon_social, monto, fecha_pago, canal: 'echeq', beneficiario_cuit: benef });
+    return filaCheque((await c.query(`${SELECT_CHEQUE} where id = $1`, [id])).rows[0]);
+  });
+  return { status: 201, body: cheque };
+}));
+
+// El beneficiario lo cobra: se deposita en su caja de ahorro y entra al clearing.
+router.post('/echeqs/:numero/cobrar', ruta(async (req) => {
+  const cuit = req.body?.cuit;
+  if (!cuitValido(cuit)) throw falla(400, 'cuit es obligatorio');
+  const { depositarCheque, acreditarCheque } = bancoM();
+  return tx(async (c) => {
+    const q = (await c.query("select * from banco.cheques where numero = $1 and canal = 'echeq'", [String(req.params.numero)])).rows[0];
+    if (!q) throw falla(404, 'eCheq no encontrado');
+    if (q.beneficiario_cuit !== cuit) throw falla(403, 'solo el beneficiario puede cobrar este eCheq');
+    const cuenta = (await c.query("select id from banco.cuentas where cuit = $1 order by (tipo = 'caja_ahorro') desc, creado_en limit 1", [cuit])).rows[0];
+    if (!cuenta) throw falla(409, 'para cobrar un eCheq necesitás una cuenta en Banco M');
+    let r = q.estado === 'emitido' ? await depositarCheque(c, q.numero, cuenta.id) : null;
+    if ((r?.estado || q.estado) !== 'depositado') throw falla(409, `el eCheq está ${q.estado}`);
+    if ((await c.query('select $1::date > current_date as futuro', [q.fecha_pago])).rows[0].futuro) {
+      return { body: { ...r, aviso: `eCheq de pago diferido: queda depositado y se acredita desde el ${String(q.fecha_pago instanceof Date ? q.fecha_pago.toISOString().slice(0, 10) : q.fecha_pago)}` } };
+    }
+    r = await acreditarCheque(c, q.numero);
+    return { body: r };
+  });
+}));
+
+router.post('/echeqs/:numero/anular', ruta(async (req) => {
+  const cuit = req.body?.cuit;
+  return tx(async (c) => {
+    const q = (await c.query(`select q.*, b.cuit as librador_cuit from banco.cheques q join banco.cuentas b on b.id = q.cuenta_librador
+      where q.numero = $1 and q.canal = 'echeq' for update`, [String(req.params.numero)])).rows[0];
+    if (!q) throw falla(404, 'eCheq no encontrado');
+    if (q.librador_cuit !== cuit) throw falla(403, 'solo quien lo emitió puede anularlo');
+    if (q.estado !== 'emitido') throw falla(409, 'solo se anula un eCheq que todavía no se cobró');
+    await c.query("update banco.cheques set estado = 'anulado', actualizado_en = now() where id = $1", [q.id]);
+    return { body: { numero: q.numero, estado: 'anulado' } };
+  });
 }));
 
 router.post('/qr/pagos', ruta(async (req) => {

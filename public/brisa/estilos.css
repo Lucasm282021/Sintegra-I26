@@ -427,3 +427,10 @@ td.num, td .num { font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Compras y producto por costo */
+.acciones-cabecera{display:flex;gap:.5rem;flex-wrap:wrap}
+.subtitulo{margin:1.6rem 0 .6rem;font-size:1.1rem}
+.item-compra{border-bottom:1px dashed var(--borde, #ddd);padding-bottom:.4rem;margin-bottom:.4rem}
+#form-producto select,#form-compras select{min-height:42px;width:100%;font:inherit;padding:.4rem .5rem;border:1px solid var(--borde, #ccc);border-radius:8px;background:#fff}
+#p-precio[readonly]{background:#f4f6fa}

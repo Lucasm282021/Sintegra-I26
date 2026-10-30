@@ -48,7 +48,7 @@ const BILLETERA_MOCK = process.env.BILLETERA_MOCK === "true";
 const TPV_BACKEND_URL = process.env.TPV_BACKEND_URL?.trim();
 const backendTpv = TPV_BACKEND_URL
   ? new BackendTpv({ url: TPV_BACKEND_URL, terminalId: process.env.TPV_TERMINAL_ID?.trim() || "david",
-      comercioCuit: process.env.TPV_COMERCIO_CUIT?.trim() || "30712345678" })
+      comercioCuit: process.env.TPV_COMERCIO_CUIT?.trim() || "20268326074" })
   : null;
 const ventaRepository = backendTpv ? new BackendVentaRepository(backendTpv) : new FileVentaRepository();
 const productoRepository = backendTpv ? new BackendProductoRepository(backendTpv) : new FileProductoRepository();

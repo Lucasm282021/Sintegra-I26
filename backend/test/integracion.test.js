@@ -140,6 +140,14 @@ test('alta Municipio y venta integral TPV idempotente sobre la base compartida',
   assert.equal(altaCuitInvalido.status, 400);
   assert.match(altaCuitInvalido.body.error, /dígito verificador/i);
 
+  // Sin CUIT en ARCA no hay habilitación: Municipio no crea identidades fiscales.
+  const sinArca = await api('POST', '/municipio/comercios', {
+    cuit: '20123456786', razon_social: 'Comercio de integración', condicion_fiscal: 'Monotributista',
+    direccion: 'Calle 1 123', rubro_principal: 'Servicios',
+  });
+  assert.equal(sinArca.status, 409);
+  assert.match(sinArca.body.error, /ARCA/);
+  assert.equal((await api('POST', '/arca/contribuyentes', { cuit: '20123456786', razon_social: 'Comercio de integración', condicion_iva: 'monotributo' })).status, 201);
   const alta = await api('POST', '/municipio/comercios', {
     cuit: '20123456786', razon_social: 'Comercio de integración', condicion_fiscal: 'Monotributista',
     direccion: 'Calle 1 123', rubro_principal: 'Servicios',

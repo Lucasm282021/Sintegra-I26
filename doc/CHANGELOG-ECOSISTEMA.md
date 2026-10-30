@@ -2,6 +2,30 @@
 
 Qué se conserva, modifica, reemplaza, depreca o elimina en cada entrega. Lo anterior al 2026-10-29 está en [AVANCES-UNIFICACION.md](AVANCES-UNIFICACION.md).
 
+## 2026-10-30 — Prueba real: padrón general, compras, cheques, eCheq y homebanking
+
+### Agregado
+- Migraciones `20261030000018_precios_efectivo_cheques.sql` y `20261030000019_echeq_homebanking.sql` (solo agregan; aplicadas en Supabase).
+- **Padrón general** `GET /padron/general?buscar=` y `/padron/general/:cuit`: ARCA + comercios del CORE pendientes de inscripción, con estado en ARBA, Municipio, Banco y Billetera. Lo usan ARCA (Mateo, pestaña «Padrón general»), ARBA (Lucas, alta), Municipio (Cristian, alta y pendientes), Banco (apertura de cuenta) y TPV Brisa (proveedores).
+- **TPV**: precio desde costo + % de ganancia + IVA (`costo`, `margen`, `iva`); cobro en **efectivo** (factura y percepción sin movimiento bancario).
+- **Compras a proveedores** (`backend/src/modulos/compras.js`) y pantalla «Compras» en TPV Brisa. Ver [COMPRAS-Y-PROVEEDORES.md](COMPRAS-Y-PROVEEDORES.md).
+- **Banco**: caja de ahorro y cuenta corriente; cheques (emitir, depositar, clearing, rechazo por fondos, pago diferido, anular). Ver [BANCO-Y-CHEQUES.md](BANCO-Y-CHEQUES.md).
+- **Billetera**: transferir por CUIT, alias o CBU y **eCheq** (emitir, cobrar, anular).
+- **Homebanking** (`public/homebanking/`): cada cliente entra con su CUIT y la clave demo `demo1234`.
+- Scripts: `respaldar.js`, `limpiar-prueba-real.js` (con simulacro) y `sembrar-prueba-real.js`.
+- Suite: 48/48.
+
+### Modificado
+- Municipio exige que el CUIT esté inscripto en ARCA (409 si no).
+- ARBA (Tomi) con `ARBA_BACKEND_URL`: rechaza CUIT no inscriptos en ARCA y sincroniza el padrón IIBB común.
+- TPV David: comercio por defecto 20268326074 (Comercio i26).
+- Banco y Homebanking: diálogos con colores legibles; el botón Cancelar cierra sin enviar.
+
+### Datos de producción
+- Respaldo completo fuera del repo: `C:/PROYECTOS 2026/fintech segundo/respaldos/2026-10-30-antes-prueba-real` (436 filas). Se borraron los datos de prueba (incluidos «Lucina», «Vanina» y el QA).
+- Quedan **Mauricio Sistisisti · Comercio i26 · 20268326074** (Responsable Inscripto, agente ARBA, TPV Brisa y David) y **Kiosco Ficticio Monotributo · 27401260264** (TPV Sebastián); clientes demo Ana, Marcos y Laura (30000000001-3) con caja de ahorro.
+- Verificado en producción: venta Brisa por banco (Factura B + percepción), Sebastián en efectivo (Factura C), David con billetera, transferencia de billetera, eCheq acreditado y homebanking.
+
 ## 2026-10-29 (cierre) — Integración real de TPV David y ARCA de Mateo
 
 ### Agregado

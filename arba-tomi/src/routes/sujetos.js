@@ -5,6 +5,16 @@ const router = express.Router();
 const states = ['borrador','pendiente_revision','observado','aprobado','activo','inactivo'];
 const json = (value, fallback = []) => { try { return JSON.parse(value || ''); } catch { return fallback; } };
 const stamp = () => new Date().toISOString();
+// Con ARBA_BACKEND_URL, ARBA Tomi trabaja integrado al ecosistema: el CUIT tiene
+// que existir en ARCA y la inscripción activa se registra en el ARBA común, que
+// es el padrón que usan los TPV para percibir. Ver doc/MAPA-INTEGRACION.md.
+const COMUN = (process.env.ARBA_BACKEND_URL || '').trim().replace(/\/$/, '');
+async function comun(metodo, ruta, body) {
+  try {
+    const r = await fetch(COMUN + ruta, { method: metodo, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  } catch { return { status: 503, body: { error: 'el backend común no responde' } }; }
+}
 function audit(db, actor, action, row, previous, next, detail = {}) {
   db.prepare('INSERT INTO auditoria_sujetos (actor_id,accion,tipo_sujeto,sujeto_cuit,estado_anterior,estado_posterior,fecha,detalle_json) VALUES (?,?,?,?,?,?,?,?)')
     .run(actor.id, action, row.tipo_titular, row.cuit, previous || null, next || null, stamp(), JSON.stringify(detail));
@@ -34,8 +44,13 @@ router.get('/:cuit', (req, res) => {
   if (req.user.rol !== 'admin' && row.creado_por !== req.user.id) return res.status(403).json({ error: 'permiso denegado' });
   return res.json(publicSubject(row));
 });
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const error = validate(req.body); if (error) return res.status(400).json({ error });
+  if (COMUN) {
+    const arca = await comun('GET', `/arca/contribuyentes/${req.body.cuit}`);
+    if (arca.status === 404) return res.status(409).json({ error: 'el CUIT no está inscripto en ARCA: primero hay que inscribirlo en ARCA' });
+    if (arca.status !== 200) return res.status(502).json({ error: arca.body.error || 'no se pudo consultar ARCA' });
+  }
   const db = req.app.locals.db; const b = req.body; const current = stamp();
   const status = b.estado_tramite === 'borrador' ? 'borrador' : 'borrador';
   const legalName = b.tipo_titular === 'persona_humana' ? b.apellido_nombres.trim() : b.razon_social.trim();
@@ -68,11 +83,18 @@ router.put('/:cuit', (req, res) => {
 router.post('/:cuit/enviar-revision', (req,res) => transition(req,res,'pendiente_revision',['borrador','observado'],'enviar_revision'));
 router.post('/:cuit/aprobar', adminRequired, (req,res) => transition(req,res,'aprobado',['pendiente_revision','observado'],'aprobar'));
 router.post('/:cuit/observar', adminRequired, (req,res) => transition(req,res,'observado',['pendiente_revision'],'observar'));
-router.patch('/:cuit/estado-operativo', adminRequired, (req,res) => {
+router.patch('/:cuit/estado-operativo', adminRequired, async (req,res) => {
   const db=req.app.locals.db; const row=db.prepare('SELECT * FROM padron WHERE cuit=?').get(req.params.cuit);
   if(!row) return res.status(404).json({error:'sujeto no encontrado'});
   const {estado,alicuota,aplicaciones}=req.body||{}; if(!['activo','inactivo'].includes(estado)||!Number.isFinite(alicuota)||alicuota<0||alicuota>1||!aplicaciones||typeof aplicaciones.arba_iibb!=='boolean'||typeof aplicaciones.arca_facturacion!=='boolean') return res.status(400).json({error:'configuracion operativa invalida'});
   if(estado==='activo'&&!['aprobado','inactivo'].includes(row.estado_tramite)) return res.status(409).json({error:'el sujeto debe estar aprobado'});
+  if (COMUN) {
+    // Primero el padrón común; si falla, no se cambia nada acá.
+    const r = estado === 'activo' && aplicaciones.arba_iibb
+      ? await comun('POST', '/arba/padron', { cuit: row.cuit, actividad: row.actividad, alicuota })
+      : await comun('DELETE', `/arba/padron/${row.cuit}`);
+    if (r.status >= 400 && !(r.status === 404 && estado !== 'activo')) return res.status(r.status === 404 ? 409 : 502).json({ error: r.body.error || 'no se pudo actualizar el padrón común de ARBA' });
+  }
   db.prepare('UPDATE padron SET estado=?,alicuota=?,aplicaciones=?,estado_tramite=?,actualizado_en=?,revisado_por=? WHERE cuit=?').run(estado,alicuota,JSON.stringify(aplicaciones),estado==='activo'?'activo':'inactivo',stamp(),req.user.id,req.params.cuit);
   const next=db.prepare('SELECT * FROM padron WHERE cuit=?').get(req.params.cuit);audit(db,req.user,'configurar_estado_operativo',next,row.estado_tramite,next.estado_tramite);return res.json(publicSubject(next));
 });

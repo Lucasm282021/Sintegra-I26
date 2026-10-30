@@ -33,6 +33,7 @@
       <a href="#/vender" data-ruta="vender">Vender</a>
       <a href="#/ventas" data-ruta="ventas">Ventas</a>
       <a href="#/productos" data-ruta="productos">Productos</a>
+      <a href="#/compras" data-ruta="compras">Compras</a>
       <a href="#/comercios" data-ruta="comercios">Comercios</a>
     </nav>
 
@@ -69,6 +70,13 @@
               <small>Pago con billetera virtual</small>
             </span>
           </label>
+          <label class="medio">
+            <input type="radio" name="medio" value="efectivo">
+            <span class="medio-caja">
+              <strong>Efectivo</strong>
+              <small>Queda en la caja del comercio</small>
+            </span>
+          </label>
         </fieldset>
 
         <div class="campo" id="campo-cuenta">
@@ -78,7 +86,7 @@
         </div>
 
         <div class="campo" id="campo-cuit" hidden>
-          <label for="cuit-pagador">CUIT de quien paga</label>
+          <label for="cuit-pagador" id="cuit-pagador-label">CUIT de quien paga</label>
           <input id="cuit-pagador" name="cuit_pagador" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="27123456789">
           <p class="ayuda">11 números, sin guiones.</p>
         </div>
@@ -117,8 +125,23 @@
         </div>
         <div class="campos-fila">
           <div class="campo">
-            <label for="p-precio">Precio</label>
-            <div class="con-prefijo"><span>$</span><input id="p-precio" name="precio" inputmode="decimal" required placeholder="0,00"></div>
+            <label for="p-costo">Costo</label>
+            <div class="con-prefijo"><span>$</span><input id="p-costo" name="costo" inputmode="decimal" placeholder="0,00"></div>
+          </div>
+          <div class="campo">
+            <label for="p-margen">Ganancia %</label>
+            <input id="p-margen" name="margen" type="number" min="0" max="900" step="0.1" placeholder="30">
+          </div>
+          <div class="campo">
+            <label for="p-iva">IVA</label>
+            <select id="p-iva" name="iva"><option value="21">21 %</option><option value="10.5">10,5 %</option><option value="27">27 %</option><option value="0">0 %</option><option value="exento">Exento</option></select>
+          </div>
+        </div>
+        <p class="ayuda" id="p-calculo">Cargá costo y ganancia: el precio de venta se calcula solo.</p>
+        <div class="campos-fila">
+          <div class="campo">
+            <label for="p-precio">Precio de venta</label>
+            <div class="con-prefijo"><span>$</span><input id="p-precio" name="precio" inputmode="decimal" placeholder="0,00"></div>
           </div>
           <div class="campo">
             <label for="p-stock">Stock</label>
@@ -187,6 +210,21 @@
       <ul class="lista-conexiones" id="lista-conexiones"></ul>
       <p class="ayuda">Las direcciones se configuran con variables de entorno del TPV.</p>
     </div>
+  </dialog>
+
+  <!-- Compras: proveedores, facturas y pagos -->
+  <dialog id="dialogo-compras" class="dialogo" aria-labelledby="compras-titulo">
+    <form id="form-compras" method="dialog" novalidate>
+      <header class="dialogo-cabecera">
+        <h2 id="compras-titulo">Compras</h2>
+        <button type="button" class="boton-icono" data-cerrar aria-label="Cerrar">&times;</button>
+      </header>
+      <div class="dialogo-cuerpo" id="compras-cuerpo"></div>
+      <footer class="dialogo-pie" id="compras-pie">
+        <button type="button" class="boton boton-secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="boton boton-primario" id="compras-ok">Guardar</button>
+      </footer>
+    </form>
   </dialog>
 
   <div class="aviso" id="aviso" role="status" aria-live="polite"></div>

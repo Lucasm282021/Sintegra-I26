@@ -7,4 +7,5 @@ window.addEventListener('load', () => SintegraTour.init({ app: 'tpv-brisa', step
   { element: '#ticket', title: '3. El ticket', text: 'Revisá cantidades y el subtotal. La percepción de IIBB se calcula al cobrar.' },
   { element: '#cobrar', title: '4. Cobrar', text: 'Elegí el medio de pago. Si el cliente da su CUIT, se aplica la percepción y la factura que corresponde.' },
   { element: '#conexiones', title: 'Conexiones', text: 'Muestra si Banco, ARBA y ARCA están respondiendo.' },
+  { element: 'a[data-ruta="compras"]', title: 'Compras', text: 'Proveedores, facturas de compra y cuenta corriente. La compra suma stock y actualiza el costo.' },
 ]}));

@@ -32,7 +32,7 @@ function apiUrl(path) {
 }
 
 function TpvApp() {
-  const [cuit, setCuit] = useState('30712345678');
+  const [cuit, setCuit] = useState('27401260264');
   const [comercios, setComercios] = useState([]);
   const [productos, setProductos] = useState([]);
   const [categoriaSel, setCategoriaSel] = useState('Todos');
@@ -40,7 +40,7 @@ function TpvApp() {
   const [carrito, setCarrito] = useState([]);
   const [medioPago, setMedioPago] = useState('BANCO');
   const [cuentaOrigen, setCuentaOrigen] = useState('cuenta-mostrador');
-  const [cuitPagador, setCuitPagador] = useState('20268326074');
+  const [cuitPagador, setCuitPagador] = useState('30000000001');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [ventaCompletada, setVentaCompletada] = useState(null);
@@ -176,7 +176,9 @@ function TpvApp() {
       medio_pago: medioPago.toLowerCase(),
       ...(medioPago === 'BANCO'
         ? { cuenta_origen: cuentaOrigen }
-        : { cuit_pagador: cuitPagador }),
+        : medioPago === 'EFECTIVO'
+          ? (/^\d{11}$/.test(cuitPagador.trim()) ? { cuit_cliente: cuitPagador.trim() } : {})
+          : { cuit_pagador: cuitPagador }),
     };
     if (!pendingSale) setPendingSale(payload);
 
@@ -439,7 +441,7 @@ function TpvApp() {
                 MEDIO DE PAGO:
               </label>
               <div className="payment-methods">
-                {['BANCO', 'BILLETERA'].map((pm) => (
+                {['BANCO', 'BILLETERA', 'EFECTIVO'].map((pm) => (
                   <button
                     key={pm}
                     className={`pm-btn ${medioPago === pm ? 'active' : ''}`}
@@ -463,6 +465,20 @@ function TpvApp() {
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #374151', padding: '6px 8px', borderRadius: 4, color: '#fff' }}
                   />
                   <small className="merchant-bank-link">El cobro se acredita en {comercioActual?.cuenta_alias || 'la cuenta bancaria vinculada'} · CBU {comercioActual?.cuenta_cbu || 'pendiente'}</small>
+                </div>
+              )}
+
+              {medioPago === 'EFECTIVO' && (
+                <div style={{ marginTop: 8, fontSize: 11 }}>
+                  <input
+                    type="text"
+                    value={cuitPagador}
+                    disabled={Boolean(pendingSale)}
+                    onChange={(e) => setCuitPagador(e.target.value)}
+                    placeholder="CUIT del cliente (opcional)"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #374151', padding: '6px 8px', borderRadius: 4, color: '#fff', width: '100%' }}
+                  />
+                  <small className="merchant-bank-link">El efectivo queda en la caja del comercio. La factura y la percepción se registran igual.</small>
                 </div>
               )}
 

@@ -344,3 +344,11 @@ input, button { min-width: 0; }
   .account-facts dd { max-width: 58%; }
   .bottom-nav a span, .bottom-nav button span { display: grid; place-items: center; }
 }
+
+/* Transferir y eCheq */
+.quick-actions{grid-template-columns:repeat(auto-fit,minmax(78px,1fr))}
+.echeq-sub{margin:16px 0 6px;font-size:14px}
+.echeq-list{display:grid;gap:8px}
+.echeq-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border:1px solid #e1e5ee;border-radius:10px;font-size:13px}
+.echeq-item small{display:block;color:#5b6680;margin-top:2px}
+#echeq-form{display:grid;gap:8px}

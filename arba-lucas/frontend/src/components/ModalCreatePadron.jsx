@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { arbaService } from '../services/arbaService';
 
 export default function ModalCreatePadron({ isOpen, onClose, onSave }) {
   const [cuit, setCuit] = useState('');
   const [actividad, setActividad] = useState('');
   const [alicuotaPct, setAlicuotaPct] = useState('');
   const [errors, setErrors] = useState({});
+  const [ficha, setFicha] = useState('');
 
   if (!isOpen) return null;
 
@@ -78,11 +80,20 @@ export default function ModalCreatePadron({ isOpen, onClose, onSave }) {
                 onChange={(e) => {
                   setCuit(e.target.value);
                   if (errors.cuit) setErrors((prev) => ({ ...prev, cuit: null }));
+                  setFicha('');
+                  const v = e.target.value.trim();
+                  if (/^\d{11}$/.test(v)) {
+                    arbaService.padronGeneral(v).then((r) => {
+                      const f = r?.data ?? r;
+                      if (f?.cuit) setFicha(f.arca?.inscripto ? `${f.razon_social} · ${f.condicion_fiscal}${f.arba ? ' · ya inscripto en ARBA' : ''}` : `${f.razon_social}: todavía no está inscripto en ARCA`);
+                      else setFicha('No figura en el padrón general: primero tiene que inscribirse en ARCA.');
+                    }).catch(() => setFicha('No figura en el padrón general: primero tiene que inscribirse en ARCA.'));
+                  }
                 }}
                 required
               />
               <span className="field-error">{errors.cuit}</span>
-              <span className="field-hint">Ingresar los 11 dígitos continuos sin guiones ni espacios.</span>
+              <span className="field-hint">{ficha || 'Ingresar los 11 dígitos continuos sin guiones ni espacios.'}</span>
             </div>
 
             <div className="form-field">

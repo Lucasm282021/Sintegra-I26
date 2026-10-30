@@ -34,6 +34,7 @@ app.use('/arba', require('./modulos/arba').router);
 app.use('/arca', require('./modulos/arca').router);
 app.use('/municipio', require('./modulos/municipio'));
 app.use('/tpv', require('./modulos/webhooks').router);
+app.use('/tpv', require('./modulos/compras'));
 app.use('/tpv', require('./modulos/tpv'));
 
 app.use((_req, res) => res.status(404).json({ error: 'ruta no encontrada' }));

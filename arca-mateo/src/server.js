@@ -295,6 +295,55 @@ app.get('/arca/contribuyentes/:cuit', requireAuth, async (req, res) => {
   return res.status(200).json(contributor);
 });
 
+// ---------- Trámites ante ARCA (padrón fiscal común) ----------
+const ADMINS = requireRole('superadmin', 'admin');
+const soloBackend = (res) => error(res, 503, 'Disponible cuando ARCA trabaja con el backend común (ARCA_BACKEND_URL)');
+const reenviar = async (res, metodo, ruta, body) => {
+  const r = await backend(metodo, ruta, body);
+  return res.status(r.status).json(r.status >= 400 ? { error: r.body.error || 'No se pudo completar la operación' } : r.body);
+};
+
+// Ficha del comercio en todo el ecosistema (ARBA, Municipio, Banco, Billetera).
+app.get('/arca/ficha/:cuit', requireAuth, async (req, res) => {
+  if (!validCuit(req.params.cuit)) return error(res, 400, 'El cuit debe tener 11 dígitos');
+  if (!BACKEND) return soloBackend(res);
+  return reenviar(res, 'GET', `/padron/contribuyentes/${req.params.cuit}`);
+});
+
+// Padrón general: lo inscripto en ARCA más los comercios cargados en «Comercios · Alta única»
+// que todavía esperan su inscripción.
+app.get('/arca/padron-general', requireAuth, async (req, res) => {
+  if (!BACKEND) return soloBackend(res);
+  return reenviar(res, 'GET', `/padron/general?buscar=${encodeURIComponent(String(req.query.buscar || '').slice(0, 60))}`);
+});
+app.get('/arca/padron-general/:cuit', requireAuth, async (req, res) => {
+  if (!validCuit(req.params.cuit)) return error(res, 400, 'El cuit debe tener 11 dígitos');
+  if (!BACKEND) return soloBackend(res);
+  return reenviar(res, 'GET', `/padron/general/${req.params.cuit}`);
+});
+
+// Inscripción de un contribuyente (alta de CUIT en el padrón fiscal).
+app.post('/arca/contribuyentes', requireAuth, ADMINS, async (req, res) => {
+  const b = req.body || {};
+  if (!validCuit(b.cuit)) return error(res, 400, 'El cuit debe tener 11 dígitos');
+  if (!BACKEND) return soloBackend(res);
+  return reenviar(res, 'POST', '/arca/contribuyentes', { cuit: b.cuit, razon_social: b.razon_social,
+    condicion_iva: b.condicion_iva, tipo_persona: b.tipo_persona, domicilio_fiscal: b.domicilio_fiscal });
+});
+
+// Puntos de venta habilitados para facturar.
+app.get('/arca/puntos-venta', requireAuth, async (req, res) => {
+  if (!validCuit(req.query.cuit)) return error(res, 400, 'Indicá el cuit (11 dígitos)');
+  if (!BACKEND) return soloBackend(res);
+  return reenviar(res, 'GET', `/arca/puntos-venta?cuit=${req.query.cuit}`);
+});
+app.post('/arca/puntos-venta', requireAuth, ADMINS, async (req, res) => {
+  const b = req.body || {};
+  if (!validCuit(b.cuit)) return error(res, 400, 'El cuit debe tener 11 dígitos');
+  if (!BACKEND) return soloBackend(res);
+  return reenviar(res, 'POST', '/arca/puntos-venta', { cuit: b.cuit, punto_venta: Number(b.punto_venta) });
+});
+
 app.post('/arca/comprobantes', requireAuth, async (req, res) => {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) return error(res, 400, 'El cuerpo debe ser un objeto JSON');
   const allowed = new Set(['id_venta', 'cuit', 'monto_total', 'tipo_comprobante']);

@@ -125,6 +125,8 @@ document.querySelectorAll('[data-open-modal]').forEach((button) => {
   button.addEventListener('click', () => {
     if (state.account && button.dataset.openModal === 'payment-modal') byId('payment-cuit').value = state.account.cuit;
     if (button.dataset.openModal === 'qr-modal') selectQrMode('pay');
+    if (button.dataset.openModal === 'transfer-modal') { byId('transfer-form').reset(); byId('transfer-ficha').textContent = ''; }
+    if (button.dataset.openModal === 'echeq-modal') loadEcheqs();
     byId(button.dataset.openModal).showModal();
   });
 });
@@ -353,6 +355,72 @@ byId('payment-form').addEventListener('submit', async (event) => {
     renderAccount(account);
     idempotencia.clear();
     notify('Pago realizado correctamente');
+  } catch (error) { notify(error.message); }
+});
+
+// ---------- Transferir por CUIT, alias o CBU ----------
+const jsonPost = (url, body) => request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+byId('transfer-dest').addEventListener('input', async (event) => {
+  const ref = event.target.value.trim();
+  byId('transfer-ficha').textContent = '';
+  if (/^\d{11}$/.test(ref)) {
+    try { const r = await request(`/billetera/qr/${ref}`); byId('transfer-ficha').textContent = `Destinatario: ${r.titular} · ${r.alias}`; }
+    catch { byId('transfer-ficha').textContent = 'Sin billetera: se acredita en su cuenta bancaria si la tiene.'; }
+  }
+});
+byId('transfer-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!state.account) return notify('Ingresá a tu billetera');
+  const idem = idVentaDeReintento('transferencia');
+  try {
+    const result = await jsonPost('/billetera/transferencias', { id_venta: idem.id, cuit_origen: state.account.cuit,
+      destino: byId('transfer-dest').value.trim(), monto: Number(byId('transfer-amount').value) });
+    idem.clear();
+    closeModal(byId('transfer-modal'));
+    renderAccount(result);
+    notify('Transferencia realizada');
+  } catch (error) { notify(error.message); }
+});
+
+// ---------- eCheq ----------
+const ESTADO_ECHEQ = { emitido: 'Emitido', depositado: 'Depositado', acreditado: 'Acreditado', rechazado: 'Rechazado', anulado: 'Anulado' };
+async function loadEcheqs() {
+  if (!state.account) return;
+  try {
+    const e = await request(`/billetera/echeqs?cuit=${state.account.cuit}`);
+    byId('echeq-estado').textContent = e.disponible
+      ? `Disponible: tenés cuenta corriente (saldo ${money(e.cuenta_corriente.saldo)}).`
+      : e.motivo;
+    byId('echeq-form').hidden = !e.disponible;
+    byId('echeq-date').value = new Date().toISOString().slice(0, 10);
+    const fila = (q, recibido) => `<div class="echeq-item"><span><strong>N° ${q.numero} · ${money(q.monto)}</strong>
+      <small>${recibido ? 'Recibido' : 'A ' + q.beneficiario} · ${ESTADO_ECHEQ[q.estado] || q.estado} · pago ${q.fecha_pago}</small></span>
+      ${recibido && ['emitido', 'depositado'].includes(q.estado) ? `<button class="button button-small" data-cobrar="${q.numero}" type="button">Cobrar</button>` : ''}
+      ${!recibido && q.estado === 'emitido' ? `<button class="text-button" data-anular="${q.numero}" type="button">Anular</button>` : ''}</div>`;
+    byId('echeq-recibidos').innerHTML = e.recibidos.map((q) => fila(q, true)).join('') || '<p class="helper-text">No recibiste eCheq.</p>';
+    byId('echeq-emitidos').innerHTML = e.emitidos.map((q) => fila(q, false)).join('') || '<p class="helper-text">No emitiste eCheq.</p>';
+  } catch (error) { byId('echeq-estado').textContent = error.message; }
+}
+byId('echeq-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  try {
+    const q = await jsonPost('/billetera/echeqs', { cuit_origen: state.account.cuit, destino: byId('echeq-dest').value.trim(),
+      monto: Number(byId('echeq-amount').value), fecha_pago: byId('echeq-date').value || undefined });
+    event.currentTarget.reset();
+    notify(`eCheq N° ${q.numero} emitido a ${q.beneficiario}`);
+    loadEcheqs();
+  } catch (error) { notify(error.message); }
+});
+byId('echeq-modal').addEventListener('click', async (event) => {
+  const cobrar = event.target.closest('[data-cobrar]'); const anular = event.target.closest('[data-anular]');
+  if (!cobrar && !anular) return;
+  const numero = cobrar ? cobrar.dataset.cobrar : anular.dataset.anular;
+  try {
+    const r = await jsonPost(`/billetera/echeqs/${numero}/${cobrar ? 'cobrar' : 'anular'}`, { cuit: state.account.cuit });
+    notify(r.aviso || (r.estado === 'rechazado' ? `eCheq rechazado: ${r.motivo_rechazo}` : cobrar ? 'eCheq acreditado en tu cuenta' : 'eCheq anulado'));
+    loadEcheqs();
+    const cuenta = await request(`/billetera/cuentas/${state.account.id}`).catch(() => null);
+    if (cuenta) renderAccount(cuenta);
   } catch (error) { notify(error.message); }
 });
 

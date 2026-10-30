@@ -19,7 +19,7 @@ const estado = {
 const $ = (sel, raiz = document) => raiz.querySelector(sel);
 const $$ = (sel, raiz = document) => [...raiz.querySelectorAll(sel)];
 const vista = $("#vista");
-const API_BASE = "https://sintegra-backend.vercel.app";
+const API_BASE = new URLSearchParams(location.search).get("api") || (/^(localhost|127.0.0.1)$/.test(location.hostname) ? "http://localhost:3010" : "https://sintegra-backend.vercel.app");
 
 // ---------- Utilidades ----------
 
@@ -89,7 +89,7 @@ function ticketActual() {
 const ETIQUETA_ESTADO = { COMPLETADA: "Completada", PENDIENTE: "Pendiente", ERROR: "Con error" };
 const CLASE_ESTADO = { COMPLETADA: "completada", PENDIENTE: "pendiente", ERROR: "error" };
 const etiquetaEstado = (e) => `<span class="etiqueta ${CLASE_ESTADO[e] || "neutra"}">${esc(ETIQUETA_ESTADO[e] || e)}</span>`;
-const nombreMedio = (m) => (m === "billetera" ? "Billetera" : "Banco");
+const nombreMedio = (m) => (m === "billetera" ? "Billetera" : m === "efectivo" ? "Efectivo" : "Banco");
 
 // ---------- Datos base ----------
 
@@ -164,6 +164,7 @@ function enrutar() {
     case "venta": return vistaDetalleVenta(decodeURIComponent(param || ""));
     case "productos": return vistaProductos();
     case "comercios": return vistaComercios();
+    case "compras": return vistaCompras();
     default: return vistaVender();
   }
 }
@@ -519,7 +520,8 @@ function abrirCobro() {
 function actualizarMedio() {
   const medio = $('input[name="medio"]:checked', dialogoCobro).value;
   $("#campo-cuenta").hidden = medio !== "banco";
-  $("#campo-cuit").hidden = medio !== "billetera";
+  $("#campo-cuit").hidden = medio === "banco";
+  $("#cuit-pagador-label").textContent = medio === "efectivo" ? "CUIT del cliente (opcional: para Factura A y percepción)" : "CUIT de quien paga";
   $("#cobro-error").hidden = true;
 }
 
@@ -548,6 +550,10 @@ $("#form-cobro").addEventListener("submit", async (e) => {
     if (!cuenta) return errorCobro("Escribí la cuenta de quien paga.", $("#cuenta-origen"));
     cuerpo.cuenta_origen = cuenta;
     guardarPreferencia("cuenta", cuenta);
+  } else if (medio === "efectivo") {
+    const cuit = $("#cuit-pagador").value.replace(/\D/g, "");
+    if (cuit && cuit.length !== 11) return errorCobro("El CUIT tiene que tener 11 números (o dejalo vacío).", $("#cuit-pagador"));
+    if (cuit) cuerpo.cuit_cliente = cuit;
   } else {
     const cuit = $("#cuit-pagador").value.replace(/\D/g, "");
     if (cuit.length !== 11) return errorCobro("El CUIT tiene que tener 11 números.", $("#cuit-pagador"));
@@ -682,7 +688,7 @@ async function pintarTablaVentas() {
         <td class="num">${fechaHora(v.creada)}</td>
         <td class="codigo">${esc(v.id_venta)}</td>
         <td>${esc(v.razon_social)}</td>
-        <td>${nombreMedio(v.medio_pago)}</td>
+        <td>${nombreMedio(v.medio_detalle === "efectivo" ? "efectivo" : v.medio_pago)}</td>
         <td class="derecha num">${pesos(v.total ?? v.subtotal)}</td>
         <td>${etiquetaEstado(v.estado)}</td>
       </tr>`).join("")}</tbody></table></div>`;
@@ -838,7 +844,11 @@ function abrirProducto(p) {
   f.nombre.value = p?.nombre || "";
   f.categoria.value = p?.categoria || "";
   f.precio.value = p ? String(p.precio).replace(".", ",") : "";
+  f.costo.value = p?.costo != null ? String(p.costo).replace(".", ",") : "";
+  f.margen.value = p?.margen != null ? String(Math.round(p.margen * 1000) / 10) : "";
+  f.iva.value = p?.iva || "21";
   f.stock.value = p?.stock ?? "";
+  condicionComercio().then(calcularPrecioProducto);
   f.activo.checked = p ? p.activo : true;
   dialogoProducto.showModal();
   f.nombre.focus();
@@ -849,15 +859,19 @@ $("#form-producto").addEventListener("submit", async (e) => {
   const f = e.target;
   const error = $("#producto-error");
   const precio = parsearPrecio(f.precio.value);
+  const costo = f.costo.value.trim() ? parsearPrecio(f.costo.value) : null;
   const stock = Number(f.stock.value);
   const mostrar = (t, campo) => { error.textContent = t; error.hidden = false; campo?.focus(); };
 
   if (!f.nombre.value.trim()) return mostrar("Escribí el nombre del producto.", f.nombre);
   if (!f.categoria.value.trim()) return mostrar("Elegí o escribí una categoría.", f.categoria);
-  if (!(precio > 0)) return mostrar("El precio tiene que ser mayor a 0.", f.precio);
+  if (costo !== null && !(costo > 0)) return mostrar("El costo tiene que ser mayor a 0.", f.costo);
+  if (costo === null && !(precio > 0)) return mostrar("Cargá el costo y la ganancia, o el precio de venta.", f.costo);
   if (f.stock.value === "" || !Number.isInteger(stock) || stock < 0) return mostrar("El stock tiene que ser un número entero, 0 o más.", f.stock);
 
-  const cuerpo = { terminal_id: "brisa", nombre: f.nombre.value.trim(), categoria: f.categoria.value.trim(), precio, stock, activo: f.activo.checked };
+  const cuerpo = { terminal_id: "brisa", nombre: f.nombre.value.trim(), categoria: f.categoria.value.trim(), stock, activo: f.activo.checked, iva: f.iva.value };
+  if (costo !== null) Object.assign(cuerpo, { costo, margen: Number(f.margen.value || 0) / 100 });
+  else cuerpo.precio = precio;
   const r = productoEditado
     ? await api(`/tpv/productos/${encodeURIComponent(productoEditado.id)}`, { method: "PUT", body: cuerpo })
     : await api("/tpv/productos", { method: "POST", body: { ...cuerpo, comercio_cuit: estado.comercioCuit } });
@@ -868,6 +882,175 @@ $("#form-producto").addEventListener("submit", async (e) => {
   await cargarProductos();
   pintarTablaProductos();
 });
+
+// Precio sugerido mientras se escribe (el definitivo lo calcula el servidor).
+const condiciones = new Map();
+async function condicionComercio() {
+  const cuit = estado.comercioCuit;
+  if (!cuit) return null;
+  if (!condiciones.has(cuit)) {
+    const r = await api(`/padron/general/${cuit}`);
+    condiciones.set(cuit, r.ok ? r.data.condicion_iva : null);
+  }
+  return condiciones.get(cuit);
+}
+const TASAS = { 21: 0.21, "10.5": 0.105, 27: 0.27, 0: 0, exento: 0 };
+function calcularPrecioProducto() {
+  const f = $("#form-producto");
+  const costo = parsearPrecio(f.costo.value);
+  const nota = $("#p-calculo");
+  if (!(costo > 0)) { nota.textContent = "Cargá costo y ganancia: el precio de venta se calcula solo. O escribí el precio directo."; f.precio.readOnly = false; return; }
+  const ri = condiciones.get(estado.comercioCuit) === "responsable_inscripto";
+  const margen = Number(f.margen.value || 0) / 100;
+  const tasa = ri ? TASAS[f.iva.value] : 0;
+  const precio = Math.round(costo * (1 + margen) * (1 + tasa) * 100) / 100;
+  f.precio.value = String(precio).replace(".", ",");
+  f.precio.readOnly = true;
+  nota.textContent = ri
+    ? `${pesos(costo)} + ${f.margen.value || 0} % de ganancia + IVA ${f.iva.value === "exento" ? "exento" : f.iva.value + " %"} = ${pesos(precio)}`
+    : `${pesos(costo)} + ${f.margen.value || 0} % de ganancia = ${pesos(precio)} (monotributo: no suma IVA)`;
+}
+["costo", "margen", "iva"].forEach((n) => $("#form-producto")[n].addEventListener("input", calcularPrecioProducto));
+
+// =====================================================================
+// COMPRAS: proveedores, facturas de compra y cuenta corriente
+// =====================================================================
+
+let proveedores = [];
+const dialogoCompras = $("#dialogo-compras");
+let accionCompras = null;
+
+async function vistaCompras() {
+  document.title = "Compras | Mostrador";
+  const comercio = comercioActual();
+  if (!comercio) { location.hash = "#/comercios"; return; }
+  await cargarProductos();
+  const r = await api(`/tpv/proveedores?comercio_cuit=${comercio.cuit}`);
+  proveedores = r.ok ? r.data : [];
+  const deuda = proveedores.reduce((s, p) => s + p.saldo, 0);
+  vista.innerHTML = `
+    <div class="pagina">
+      <div class="pagina-cabecera">
+        <div><h1>Compras</h1><p>Proveedores de ${esc(comercio.razon_social)}. Deuda total: <strong>${pesos(deuda)}</strong></p></div>
+        <div class="acciones-cabecera">
+          <button type="button" class="boton boton-secundario" id="nuevo-proveedor">Nuevo proveedor</button>
+          <button type="button" class="boton boton-primario" id="nueva-compra" ${proveedores.length ? "" : "disabled"}>Cargar factura de compra</button>
+        </div>
+      </div>
+      ${proveedores.length ? `<div class="tabla-envoltura"><table>
+        <thead><tr><th>Proveedor</th><th>Condición</th><th class="derecha">Compras</th><th class="derecha">Pagos</th><th class="derecha">Saldo</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+        <tbody>${proveedores.map((p) => `<tr>
+          <td><strong>${esc(p.razon_social)}</strong><br><span class="codigo">${p.proveedor_cuit} · ${esc(p.rubro || "Sin rubro")} · ${p.plazo_dias} días</span></td>
+          <td>${esc(String(p.condicion_iva).replace("_", " "))}</td>
+          <td class="derecha num">${pesos(p.compras)}</td><td class="derecha num">${pesos(p.pagos)}</td>
+          <td class="derecha num"><strong>${pesos(p.saldo)}</strong></td>
+          <td class="derecha"><button class="boton boton-texto" data-ctacte="${p.proveedor_cuit}">Cuenta corriente</button>
+            <button class="boton boton-texto" data-pagar="${p.proveedor_cuit}" ${p.saldo > 0 ? "" : "disabled"}>Pagar</button></td>
+        </tr>`).join("")}</tbody></table></div>`
+      : `<div class="vacio"><h3>Todavía no hay proveedores</h3><p>Un proveedor es una empresa inscripta en ARCA. Dalo de alta con su CUIT.</p></div>`}
+      <div id="ctacte"></div>
+    </div>`;
+  $("#nuevo-proveedor").addEventListener("click", abrirProveedor);
+  $("#nueva-compra").addEventListener("click", abrirCompra);
+  vista.querySelector(".tabla-envoltura")?.addEventListener("click", (e) => {
+    const c = e.target.closest("[data-ctacte]"); const p = e.target.closest("[data-pagar]");
+    if (c) verCuentaCorriente(c.dataset.ctacte);
+    if (p) abrirPago(proveedores.find((x) => x.proveedor_cuit === p.dataset.pagar));
+  });
+}
+
+function abrirDialogoCompras(titulo, html, accion, textoOk = "Guardar") {
+  $("#compras-titulo").textContent = titulo;
+  $("#compras-cuerpo").innerHTML = html + '<p class="mensaje-error" id="compras-error" role="alert" hidden></p>';
+  $("#compras-ok").textContent = textoOk;
+  accionCompras = accion;
+  dialogoCompras.showModal();
+}
+function errorCompras(t) { const p = $("#compras-error"); p.textContent = t; p.hidden = false; }
+$("#form-compras").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const b = $("#compras-ok"); b.disabled = true;
+  try { await accionCompras(); } finally { b.disabled = false; }
+});
+
+function abrirProveedor() {
+  abrirDialogoCompras("Nuevo proveedor", `
+    <div class="campo"><label for="pr-cuit">CUIT del proveedor</label><input id="pr-cuit" inputmode="numeric" maxlength="11" placeholder="11 números"></div>
+    <p class="ayuda" id="pr-ficha">Tiene que estar inscripto en ARCA. Los datos salen del padrón general.</p>
+    <div class="campos-fila"><div class="campo"><label for="pr-rubro">Rubro</label><input id="pr-rubro" placeholder="Mayorista, bebidas…"></div>
+    <div class="campo"><label for="pr-plazo">Plazo de pago (días)</label><input id="pr-plazo" type="number" min="0" max="365" value="30"></div></div>`,
+  async () => {
+    const r = await api("/tpv/proveedores", { method: "POST", body: { comercio_cuit: estado.comercioCuit, proveedor_cuit: $("#pr-cuit").value.replace(/\D/g, ""),
+      rubro: $("#pr-rubro").value.trim(), plazo_dias: Number($("#pr-plazo").value || 30) } });
+    if (!r.ok) return errorCompras(r.data?.error || "No se pudo dar de alta");
+    dialogoCompras.close(); avisar(`Proveedor ${r.data.razon_social} dado de alta`); vistaCompras();
+  }, "Dar de alta");
+  $("#pr-cuit").addEventListener("input", async (e) => {
+    const cuit = e.target.value.replace(/\D/g, ""); const ficha = $("#pr-ficha");
+    if (cuit.length !== 11) return;
+    const r = await api(`/padron/general/${cuit}`);
+    ficha.textContent = r.ok ? `${r.data.razon_social} · ${r.data.condicion_fiscal}${r.data.arca.inscripto ? "" : " · NO inscripto en ARCA"}` : (r.data?.error || "No figura en el padrón");
+  });
+}
+
+function filaItem() {
+  return `<div class="campos-fila item-compra">
+    <div class="campo"><label>Producto</label><select class="ic-prod">${estado.productos.map((p) => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("")}</select></div>
+    <div class="campo"><label>Cantidad</label><input class="ic-cant" type="number" min="1" step="1" value="1"></div>
+    <div class="campo"><label>Costo unitario</label><input class="ic-costo" inputmode="decimal" placeholder="0,00"></div></div>`;
+}
+function abrirCompra() {
+  if (!estado.productos.length) return avisar("Primero cargá productos en el catálogo");
+  abrirDialogoCompras("Factura de compra", `
+    <div class="campos-fila"><div class="campo"><label for="co-prov">Proveedor</label><select id="co-prov">${proveedores.map((p) => `<option value="${p.proveedor_cuit}">${esc(p.razon_social)}</option>`).join("")}</select></div>
+    <div class="campo"><label for="co-nro">N° de factura</label><input id="co-nro" placeholder="0001-00001234"></div></div>
+    <div id="co-items">${filaItem()}</div>
+    <button type="button" class="boton boton-texto" id="co-mas">+ Agregar otro producto</button>
+    <p class="ayuda">Suma stock y actualiza el costo. Si el producto tiene ganancia cargada, se recalcula el precio de venta. Entre Responsables Inscriptos es Factura A (con IVA discriminado).</p>`,
+  async () => {
+    const items = $$(".item-compra").map((f) => ({ producto_id: $(".ic-prod", f).value, cantidad: Number($(".ic-cant", f).value), costo_unitario: parsearPrecio($(".ic-costo", f).value) }));
+    if (items.some((i) => !(i.costo_unitario > 0) || !(i.cantidad > 0))) return errorCompras("Completá cantidad y costo de cada producto.");
+    const r = await api("/tpv/compras", { method: "POST", body: { id_compra: nuevoIdVenta(), comercio_cuit: estado.comercioCuit,
+      proveedor_cuit: $("#co-prov").value, numero_factura: $("#co-nro").value.trim(), items } });
+    if (!r.ok) return errorCompras(r.data?.error || "No se pudo registrar la compra");
+    dialogoCompras.close();
+    avisar(`${r.data.tipo_comprobante.replace("_", " ")} registrada: ${pesos(r.data.total)} (IVA ${pesos(r.data.iva)}), vence ${r.data.vencimiento}`);
+    vistaCompras();
+  }, "Registrar compra");
+  $("#co-mas").addEventListener("click", () => $("#co-items").insertAdjacentHTML("beforeend", filaItem()));
+}
+
+function abrirPago(p) {
+  abrirDialogoCompras(`Pagar a ${p.razon_social}`, `
+    <p>Deuda actual: <strong>${pesos(p.saldo)}</strong></p>
+    <div class="campos-fila"><div class="campo"><label for="pg-medio">Medio</label><select id="pg-medio">
+      <option value="transferencia">Transferencia bancaria</option><option value="cheque">Cheque (cuenta corriente)</option><option value="efectivo">Efectivo</option></select></div>
+    <div class="campo"><label for="pg-monto">Importe</label><input id="pg-monto" inputmode="decimal" value="${String(p.saldo).replace(".", ",")}"></div></div>
+    <div class="campo" id="pg-fecha-campo" hidden><label for="pg-fecha">Fecha de pago del cheque</label><input id="pg-fecha" type="date"></div>
+    <p class="ayuda">Transferencia: sale de la cuenta del comercio a la del proveedor. Cheque: se libra contra la cuenta corriente del comercio.</p>`,
+  async () => {
+    const medio = $("#pg-medio").value;
+    const r = await api(`/tpv/proveedores/${p.proveedor_cuit}/pagos`, { method: "POST", body: { id_pago: nuevoIdVenta(), comercio_cuit: estado.comercioCuit,
+      medio, monto: parsearPrecio($("#pg-monto").value), fecha_pago: medio === "cheque" ? ($("#pg-fecha").value || undefined) : undefined } });
+    if (!r.ok) return errorCompras(r.data?.error || "No se pudo registrar el pago");
+    dialogoCompras.close();
+    avisar(r.data.cheque ? `Cheque N° ${r.data.cheque} entregado. Saldo: ${pesos(r.data.saldo)}` : `Pago registrado. Saldo: ${pesos(r.data.saldo)}`);
+    vistaCompras();
+  }, "Pagar");
+  $("#pg-medio").addEventListener("change", (e) => { $("#pg-fecha-campo").hidden = e.target.value !== "cheque"; });
+}
+
+async function verCuentaCorriente(cuit) {
+  const r = await api(`/tpv/proveedores/${cuit}/cuenta-corriente?comercio_cuit=${estado.comercioCuit}`);
+  const p = proveedores.find((x) => x.proveedor_cuit === cuit);
+  if (!r.ok) return avisar(r.data?.error || "No se pudo consultar");
+  $("#ctacte").innerHTML = `<h2 class="subtitulo">Cuenta corriente · ${esc(p?.razon_social || cuit)}</h2>
+    <div class="tabla-envoltura"><table><thead><tr><th>Fecha</th><th>Detalle</th><th class="derecha">Debe</th><th class="derecha">Haber</th><th class="derecha">Saldo</th></tr></thead>
+    <tbody>${r.data.movimientos.map((m) => `<tr><td class="num">${esc(m.fecha)}</td><td>${esc(m.detalle.replace("FACTURA_", "Factura "))}</td>
+      <td class="derecha num">${m.debe ? pesos(m.debe) : ""}</td><td class="derecha num">${m.haber ? pesos(m.haber) : ""}</td><td class="derecha num">${pesos(m.saldo)}</td></tr>`).join("")
+      || '<tr><td colspan="5">Sin movimientos.</td></tr>'}</tbody></table></div>`;
+  $("#ctacte").scrollIntoView({ behavior: "smooth" });
+}
 
 // =====================================================================
 // COMERCIOS

@@ -30,13 +30,15 @@ async function abrirBaseSintetica() {
     '20261028000006_tpv_brisa_banco_m.sql', '20261028000009_qr_pagos_liquidacion.sql',
     '20261028000010_webhooks_tpv.sql', '20261028000012_municipio_habilitacion_pendiente.sql',
     '20261029000015_impuestos_configurables.sql',
-    '20261029000017_tpv_medio_detalle.sql',
+    '20261029000016_banco_operaciones.sql', '20261029000017_tpv_medio_detalle.sql',
+    '20261030000018_precios_efectivo_cheques.sql', '20261030000019_echeq_homebanking.sql',
   ];
   for (const nombre of migraciones) await pg.exec(fs.readFileSync(path.join(dir, nombre), 'utf8'));
   await pg.exec('alter table billetera.movimientos add column if not exists contraparte text;');
   // La migración municipal crea una cuenta de ejemplo. Se quita dentro de
   // esta base efímera para que el padrón de negocio contenga exactamente cinco CUIT.
-  await pg.exec(`delete from banco.cuentas where id='cuenta-municipio'; delete from padron.contribuyentes where cuit='30000000098';`);
+  await pg.exec(`delete from banco.cuentas where id='cuenta-municipio'; delete from padron.contribuyentes where cuit='30000000098';
+    delete from banco.cuentas where id='cuenta-caja'; delete from padron.contribuyentes where cuit='30000000097';`);
   await pg.exec(`
     insert into padron.contribuyentes(cuit,razon_social,tipo_persona,condicion_iva,domicilio_fiscal) values
       ('${sujetos.comercio}','Almacén Sintético Uno SRL','juridica','responsable_inscripto','Calle QA 101'),

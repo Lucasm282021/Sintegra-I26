@@ -20,7 +20,7 @@
       <span class="brand-icon">B</span>
       <span><strong>Banco M · Rodrigo</strong><small>Integrado al ecosistema Sintegra</small></span>
     </a>
-    <div class="top-actions"><span class="live"><i></i> API compartida</span><button id="refresh" class="button secondary" type="button">Actualizar</button></div>
+    <div class="top-actions"><a class="button secondary" href="../homebanking/" id="link-hb">Homebanking clientes</a><span class="live"><i></i> API compartida</span><button id="refresh" class="button secondary" type="button">Actualizar</button></div>
   </header>
   <main class="shell">
     <section class="intro">
@@ -49,6 +49,11 @@
           </div>
           <div class="section-title movement-heading"><div><p class="eyebrow">ACTIVIDAD</p><h2>Movimientos recientes</h2></div><span id="movement-count" class="muted"></span></div>
           <div id="movements" class="movements"><p class="muted">Seleccioná una cuenta para consultar movimientos.</p></div>
+          <section class="cheques-panel" id="cheques-panel" aria-live="polite" hidden>
+            <div class="section-title"><div><p class="eyebrow">CUENTA CORRIENTE</p><h2>Cheques y eCheq</h2></div><button class="button primary" type="button" id="btn-cheque">+ Emitir cheque</button></div>
+            <p class="muted" id="cheques-nota">Emití cheques contra esta cuenta. El beneficiario lo deposita y el banco lo acredita en el clearing si hay fondos y llegó la fecha.</p>
+            <div id="cheques" class="movements"></div>
+          </section>
           <section class="wallet-panel" id="wallet-panel" aria-live="polite"><p class="muted">Consultando billetera virtual…</p></section>
         </div>
         <p id="error" class="error" role="alert" hidden></p>
@@ -60,8 +65,10 @@
   <dialog id="d-abrir" aria-labelledby="da-titulo">
     <form id="f-abrir" class="dlg">
       <h2 id="da-titulo">Abrir una cuenta</h2>
-      <p class="muted">El titular tiene que estar inscripto en ARCA (padrón fiscal). El banco asigna CBU y alias.</p>
+      <p class="muted">Escribí el CUIT: el banco trae los datos del padrón general. El titular tiene que estar inscripto en ARCA.</p>
       <label>CUIT del titular<input id="ab-cuit" inputmode="numeric" maxlength="11" required placeholder="11 dígitos"></label>
+      <div id="ab-ficha" class="ficha" hidden></div>
+      <label>Tipo de cuenta<select id="ab-tipo"><option value="caja_ahorro">Caja de ahorro</option><option value="cuenta_corriente">Cuenta corriente (permite cheques y eCheq)</option></select></label>
       <p class="error" id="ab-error" role="alert" hidden></p>
       <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit">Abrir cuenta</button></div>
     </form>
@@ -76,6 +83,17 @@
       <label>Concepto (opcional)<input id="do-concepto" maxlength="120"></label>
       <p class="error" id="do-error" role="alert" hidden></p>
       <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit" id="do-ok">Confirmar</button></div>
+    </form>
+  </dialog>
+  <dialog id="d-cheque" aria-labelledby="dc-titulo">
+    <form id="f-cheque" class="dlg">
+      <h2 id="dc-titulo">Emitir cheque</h2>
+      <p class="muted">Se libra contra la cuenta corriente elegida. Con fecha futura es un cheque de pago diferido.</p>
+      <label>Beneficiario (nombre o razón social)<input id="ch-benef" required maxlength="120"></label>
+      <label>Importe en ARS<input id="ch-monto" type="number" min="0.01" step="0.01" required></label>
+      <label>Fecha de pago<input id="ch-fecha" type="date"></label>
+      <p class="error" id="ch-error" role="alert" hidden></p>
+      <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit">Emitir</button></div>
     </form>
   </dialog>
 <script src="../tour/sintegra-tour.js" defer></script>

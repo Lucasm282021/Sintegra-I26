@@ -6,6 +6,8 @@ window.addEventListener('load', () => SintegraTour.init({ app: 'banco', steps: [
   { element: '#search', title: '2. Elegí una cuenta', text: 'Buscá por titular, CUIT o alias y tocá la cuenta en la lista para ver su detalle.' },
   { element: '.balance-card', title: 'Saldo, alias y CBU', text: 'Es el saldo real que usan el TPV, la Billetera y Municipio.' },
   { element: '#ops', title: '3. Operar', text: 'Depositar o extraer efectivo, o transferir a otra cuenta por alias o CBU.' },
+  { element: '#cheques-panel h2', title: '4. Cheques', text: 'En una cuenta corriente podés emitir cheques. Después se depositan y el banco los acredita o rechaza.' },
   { element: '.movement-heading', title: 'Movimientos', text: 'Cada venta, cobro, depósito o transferencia queda registrada acá.' },
   { element: '#wallet-panel h2', title: 'Billetera virtual', text: 'El banco crea la billetera del cliente. Comparte el saldo de esta cuenta.' },
+  { element: '#link-hb', title: 'Homebanking', text: 'Cada cliente entra con su CUIT y su clave a ver sus cuentas, transferir y manejar eCheq.' },
 ]}));

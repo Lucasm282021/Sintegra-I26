@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mejoras del ecosistema</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#16203a;--muted:#5b6680;--line:#e1e5ee;--acc:#1f5fbf;--ok:#1d8a5c;--warn:#a46a00;--chip:#eef3fc}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--card:#111b2e;--text:#e8eef8;--muted:#9aa8bf;--line:#22314a;--acc:#7da8ff;--ok:#4fd1a1;--warn:#e7b65a;--chip:#17243b}}
+:root[data-theme="dark"]{--bg:#0b1220;--card:#111b2e;--text:#e8eef8;--muted:#9aa8bf;--line:#22314a;--acc:#7da8ff;--ok:#4fd1a1;--warn:#e7b65a;--chip:#17243b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 60px}
+h1{font-size:clamp(26px,4vw,38px);margin:0 0 8px;letter-spacing:-.02em}
+h2{font-size:21px;margin:36px 0 12px}
+h3{font-size:16px;margin:0 0 6px}
+p{margin:0 0 10px}
+.lead{color:var(--muted);max-width:720px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+.card li{margin:4px 0}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--acc);margin-bottom:8px}
+.flujo{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.paso{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px}
+.flecha{color:var(--muted)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--chip);font-size:12px;letter-spacing:.04em}
+.tabla{overflow-x:auto}
+code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:13px}
+.ok{color:var(--ok);font-weight:700}
+.pend{color:var(--warn);font-weight:700}
+.nota{border-left:4px solid var(--acc);background:var(--card);padding:12px 14px;border-radius:8px;margin:14px 0;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<p class="tag">ECOSISTEMA FINTECH SIMULADO · ISFDyT N° 26 · 30/10/2026</p>
+<h1>Mejoras del ecosistema</h1>
+<p class="lead">El ecosistema funciona como en la vida real: el comercio se inscribe en ARCA, se habilita en el Municipio, se inscribe en ARBA y abre cuentas en el banco. Cada venta del TPV pide CAE, calcula impuestos, registra la percepción y mueve el dinero. Todo queda en una sola base de datos (Supabase).</p>
+
+<h2>1. Recorrido de una venta</h2>
+<div class="flujo">
+  <span class="paso">TPV: carrito</span><span class="flecha">→</span>
+  <span class="paso">IVA por producto (ARCA)</span><span class="flecha">→</span>
+  <span class="paso">Percepción IIBB (ARBA)</span><span class="flecha">→</span>
+  <span class="paso">Cobro: banco, billetera o efectivo</span><span class="flecha">→</span>
+  <span class="paso">Factura A/B/C con CAE</span><span class="flecha">→</span>
+  <span class="paso">Tasa municipal del mes</span>
+</div>
+<div class="nota">Regla del negocio: <b>la identidad fiscal la crea solo ARCA</b>. ARBA, el Municipio, el Banco y los TPV exigen que el CUIT ya esté inscripto en ARCA, como en la realidad.</div>
+
+<h2>2. Qué se agregó</h2>
+<div class="grid">
+  <div class="card"><span class="tag">PADRÓN GENERAL</span><h3>Una ficha por CUIT</h3>
+    <p>ARCA, ARBA, Municipio, Banco y los TPV consultan el mismo padrón: lo inscripto en ARCA y lo cargado en «Comercios · Alta única».</p>
+    <ul><li>Muestra condición fiscal y estado en ARCA, ARBA, Municipio, cuentas bancarias y billetera.</li><li>En el banco, al escribir un CUIT aparecen los datos del titular.</li></ul></div>
+  <div class="card"><span class="tag">TPV · PRODUCTOS</span><h3>Precio desde el costo</h3>
+    <p>Se carga el <b>costo</b>, el <b>IVA</b> y el <b>% de ganancia</b>; el sistema calcula el precio de venta.</p>
+    <ul><li>Responsable Inscripto: costo × (1 + ganancia) × (1 + IVA).</li><li>Monotributista: costo × (1 + ganancia), sin IVA.</li><li>Ej.: costo $1.000, 30 %, IVA 21 % → $1.573.</li></ul></div>
+  <div class="card"><span class="tag">TPV · COBRO</span><h3>Pago en efectivo</h3>
+    <p>La venta en efectivo se factura en ARCA y percibe en ARBA igual que las demás, pero no mueve el banco: el dinero queda en la caja y después se deposita.</p></div>
+  <div class="card"><span class="tag">TPV · COMPRAS</span><h3>Proveedores y cuenta corriente</h3>
+    <ul><li>Alta de proveedores: tienen que ser empresas inscriptas en ARCA.</li><li>La factura de compra suma stock, actualiza el costo y recalcula el precio.</li><li>Entre Responsables Inscriptos la compra es Factura A, con el IVA discriminado (crédito fiscal).</li><li>Los pagos al proveedor pueden ser por transferencia, cheque o efectivo.</li><li>La cuenta corriente muestra debe, haber y saldo, y no deja pagar más de lo adeudado.</li></ul></div>
+  <div class="card"><span class="tag">BANCO</span><h3>Cuentas corrientes y cheques</h3>
+    <ul><li>Tipos de cuenta: caja de ahorro y cuenta corriente.</li><li>Ciclo del cheque: emitir → depositar → clearing → acreditado o rechazado por falta de fondos.</li><li>Un cheque de pago diferido no se cobra antes de su fecha.</li><li>Se puede anular un cheque mientras no se haya depositado.</li></ul></div>
+  <div class="card"><span class="tag">BILLETERA</span><h3>Transferencias y eCheq</h3>
+    <ul><li>Transferir a otra persona por CUIT, alias de billetera o alias/CBU bancario.</li><li>eCheq: disponible para quien tiene cuenta corriente.</li><li>El beneficiario cobra el eCheq y se le acredita en su caja de ahorro.</li></ul></div>
+  <div class="card"><span class="tag">HOMEBANKING</span><h3>Acceso para cada cliente</h3>
+    <p>Cada cliente entra con su <b>CUIT</b> y la clave demo <code>demo1234</code>, que figura en el recordatorio de la pantalla de ingreso.</p>
+    <ul><li>Ve sus saldos y movimientos.</li><li>Transfiere por alias o CBU.</li><li>Emite, cobra y anula eCheq.</li><li>Puede cambiar su clave.</li></ul></div>
+  <div class="card"><span class="tag">ORGANISMOS</span><h3>ARCA, ARBA y Municipio integrados</h3>
+    <ul><li>ARCA (Mateo): inscribir contribuyentes, puntos de venta y consultar la ficha completa.</li><li>ARBA (Tomi): rechaza CUIT no inscriptos en ARCA y sincroniza el padrón de IIBB.</li><li>Municipio (Cristian): aprobar habilitaciones y liquidar la tasa del mes.</li></ul></div>
+</div>
+
+<h2>3. Prueba real de hoy</h2>
+<div class="tabla"><table>
+<tr><th>Comercio</th><th>Condición</th><th>TPV</th><th>Qué se ve en la venta</th></tr>
+<tr><td>Mauricio Sistisisti · «Comercio i26» · 20268326074</td><td>Responsable Inscripto, agente de percepción ARBA</td><td>Brisa (y David)</td><td>Factura A a un Responsable Inscripto, Factura B a un consumidor final; percepción si el comprador está identificado</td></tr>
+<tr><td>Comercio ficticio</td><td>Monotributista</td><td>Sebastián</td><td>Factura C, sin IVA discriminado</td></tr>
+</table></div>
+<p style="margin-top:10px">Antes de la prueba se respaldan y se borran los datos de prueba. Solo quedan estos dos comercios con todo el circuito dado de alta: ARCA, ARBA, Municipio, Banco, Billetera y TPV.</p>
+
+<h2>4. Endpoints nuevos (backend común)</h2>
+<div class="tabla"><table>
+<tr><th>Ruta</th><th>Para qué</th></tr>
+<tr><td><code>GET /padron/general?buscar=</code> · <code>/padron/general/:cuit</code></td><td>Padrón general unificado</td></tr>
+<tr><td><code>POST /banco/cuentas</code> con <code>tipo</code></td><td>Caja de ahorro o cuenta corriente</td></tr>
+<tr><td><code>/banco/cheques</code> · <code>/:numero/depositar|acreditar|anular</code></td><td>Circuito de cheques</td></tr>
+<tr><td><code>POST /banco/homebanking/login</code> · <code>GET /banco/homebanking/:cuit/resumen</code></td><td>Homebanking</td></tr>
+<tr><td><code>POST /billetera/transferencias</code></td><td>Transferir por CUIT, alias o CBU</td></tr>
+<tr><td><code>/billetera/echeqs</code> · <code>/:numero/cobrar|anular</code></td><td>eCheq</td></tr>
+<tr><td><code>/tpv/proveedores</code> · <code>/tpv/compras</code> · <code>/tpv/proveedores/:cuit/pagos</code> · <code>/cuenta-corriente</code></td><td>Compras y cuenta corriente de proveedores</td></tr>
+<tr><td><code>POST /tpv/productos</code> con <code>costo</code>, <code>margen</code>, <code>iva</code> · <code>medio_pago: "efectivo"</code></td><td>Precio desde costo y cobro en efectivo</td></tr>
+</table></div>
+
+<h2>5. Estado</h2>
+<div class="tabla"><table>
+<tr><th>Parte</th><th>Estado</th></tr>
+<tr><td>Backend: padrón, cheques, eCheq, homebanking, proveedores, efectivo, precio desde costo</td><td class="ok">Listo · 48/48 pruebas automáticas</td></tr>
+<tr><td>Panel del Banco (cheques, tipo de cuenta, ficha por CUIT) y Homebanking</td><td class="ok">Publicado</td></tr>
+<tr><td>Billetera (transferir y eCheq), TPV Brisa (costo, efectivo, compras), TPV Sebastián (efectivo), TPV David (costo y efectivo)</td><td class="ok">Publicado</td></tr>
+<tr><td>Padrón general en ARCA (Mateo), ARBA (Lucas y Tomi) y Municipio (Cristian)</td><td class="ok">Publicado</td></tr>
+<tr><td>Respaldo, borrado de datos de prueba y carga de los dos comercios</td><td class="ok">Hecho y verificado en producción</td></tr>
+<tr><td>TPV David guarda solo el precio (su diseño no tiene costo); Sebastián no tiene alta de productos propia</td><td class="pend">Para que lo sumen los alumnos</td></tr>
+</table></div>
+<p style="margin-top:22px;color:var(--muted);font-size:13px">Detalle técnico en <code>doc/</code>: MAPA-INTEGRACION, CONTRATOS-INTEGRACION, IMPUESTOS-Y-PERCEPCIONES y CHANGELOG-ECOSISTEMA.</p>
+</main>
+</body>
+</html>

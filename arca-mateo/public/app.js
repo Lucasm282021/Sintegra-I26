@@ -341,8 +341,9 @@ function initContribuyenteModule() {
         return;
       }
 
-      // Renderizar datos del contribuyente
+      // Renderizar datos del contribuyente y su estado en el resto del ecosistema
       renderContribuyenteResult(resultArea, data);
+      renderFichaEcosistema(resultArea, cuit);
     } catch (err) {
       renderError(resultArea, `No se pudo conectar con el servidor: ${err.message}. Verifique que el servicio esté corriendo en el puerto 3004.`);
     } finally {
@@ -648,3 +649,120 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+
+/* ==========================================================================
+   Estado del comercio en el ecosistema, inscripción y puntos de venta
+   (padrón fiscal común; ver doc/MAPA-INTEGRACION.md)
+   ========================================================================== */
+async function renderFichaEcosistema(container, cuit) {
+  try {
+    const { response, data } = await apiJson(`/arca/ficha/${encodeURIComponent(cuit)}`);
+    if (!response.ok) return;
+    const si = (v) => (v ? 'Sí' : 'No');
+    const filas = [
+      ['ARBA · Ingresos Brutos', data.arba_estado ? `${escapeHtml(data.arba_estado)} · ${escapeHtml(data.arba_actividad || '')} · alícuota ${(Number(data.arba_alicuota || 0) * 100).toFixed(2)} %` : 'Sin inscripción'],
+      ['Municipio · habilitación', data.municipio_estado ? `${escapeHtml(data.municipio_estado)} · ${escapeHtml(data.municipio_rubro || '')} · tasas pendientes: ${data.municipio_tasas_pendientes}` : 'Sin trámite'],
+      ['Banco · cuenta', si(data.tiene_cuenta_banco)],
+      ['Billetera virtual', si(data.tiene_billetera)],
+    ];
+    container.insertAdjacentHTML('beforeend', `<h3 style="margin:1rem 0 .4rem">Estado del comercio en el ecosistema</h3>
+      <div class="data-table-container"><table class="data-table"><tbody>
+      ${filas.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</tbody></table></div>`);
+  } catch { /* la ficha es complementaria */ }
+}
+
+function initTramites() {
+  const ins = document.getElementById('formInscripcion');
+  ins?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const out = document.getElementById('resultadoInscripcion');
+    const cuit = document.getElementById('insCuit').value.replace(/\D/g, '');
+    if (!/^\d{11}$/.test(cuit)) { renderError(out, 'El CUIT tiene que tener 11 dígitos.'); return; }
+    renderLoading(out, 'Inscribiendo en el padrón fiscal...');
+    const { response, data } = await apiJson('/arca/contribuyentes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cuit, razon_social: document.getElementById('insRazon').value.trim(),
+        condicion_iva: document.getElementById('insCondicion').value, tipo_persona: document.getElementById('insTipo').value || undefined,
+        domicilio_fiscal: document.getElementById('insDomicilio').value.trim() || undefined }) });
+    if (!response.ok) { renderError(out, data?.error || `Error ${response.status}`); return; }
+    out.className = 'result-area';
+    out.innerHTML = `<div class="feedback-banner feedback-success">✓ ${escapeHtml(data.razon_social)} quedó inscripto como ${escapeHtml(data.condicion_fiscal)}.</div>
+      <p class="help-text">Siguiente paso: darle un punto de venta para que pueda facturar.</p>`;
+    ins.reset();
+  });
+
+  const pv = document.getElementById('formPv');
+  const out = document.getElementById('resultadoPv');
+  const listar = async () => {
+    const cuit = document.getElementById('pvCuit').value.replace(/\D/g, '');
+    if (!/^\d{11}$/.test(cuit)) { renderError(out, 'El CUIT tiene que tener 11 dígitos.'); return; }
+    const { response, data } = await apiJson(`/arca/puntos-venta?cuit=${cuit}`);
+    if (!response.ok) { renderError(out, data?.error || `Error ${response.status}`); return; }
+    out.className = 'result-area';
+    out.innerHTML = data.length ? `<div class="data-table-container"><table class="data-table"><thead><tr><th>Punto de venta</th><th>Comprobantes</th><th>Último número</th></tr></thead><tbody>
+      ${data.map((p) => `<tr><td><code>${escapeHtml(p.numero)}</code></td><td>${escapeHtml((p.tipos_comprobante || []).join(', '))}</td><td>${escapeHtml(p.ultimo_numero)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="help-text">Este CUIT todavía no tiene puntos de venta.</p>';
+  };
+  pv?.addEventListener('submit', async (e) => { e.preventDefault(); await listar(); });
+  document.getElementById('btnAltaPv')?.addEventListener('click', async () => {
+    const cuit = document.getElementById('pvCuit').value.replace(/\D/g, '');
+    if (!/^\d{11}$/.test(cuit)) { renderError(out, 'El CUIT tiene que tener 11 dígitos.'); return; }
+    const { response, data } = await apiJson('/arca/puntos-venta', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cuit, punto_venta: Number(document.getElementById('pvNumero').value) }) });
+    if (!response.ok) { renderError(out, data?.error || `Error ${response.status}`); return; }
+    await listar();
+  });
+}
+document.addEventListener('DOMContentLoaded', initTramites);
+
+/* Padrón general: listado único y prellenado del alta. */
+const CONDICION_PADRON = { responsable_inscripto: 'Responsable Inscripto', monotributo: 'Monotributo', exento: 'Exento', consumidor_final: 'Consumidor final' };
+function irATab(id) { document.querySelector(`.tab-btn[data-tab="${id}"]`)?.click(); }
+async function cargarPadronGeneral() {
+  const out = document.getElementById('resultadoPadron');
+  renderLoading(out, 'Consultando el padrón general...');
+  const q = document.getElementById('padronBuscar').value.trim();
+  const { response, data } = await apiJson(`/arca/padron-general?buscar=${encodeURIComponent(q)}`);
+  if (!response.ok) { renderError(out, data?.error || `Error ${response.status}`); return; }
+  const esAdmin = !document.querySelector('.tab-btn[data-tab="tab-inscripcion"]')?.hidden;
+  out.className = 'result-area';
+  out.innerHTML = data.length ? `<div class="data-table-container"><table class="data-table"><thead><tr>
+      <th>CUIT</th><th>Contribuyente</th><th>ARCA</th><th>ARBA</th><th>Municipio</th><th>Banco</th><th></th></tr></thead><tbody>
+    ${data.map((f) => `<tr>
+      <td><code>${f.cuit}</code></td>
+      <td><strong>${escapeHtml(f.razon_social)}</strong>${f.nombre_fantasia ? `<br><small>${escapeHtml(f.nombre_fantasia)}</small>` : ''}</td>
+      <td>${f.arca.inscripto ? `${escapeHtml(CONDICION_PADRON[f.condicion_iva] || f.condicion_iva)} · ${f.arca.puntos_venta} PV` : '<strong>Pendiente de inscripción</strong>'}</td>
+      <td>${f.arba ? `${escapeHtml(f.arba.estado)}${f.arba.agente ? ' · agente' : ''}` : '—'}</td>
+      <td>${f.municipio ? escapeHtml(f.municipio.estado) : '—'}</td>
+      <td>${f.banco.length ? f.banco.map((c) => c.tipo === 'cuenta_corriente' ? 'Cta. cte.' : 'Caja ahorro').join(', ') : '—'}</td>
+      <td>${!f.arca.inscripto && esAdmin ? `<button class="btn btn-primary" data-inscribir="${f.cuit}">Inscribir</button>`
+        : f.arca.inscripto ? `<button class="btn btn-secondary" data-pv="${f.cuit}">Puntos de venta</button>` : ''}</td></tr>`).join('')}
+    </tbody></table></div>` : '<p class="help-text">No hay contribuyentes que coincidan.</p>';
+  out.querySelectorAll('[data-inscribir]').forEach((b) => b.addEventListener('click', () => {
+    const f = data.find((x) => x.cuit === b.dataset.inscribir);
+    irATab('tab-inscripcion');
+    document.getElementById('insCuit').value = f.cuit;
+    document.getElementById('insRazon').value = f.razon_social || '';
+    document.getElementById('insDomicilio').value = f.domicilio_fiscal || '';
+    if (f.tipo_persona) document.getElementById('insTipo').value = f.tipo_persona;
+  }));
+  out.querySelectorAll('[data-pv]').forEach((b) => b.addEventListener('click', () => {
+    irATab('tab-pv'); document.getElementById('pvCuit').value = b.dataset.pv; document.getElementById('formPv').requestSubmit();
+  }));
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('formPadron')?.addEventListener('submit', (e) => { e.preventDefault(); cargarPadronGeneral(); });
+  document.getElementById('btnTabPadron')?.addEventListener('click', cargarPadronGeneral);
+  // Al escribir el CUIT en la inscripción, se completan los datos que ya están en el padrón general.
+  document.getElementById('insCuit')?.addEventListener('input', async (e) => {
+    const cuit = e.target.value.replace(/\D/g, '');
+    if (cuit.length !== 11) return;
+    const { response, data } = await apiJson(`/arca/padron-general/${cuit}`);
+    const out = document.getElementById('resultadoInscripcion');
+    if (!response.ok) { out.innerHTML = '<p class="help-text">CUIT nuevo: no figura en el padrón general.</p>'; return; }
+    if (data.arca.inscripto) { out.innerHTML = `<div class="feedback-banner">Este CUIT ya está inscripto: ${escapeHtml(data.razon_social)} (${escapeHtml(data.condicion_fiscal)}).</div>`; return; }
+    document.getElementById('insRazon').value ||= data.razon_social || '';
+    document.getElementById('insDomicilio').value ||= data.domicilio_fiscal || '';
+    out.innerHTML = '<p class="help-text">Datos traídos de «Comercios · Alta única». Elegí la condición frente al IVA e inscribilo.</p>';
+  });
+});

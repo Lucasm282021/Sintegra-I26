@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
@@ -12,7 +12,12 @@ import {
 import {
   ComercioConResumen,
   crearComercio,
+  consultarPadronGeneral,
+  listarPadronGeneral,
+  FichaPadronGeneral,
   formatearArs,
+  liquidarTasa,
+  resolverHabilitacion,
   validarCuit,
 } from '../services/municipioService';
 import { NuevoComercioPayload } from '../types/municipio';
@@ -89,11 +94,34 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
   const [demoIndex, setDemoIndex] = useState(0);
 
   const cuitValidation = formData.cuit.length > 0 ? validarCuit(formData.cuit) : null;
+  const [fichaPadron, setFichaPadron] = useState<string | null>(null);
+  const [pendientes, setPendientes] = useState<FichaPadronGeneral[]>([]);
+
+  // Comercios del padrón general (inscriptos en ARCA) que todavía no tienen habilitación municipal.
+  useEffect(() => {
+    listarPadronGeneral().then((r) => {
+      if (r.ok && r.data) setPendientes(r.data.filter((f) => f.arca.inscripto && !f.municipio && f.condicion_iva !== 'consumidor_final'));
+    });
+  }, [comercios.length]);
+
+  const cargarDesdePadron = (f: FichaPadronGeneral) => {
+    setFormData((prev) => ({ ...prev, cuit: f.cuit, razon_social: f.razon_social,
+      condicion_fiscal: f.condicion_iva === 'monotributo' ? 'Monotributista' : f.condicion_fiscal, direccion: f.domicilio_fiscal || prev.direccion }));
+    setFichaPadron(`Datos del padrón general: ${f.razon_social} · ${f.condicion_fiscal}. Completá el rubro y registrá el trámite.`);
+  };
 
   const handleCuitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Permitir ingresar texto para probar validación, o limpiar espacios
     const val = e.target.value.replace(/\s+/g, '');
     setFormData((prev) => ({ ...prev, cuit: val }));
+    setFichaPadron(null);
+    if (/^\d{11}$/.test(val)) {
+      consultarPadronGeneral(val).then((r) => {
+        if (!r.ok || !r.data) { setFichaPadron('Ese CUIT no figura en el padrón general: primero tiene que inscribirse en ARCA.'); return; }
+        if (!r.data.arca.inscripto) { setFichaPadron(`${r.data.razon_social} todavía no está inscripto en ARCA: el Municipio no puede habilitarlo.`); return; }
+        cargarDesdePadron(r.data);
+      });
+    }
   };
 
   const handleAutocompletarDemo = () => {
@@ -267,6 +295,22 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
             </div>
           </details>
           <div className="border-t border-slate-200" />
+
+          {pendientes.length > 0 && (
+            <div className="mt-4 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
+              <p className="text-xs font-semibold text-amber-900">Inscriptos en ARCA sin habilitación municipal ({pendientes.length})</p>
+              <ul className="mt-2 space-y-1">
+                {pendientes.slice(0, 6).map((f) => (
+                  <li key={f.cuit} className="flex items-center justify-between gap-2 text-xs text-slate-800">
+                    <span>{f.razon_social} · {f.cuit}</span>
+                    <button type="button" onClick={() => cargarDesdePadron(f)}
+                      className="rounded-md bg-white px-2 py-1 font-semibold text-blue-800 ring-1 ring-blue-200 hover:bg-blue-50 cursor-pointer">Cargar</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {fichaPadron && <p className="mt-3 rounded-lg bg-blue-50 p-2 text-xs text-blue-900" role="status">{fichaPadron}</p>}
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
             {/* CUIT Field */}
@@ -617,6 +661,38 @@ export const TabPadronComercios: React.FC<TabPadronComerciosProps> = ({
 
                         <td className="py-3.5 pl-4 text-right whitespace-nowrap">
                             <div className="inline-flex items-center justify-end gap-1.5">
+                            {comercio.estado === 'pendiente' && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const expediente = window.prompt(`Número de expediente para habilitar a ${comercio.razon_social}`, `EXP-${new Date().getFullYear()}-${comercio.cuit.slice(-4)}`);
+                                  if (!expediente) return;
+                                  const r = await resolverHabilitacion(comercio.cuit, 'activa', expediente);
+                                  window.alert(r.ok ? 'Habilitación aprobada.' : (r.error?.mensaje || 'No se pudo aprobar.'));
+                                  await onComercioCreado(comercio.cuit);
+                                }}
+                                aria-label={`Aprobar la habilitación de ${comercio.razon_social}`}
+                                className="inline-flex min-h-10 items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Aprobar</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const periodo = new Date().toISOString().slice(0, 7);
+                                const r = await liquidarTasa(comercio.cuit, periodo);
+                                window.alert(r.ok && r.data
+                                  ? `Tasa ${periodo}: ${formatearArs(r.data.importe)} (base ${formatearArs(r.data.base_imponible)}, rubro "${r.data.rubro_aplicado}").`
+                                  : (r.error?.mensaje || 'No se pudo liquidar.'));
+                                await onComercioCreado(comercio.cuit);
+                              }}
+                              aria-label={`Liquidar la tasa del mes de ${comercio.razon_social}`}
+                              className="inline-flex min-h-10 items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                            >
+                              <span>Liquidar mes</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => onIrACuentaCorriente(comercio.cuit)}

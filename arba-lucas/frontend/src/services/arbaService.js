@@ -127,6 +127,9 @@ export const arbaService = {
   listPadron: (page = 1, limit = 100) =>
     isDemo() ? fromDemo(demo.listPadron(page, limit)) : http(`/arba/padron?page=${page}&limit=${limit}`),
 
+  // Padrón general del ecosistema (ARCA + Comercios). Solo con el backend común.
+  padronGeneral: (cuit) => (isDemo() ? Promise.resolve({ ok: false }) : http(`/padron/general/${cuit}`)),
+
   getPadron: (cuit) => (isDemo() ? fromDemo(demo.getPadron(cuit)) : http(`/arba/padron/${cuit}`)),
 
   createPadron: (body) =>

@@ -242,7 +242,7 @@
   ];
   const state = {
     catalogo: [], busqueda: "", carrito: new Map(),
-    comercio: { cuit: "30712345678", razonSocial: "Almacén Don Mateo SRL" }, medioPago: "efectivo", cuitCliente: "",
+    comercio: { cuit: "20268326074", razonSocial: "Mauricio Sistisisti" }, medioPago: "efectivo", cuitCliente: "",
     cobrando: false, resultado: null,
     ventas: { page: 1, filtros: { desde: "", hasta: "", estado: "", medioPago: "" } },
     drawerOrigen: null
@@ -547,10 +547,14 @@
         <div class="card-head"><h2 id="h-alta">Cargar producto</h2></div>
         <form id="form-prod" class="filters">
           <div class="field"><label for="p-n">Nombre</label><input id="p-n" required></div>
-          <div class="field"><label for="p-p">Precio</label><input id="p-p" type="number" min="0" step="0.01" required></div>
+          <div class="field"><label for="p-costo">Costo</label><input id="p-costo" type="number" min="0" step="0.01" placeholder="0,00"></div>
+          <div class="field"><label for="p-gan">Ganancia %</label><input id="p-gan" type="number" min="0" step="0.1" placeholder="30"></div>
+          <div class="field"><label for="p-iva">IVA</label><select id="p-iva"><option value="0.21">21 %</option><option value="0.105">10,5 %</option><option value="0.27">27 %</option><option value="0">0 % / exento</option></select></div>
+          <div class="field"><label for="p-p">Precio de venta</label><input id="p-p" type="number" min="0" step="0.01" required></div>
           <div class="field"><label for="p-c">Código (opcional)</label><input id="p-c"></div>
           <button class="btn primary" type="submit">Agregar al catálogo</button>
         </form>
+        <p class="muted" id="p-calc">Cargá costo y ganancia: el precio se calcula solo (comercio Responsable Inscripto: suma IVA).</p>
         <div id="p-msg" aria-live="polite"></div>
       </section>
       <section class="card" aria-labelledby="h-prods">
@@ -559,6 +563,14 @@
           <tbody>${state.catalogo.map((p) => `<tr><td class="num">${esc(p.codigo ?? "—")}</td><td>${esc(p.nombre)}</td><td class="r num">${money(p.precio)}</td></tr>`).join("")}</tbody></table></div>`
           : '<div class="empty">Todavía no hay productos. Cargá el primero arriba.</div>'}
       </section>`;
+    const calcular = () => {
+      const costo = Number($("p-costo").value); const gan = Number($("p-gan").value || 0) / 100; const iva = Number($("p-iva").value);
+      if (!(costo > 0)) { $("p-p").readOnly = false; return; }
+      const precio = Math.round(costo * (1 + gan) * (1 + iva) * 100) / 100;
+      $("p-p").value = String(precio); $("p-p").readOnly = true;
+      $("p-calc").textContent = `${money(costo)} + ${$("p-gan").value || 0} % de ganancia + IVA ${Math.round(iva * 1000) / 10} % = ${money(precio)}`;
+    };
+    ["p-costo", "p-gan", "p-iva"].forEach((id) => $(id).addEventListener("input", calcular));
     $("form-prod").addEventListener("submit", async (e) => {
       e.preventDefault();
       const b = e.submitter; b.disabled = true;

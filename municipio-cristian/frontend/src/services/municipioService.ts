@@ -746,6 +746,47 @@ export async function registrarPagoTributo(
  * GET /municipio/comprobantes
  * Retorna los comprobantes emitidos (opcionalmente filtrados por CUIT).
  */
+/**
+ * POST /municipio/comercios/{cuit}/resolucion — la autoridad municipal resuelve
+ * el trámite (activa, suspendida o baja) con número de expediente. Solo backend.
+ */
+export async function resolverHabilitacion(
+  cuit: string, estado: 'activa' | 'suspendida' | 'baja', expediente: string
+): Promise<ApiResponse<{ cuit: string; estado: string; expediente: string }>> {
+  return simularRequest('POST', `/municipio/comercios/${cuit}/resolucion`, { estado, expediente }, () => ({
+    status: 503, error: { codigo: 'SOLO_BACKEND', mensaje: 'La resolución se registra en el backend común.' },
+  }));
+}
+
+/**
+ * POST /municipio/tributos/liquidar — liquida la Tasa de Seguridad e Higiene del
+ * período sobre lo facturado por el comercio (alícuota del rubro y mínimo). Solo backend.
+ */
+export async function liquidarTasa(
+  cuit: string, periodo: string
+): Promise<ApiResponse<{ importe: number; base_imponible: number; alicuota: number; rubro_aplicado: string; vencimiento: string | null }>> {
+  return simularRequest('POST', '/municipio/tributos/liquidar', { cuit, periodo }, () => ({
+    status: 503, error: { codigo: 'SOLO_BACKEND', mensaje: 'La liquidación se calcula en el backend común.' },
+  }));
+}
+
+/** Ficha del padrón general del ecosistema (ARCA + Comercios · Alta única). */
+export interface FichaPadronGeneral {
+  cuit: string; razon_social: string; nombre_fantasia: string | null; condicion_iva: string | null; condicion_fiscal: string;
+  domicilio_fiscal: string | null; arca: { inscripto: boolean; estado: string };
+  municipio: { estado: string; rubro: string } | null; arba: { estado: string } | null;
+}
+export async function consultarPadronGeneral(cuit: string): Promise<ApiResponse<FichaPadronGeneral>> {
+  return simularRequest('GET', `/padron/general/${cuit}`, null, () => ({
+    status: 503, error: { codigo: 'SOLO_BACKEND', mensaje: 'El padrón general está en el backend común.' },
+  }));
+}
+export async function listarPadronGeneral(): Promise<ApiResponse<FichaPadronGeneral[]>> {
+  return simularRequest('GET', '/padron/general', null, () => ({
+    status: 503, error: { codigo: 'SOLO_BACKEND', mensaje: 'El padrón general está en el backend común.' },
+  }));
+}
+
 export async function listarComprobantes(cuitFiltro?: string): Promise<ApiResponse<ComprobantePago[]>> {
   const endpoint = cuitFiltro
     ? `/municipio/comprobantes?cuit=${cuitFiltro.trim()}`

@@ -1,0 +1,7 @@
+.hb-grid{display:grid;grid-template-columns:minmax(290px,.9fr) minmax(0,1.4fr);gap:18px;margin-top:10px}
+.hb-billetera{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding:12px;border:1px solid #27505a;border-radius:12px;background:#0c202c;font-size:12px}
+.hb-acciones{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:14px}
+.hb-acciones .button{flex:1 1 140px;min-height:44px}
+.hb-acciones .button:disabled{opacity:.45;cursor:not-allowed}
+.accounts .account{cursor:default}
+@media(max-width:760px){.hb-grid{grid-template-columns:1fr}}
