@@ -177,4 +177,58 @@ router.post('/cuentas', ruta(async (req) => {
   return { status: creada ? 201 : 200, body: filaCuenta(cuenta) };
 }));
 
+// ---------- Operaciones del cliente (ventanilla y transferencias) ----------
+// Depósito y extracción en efectivo usan la caja del banco como contraparte.
+// Todas son idempotentes por id_operacion (el cliente la genera y la reenvía si reintenta).
+const CAJA = 'cuenta-caja';
+const opValida = (b) => {
+  if (!idValido(b.id_operacion)) throw falla(400, 'id_operacion es obligatorio');
+  if (!montoValido(b.monto)) throw falla(400, 'monto debe ser un número positivo de hasta dos decimales');
+};
+async function cuentaPorReferencia(c, ref) {
+  const r = String(ref || '').trim();
+  if (!r) return null;
+  return (await c.query(
+    'select * from banco.cuentas where id = $1 or cbu = $1 or lower(alias) = lower($1) limit 1', [r])).rows[0];
+}
+const respuestaOp = async (c, movimiento, cuentaId, repetido) => ({
+  status: repetido ? 200 : 201,
+  body: { movimiento: filaMovimiento(movimiento), cuenta: filaCuenta((await c.query('select * from banco.cuentas where id = $1', [cuentaId])).rows[0]), repetido },
+});
+
+router.post('/cuentas/:id/depositos', ruta(async (req) => {
+  const b = req.body || {}; opValida(b);
+  return tx(async (c) => {
+    if (!(await cuentaPorReferencia(c, req.params.id))) throw falla(404, 'cuenta no encontrada');
+    const { movimiento, repetido } = await transferir(c, { id_operacion: `deposito:${b.id_operacion}`, tipo: 'deposito',
+      origen: CAJA, destino: req.params.id, monto: b.monto, payload: { concepto: b.concepto || null } });
+    return respuestaOp(c, movimiento, req.params.id, repetido);
+  });
+}));
+
+router.post('/cuentas/:id/extracciones', ruta(async (req) => {
+  const b = req.body || {}; opValida(b);
+  return tx(async (c) => {
+    if (!(await cuentaPorReferencia(c, req.params.id))) throw falla(404, 'cuenta no encontrada');
+    const { movimiento, repetido } = await transferir(c, { id_operacion: `extraccion:${b.id_operacion}`, tipo: 'extraccion',
+      origen: req.params.id, destino: CAJA, monto: b.monto, payload: { concepto: b.concepto || null } });
+    return respuestaOp(c, movimiento, req.params.id, repetido);
+  });
+}));
+
+// Transferencia a otra cuenta por id, CBU o alias.
+router.post('/transferencias', ruta(async (req) => {
+  const b = req.body || {}; opValida(b);
+  return tx(async (c) => {
+    const origen = await cuentaPorReferencia(c, b.origen);
+    const destino = await cuentaPorReferencia(c, b.destino);
+    if (!origen) throw falla(404, 'cuenta de origen no encontrada');
+    if (!destino) throw falla(404, 'no existe una cuenta con ese CBU o alias');
+    if ([origen.id, destino.id].includes(CAJA)) throw falla(400, 'la caja del banco no opera por transferencia');
+    const { movimiento, repetido } = await transferir(c, { id_operacion: `transferencia:${b.id_operacion}`, tipo: 'transferencia',
+      origen: origen.id, destino: destino.id, monto: b.monto, payload: { concepto: b.concepto || null } });
+    return respuestaOp(c, movimiento, origen.id, repetido);
+  });
+}));
+
 module.exports = { router, transferir, cuentaPorCuit, abrirCuenta };

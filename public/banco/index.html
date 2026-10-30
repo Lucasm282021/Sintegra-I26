@@ -32,6 +32,7 @@
     <section class="workspace" aria-label="Consulta de cuentas">
       <div class="accounts-panel">
         <div class="section-title"><div><p class="eyebrow">CUENTAS</p><h2>Cuentas bancarias</h2></div><span id="account-count" class="count">—</span></div>
+        <button id="btn-abrir" class="button primary full" type="button">+ Abrir cuenta</button>
         <label class="search-label" for="search">Buscar por titular, CUIT o alias</label>
         <input id="search" class="search" type="search" placeholder="Ej. Almacén Don Mateo" autocomplete="off" />
         <div id="accounts" class="accounts" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div></div>
@@ -41,6 +42,11 @@
         <div id="detail" hidden>
           <div class="section-title"><div><p class="eyebrow">DETALLE DE CUENTA</p><h2 id="holder">Cuenta</h2></div><span class="status"><i></i> Activa</span></div>
           <div class="balance-card"><span>Saldo disponible · ARS</span><strong id="balance">$ 0,00</strong><div class="account-meta"><span id="alias"></span><span id="cbu"></span></div></div>
+          <div class="ops" id="ops" aria-label="Operaciones de la cuenta">
+            <button class="button secondary" type="button" data-op="deposito">↓ Depositar</button>
+            <button class="button secondary" type="button" data-op="extraccion">↑ Extraer</button>
+            <button class="button secondary" type="button" data-op="transferencia">⇄ Transferir</button>
+          </div>
           <div class="section-title movement-heading"><div><p class="eyebrow">ACTIVIDAD</p><h2>Movimientos recientes</h2></div><span id="movement-count" class="muted"></span></div>
           <div id="movements" class="movements"><p class="muted">Seleccioná una cuenta para consultar movimientos.</p></div>
           <section class="wallet-panel" id="wallet-panel" aria-live="polite"><p class="muted">Consultando billetera virtual…</p></section>
@@ -50,5 +56,29 @@
     </section>
     <footer><a href="../">← Volver al portal Sintegra</a><span>Banco M · Sintegra I26</span></footer>
   </main>
+
+  <dialog id="d-abrir" aria-labelledby="da-titulo">
+    <form id="f-abrir" class="dlg">
+      <h2 id="da-titulo">Abrir una cuenta</h2>
+      <p class="muted">El titular tiene que estar inscripto en ARCA (padrón fiscal). El banco asigna CBU y alias.</p>
+      <label>CUIT del titular<input id="ab-cuit" inputmode="numeric" maxlength="11" required placeholder="11 dígitos"></label>
+      <p class="error" id="ab-error" role="alert" hidden></p>
+      <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit">Abrir cuenta</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="d-op" aria-labelledby="do-titulo">
+    <form id="f-op" class="dlg">
+      <h2 id="do-titulo">Operación</h2>
+      <p class="muted" id="do-nota"></p>
+      <label id="do-destino-label" hidden>Destino (alias o CBU)<input id="do-destino" placeholder="ej.: kiosco.esquina.banco"></label>
+      <label>Importe en ARS<input id="do-monto" type="number" min="0.01" step="0.01" required></label>
+      <label>Concepto (opcional)<input id="do-concepto" maxlength="120"></label>
+      <p class="error" id="do-error" role="alert" hidden></p>
+      <div class="dlg-actions"><button class="button secondary" value="cancel" formmethod="dialog" formnovalidate>Cancelar</button><button class="button primary" type="submit" id="do-ok">Confirmar</button></div>
+    </form>
+  </dialog>
+<script src="../tour/sintegra-tour.js" defer></script>
+<script src="tour.js" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const API = 'https://sintegra-backend.vercel.app';
+const API = new URLSearchParams(location.search).get('api') || (/^(localhost|127.0.0.1)$/.test(location.hostname) ? 'http://localhost:3010' : 'https://sintegra-backend.vercel.app');
 const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
 const accountsNode = document.querySelector('#accounts');
 const searchNode = document.querySelector('#search');
@@ -115,7 +115,7 @@ async function loadAccounts() {
   errorNode.hidden = true;
   try {
     accounts = (await getJson('/banco/cuentas')).filter((account) =>
-      !['cuenta-billetera', 'cuenta-mostrador', 'cuenta-municipio'].includes(account.id),
+      !['cuenta-billetera', 'cuenta-mostrador', 'cuenta-municipio', 'cuenta-caja'].includes(account.id),
     );
     renderAccounts();
     if (selectedId && accounts.some((a) => a.id === selectedId)) await selectAccount(selectedId);
@@ -127,6 +127,54 @@ async function loadAccounts() {
     refresh.disabled = false;
   }
 }
+
+// ---------- Gestión de cuentas ----------
+const OPS = {
+  deposito: { titulo: 'Depositar efectivo', nota: 'El dinero entra por ventanilla y se acredita en la cuenta.', ruta: (id) => `/banco/cuentas/${encodeURIComponent(id)}/depositos` },
+  extraccion: { titulo: 'Extraer efectivo', nota: 'Se debita de la cuenta. No puede superar el saldo disponible.', ruta: (id) => `/banco/cuentas/${encodeURIComponent(id)}/extracciones` },
+  transferencia: { titulo: 'Transferir', nota: 'A otra cuenta del banco, por alias o CBU. Se debita de esta cuenta.', ruta: () => '/banco/transferencias' },
+};
+let opActual = null;
+function errorEn(id, msg) { const n = document.getElementById(id); n.textContent = msg; n.hidden = !msg; }
+
+document.querySelector('#btn-abrir').addEventListener('click', () => {
+  document.querySelector('#f-abrir').reset(); errorEn('ab-error', ''); document.querySelector('#d-abrir').showModal();
+});
+document.querySelector('#f-abrir').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const cuit = document.querySelector('#ab-cuit').value.replace(/\D/g, '');
+  const btn = e.currentTarget.querySelector('[type=submit]'); btn.disabled = true;
+  try {
+    const cuenta = await postJson('/banco/cuentas', { cuit });
+    document.querySelector('#d-abrir').close();
+    selectedId = cuenta.id; await loadAccounts();
+  } catch (error) { errorEn('ab-error', error.message); } finally { btn.disabled = false; }
+});
+
+document.querySelector('#ops').addEventListener('click', (e) => {
+  const tipo = e.target.closest('[data-op]')?.dataset.op; if (!tipo || !selectedId) return;
+  // Un identificador por operación: si se reintenta el envío, el banco no la duplica.
+  opActual = { tipo, id_operacion: crypto.randomUUID() };
+  const o = OPS[tipo];
+  document.querySelector('#f-op').reset(); errorEn('do-error', '');
+  document.querySelector('#do-titulo').textContent = o.titulo;
+  document.querySelector('#do-nota').textContent = o.nota;
+  document.querySelector('#do-destino-label').hidden = tipo !== 'transferencia';
+  document.querySelector('#do-destino').required = tipo === 'transferencia';
+  document.querySelector('#d-op').showModal();
+});
+document.querySelector('#f-op').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.querySelector('#do-ok'); btn.disabled = true;
+  const body = { id_operacion: opActual.id_operacion, monto: Number(document.querySelector('#do-monto').value),
+    concepto: document.querySelector('#do-concepto').value.trim() || undefined };
+  if (opActual.tipo === 'transferencia') Object.assign(body, { origen: selectedId, destino: document.querySelector('#do-destino').value.trim() });
+  try {
+    await postJson(OPS[opActual.tipo].ruta(selectedId), body);
+    document.querySelector('#d-op').close();
+    await loadAccounts();
+  } catch (error) { errorEn('do-error', error.message); } finally { btn.disabled = false; }
+});
 
 searchNode.addEventListener('input', renderAccounts);
 document.querySelector('#refresh').addEventListener('click', loadAccounts);
