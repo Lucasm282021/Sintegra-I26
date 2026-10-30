@@ -4,6 +4,7 @@ const { query, tx } = require('../db');
 const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('../http');
 
 const router = express.Router();
+const { calcularPercepcion } = require('./impuestos');
 const redondear = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 const filaPercepcion = (p) => ({
@@ -88,6 +89,60 @@ router.get('/padron/:cuit', ruta(async (req) => {
 }));
 
 // POST /arba/percepciones — acepta `monto` (TPV de David) o `monto_venta` (guía).
+// ---------- Régimen de percepción (configurable por ARBA) ----------
+// Fechas como texto (AAAA-MM-DD) y vigencia calculada por la base, sin desfasajes de huso horario.
+const SELECT_AGENTE = `select a.cuit, a.activo, a.vigente_desde::text as vigente_desde, a.vigente_hasta::text as vigente_hasta,
+  (a.activo and current_date >= a.vigente_desde and (a.vigente_hasta is null or current_date <= a.vigente_hasta)) as vigente,
+  c.razon_social from arba.agentes a join padron.contribuyentes c using (cuit)`;
+const filaAgente = (a) => ({ cuit: a.cuit, razon_social: a.razon_social, activo: a.activo,
+  vigente_desde: a.vigente_desde, vigente_hasta: a.vigente_hasta, vigente: a.vigente });
+
+router.get('/agentes', ruta(async () => {
+  const { rows } = await query(`${SELECT_AGENTE} order by c.razon_social`);
+  return { body: rows.map(filaAgente) };
+}));
+
+// Designa (o modifica) un agente de percepción. Tiene que estar inscripto en IIBB.
+router.put('/agentes/:cuit', ruta(async (req) => {
+  const cuit = req.params.cuit;
+  if (!cuitValido(cuit)) throw falla(400, 'cuit inválido');
+  const b = req.body || {};
+  const fecha = (v) => v === undefined || v === null || /^\d{4}-\d{2}-\d{2}$/.test(String(v));
+  if (!fecha(b.vigente_desde) || !fecha(b.vigente_hasta)) throw falla(400, 'las fechas deben tener formato AAAA-MM-DD');
+  const insc = (await query("select 1 from arba.inscripciones where cuit = $1 and estado = 'activa'", [cuit])).rows[0];
+  if (!insc) throw falla(409, 'solo puede ser agente un contribuyente inscripto y activo en IIBB');
+  const { rows } = await query(`insert into arba.agentes (cuit, activo, vigente_desde, vigente_hasta)
+    values ($1, coalesce($2, true), coalesce($3::date, current_date), $4::date)
+    on conflict (cuit) do update set activo = coalesce($2, arba.agentes.activo),
+      vigente_desde = coalesce($3::date, arba.agentes.vigente_desde), vigente_hasta = $4::date, designado_en = now()
+    returning cuit`, [cuit, typeof b.activo === 'boolean' ? b.activo : null, b.vigente_desde || null, b.vigente_hasta || null]);
+  return { body: filaAgente((await query(`${SELECT_AGENTE} where a.cuit = $1`, [rows[0].cuit])).rows[0]) };
+}));
+
+router.get('/config-percepcion', ruta(async () => {
+  const c = (await query('select * from arba.config_percepcion where id = 1')).rows[0];
+  return { body: { alicuota_no_inscriptos: num(c.alicuota_no_inscriptos), monto_minimo: num(c.monto_minimo), actualizado_en: c.actualizado_en, simulacion: true } };
+}));
+router.put('/config-percepcion', ruta(async (req) => {
+  const b = req.body || {};
+  if (b.alicuota_no_inscriptos !== undefined && (typeof b.alicuota_no_inscriptos !== 'number' || b.alicuota_no_inscriptos < 0 || b.alicuota_no_inscriptos >= 1)) {
+    throw falla(400, 'alicuota_no_inscriptos debe ser una fracción entre 0 y 1');
+  }
+  if (b.monto_minimo !== undefined && (typeof b.monto_minimo !== 'number' || b.monto_minimo < 0)) throw falla(400, 'monto_minimo inválido');
+  const c = (await query(`update arba.config_percepcion set alicuota_no_inscriptos = coalesce($1, alicuota_no_inscriptos),
+    monto_minimo = coalesce($2, monto_minimo), actualizado_en = now() where id = 1 returning *`,
+    [b.alicuota_no_inscriptos ?? null, b.monto_minimo ?? null])).rows[0];
+  return { body: { alicuota_no_inscriptos: num(c.alicuota_no_inscriptos), monto_minimo: num(c.monto_minimo), actualizado_en: c.actualizado_en, simulacion: true } };
+}));
+
+// Simula qué percepción correspondería, sin registrar nada.
+router.get('/percepciones/simular', ruta(async (req) => {
+  const { agente, sujeto } = req.query;
+  const base = Number(req.query.base);
+  if (!cuitValido(agente) || (sujeto && !cuitValido(sujeto)) || !(base > 0)) throw falla(400, 'agente, base y (opcional) sujeto válidos son obligatorios');
+  return { body: await calcularPercepcion({ query }, { agenteCuit: agente, sujetoCuit: sujeto || null, base }) };
+}));
+
 router.post('/percepciones', ruta(async (req) => {
   const b = req.body || {};
   const monto = b.monto_venta ?? b.monto;

@@ -29,6 +29,7 @@ async function abrirBaseSintetica() {
     '20261028000004_municipio_tpv_operativos.sql', '20261028000005_municipio_operacion_bancaria.sql',
     '20261028000006_tpv_brisa_banco_m.sql', '20261028000009_qr_pagos_liquidacion.sql',
     '20261028000010_webhooks_tpv.sql', '20261028000012_municipio_habilitacion_pendiente.sql',
+    '20261029000015_impuestos_configurables.sql',
   ];
   for (const nombre of migraciones) await pg.exec(fs.readFileSync(path.join(dir, nombre), 'utf8'));
   await pg.exec('alter table billetera.movimientos add column if not exists contraparte text;');
@@ -152,25 +153,31 @@ test('alta de punto de venta y checkout TPV integra cobro, ARBA, ARCA y stock', 
   assert.equal((await api('GET', `/arca/puntos-venta?cuit=${sujetos.comercio}`)).body[0].punto_venta, 27);
   const producto = (await api('GET', `/tpv/productos?terminal_id=qa-terminal&cuit=${sujetos.comercio}`)).body[0];
   const bancoAntes = (await api('GET', '/banco/cuentas/qa-comercio/saldo')).body.saldo;
+  // ARBA designa al comercio agente de percepción; el comprador (RI, alícuota 2 % en el padrón) se identifica.
+  assert.equal((await api('PUT', `/arba/agentes/${sujetos.comercio}`, {})).status, 200);
   const venta = await api('POST', '/tpv/ventas', { id_venta: 'qa-tpv-001', terminal_id: 'qa-terminal',
     comercio_cuit: sujetos.comercio, medio_pago: 'banco', cuenta_origen: 'cuenta-mostrador', punto_venta: 27,
-    items: [{ producto_id: producto.id, cantidad: 2 }] });
+    cuit_cliente: sujetos.comercioWallet, items: [{ producto_id: producto.id, cantidad: 2 }] });
   assert.equal(venta.status, 201, JSON.stringify(venta.body));
-  assert.equal(venta.body.percepcion, 60);
-  assert.equal(venta.body.total, 2060);
+  assert.equal(venta.body.impuestos.tipo_comprobante, 'FACTURA_A');   // RI a RI
+  assert.equal(venta.body.impuestos.neto, 1652.89);                    // 2000 / 1,21
+  assert.equal(venta.body.impuestos.iva_total, 347.11);
+  assert.equal(venta.body.impuestos.percepcion.origen, 'padron');
+  assert.equal(venta.body.percepcion, 33.06);                          // 1652,89 × 2 %
+  assert.equal(venta.body.total, 2033.06);
   assert.equal(venta.body.webhook.estado,'entregado');
   const factura = (await api('GET', `/arca/comprobantes?cuit=${sujetos.comercio}`)).body[0];
   assert.equal(factura.punto_venta, '00027');
-  assert.equal(factura.monto_total, 2060);
-  assert.equal((await api('GET', '/banco/cuentas/qa-comercio/saldo')).body.saldo, bancoAntes + 2060);
+  assert.equal(factura.monto_total, 2033.06);
+  assert.equal((await api('GET', '/banco/cuentas/qa-comercio/saldo')).body.saldo, bancoAntes + 2033.06);
   assert.equal((await api('GET', `/tpv/productos?terminal_id=qa-terminal&cuit=${sujetos.comercio}`)).body[0].stock, 3);
   const percepciones = await api('GET', `/arba/percepciones/${sujetos.comercio}`);
   assert.equal(percepciones.status, 200);
   assert.equal(percepciones.body[0].id_venta, 'qa-tpv-001');
-  assert.equal(percepciones.body[0].monto_percepcion, 60);
+  assert.equal(percepciones.body[0].monto_percepcion, 33.06);
   const repetida = await api('POST', '/tpv/ventas', { id_venta: 'qa-tpv-001', terminal_id: 'qa-terminal',
     comercio_cuit: sujetos.comercio, medio_pago: 'banco', cuenta_origen: 'cuenta-mostrador', punto_venta: 27,
-    items: [{ producto_id: producto.id, cantidad: 2 }] });
+    cuit_cliente: sujetos.comercioWallet, items: [{ producto_id: producto.id, cantidad: 2 }] });
   assert.equal(repetida.status, 200);
   assert.equal(repetida.body.webhook.estado,'entregado');
   assert.equal((await api('GET', '/tpv/ventas/qa-tpv-001')).body.estado, 'COMPLETADA');
@@ -187,7 +194,7 @@ test('checkout de billetera acredita billetera del comercio y Municipio cobra al
     items: [{ producto_id: producto.id, cantidad: 1 }] });
   assert.equal(venta.status, 201, JSON.stringify(venta.body));
   const walletComercio = (await api('GET', '/banco/clientes/' + sujetos.comercioWallet)).body.billetera;
-  assert.equal(walletComercio.saldo, 510);
+  assert.equal(walletComercio.saldo, 500);   // el comercio no es agente de percepción: no percibe
   const pagoTasa = await api('POST', '/municipio/tributos/pagos', { cuit: sujetos.municipal, periodo: '2026-10', monto: 750 });
   assert.equal(pagoTasa.status, 201);
   assert.equal(pagoTasa.body.comprobante.monto, 750);

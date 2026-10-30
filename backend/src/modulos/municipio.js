@@ -110,6 +110,59 @@ router.get('/tributos/:cuit', ruta(async (req) => {
     periodos_pendientes: tributos.filter((t) => t.estado === 'pendiente').length, tributos } };
 }));
 
+// ---------- Tasa de Seguridad e Higiene sobre las ventas (configurable) ----------
+// Se liquida por período sobre lo facturado en el mes (neto + exento), con la
+// alícuota del rubro de la habilitación o la general ('*'). Valores de prueba.
+const filaAlicuota = (r) => ({ rubro: r.rubro, alicuota: num(r.alicuota), minimo: num(r.minimo), actualizado_en: r.actualizado_en });
+router.get('/alicuotas', ruta(async () => ({
+  body: (await query('select * from municipio.alicuotas_rubro order by rubro')).rows.map(filaAlicuota),
+})));
+router.put('/alicuotas/:rubro', ruta(async (req) => {
+  const rubro = String(req.params.rubro || '').trim();
+  const { alicuota, minimo } = req.body || {};
+  if (!rubro) throw falla(400, 'rubro inválido');
+  if (typeof alicuota !== 'number' || alicuota < 0 || alicuota >= 1) throw falla(400, 'alicuota debe ser una fracción entre 0 y 1');
+  if (minimo !== undefined && (typeof minimo !== 'number' || minimo < 0)) throw falla(400, 'minimo inválido');
+  const { rows } = await query(`insert into municipio.alicuotas_rubro (rubro, alicuota, minimo) values ($1, $2, coalesce($3, 0))
+    on conflict (rubro) do update set alicuota = excluded.alicuota, minimo = coalesce($3, municipio.alicuotas_rubro.minimo), actualizado_en = now()
+    returning *`, [rubro, alicuota, minimo ?? null]);
+  return { body: filaAlicuota(rows[0]) };
+}));
+
+router.post('/tributos/liquidar', ruta(async (req) => {
+  const { cuit, periodo } = req.body || {};
+  if (!cuitValido(cuit)) throw falla(400, 'CUIT inválido');
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(periodo || ''))) throw falla(400, 'periodo debe tener formato AAAA-MM');
+  return tx(async (c) => {
+    const hab = (await c.query('select * from municipio.habilitaciones where cuit = $1', [cuit])).rows[0];
+    if (!hab) throw falla(404, 'el comercio no tiene habilitación municipal');
+    const ali = (await c.query(`select * from municipio.alicuotas_rubro where rubro in ($1, '*')
+      order by (rubro = '*') limit 1`, [hab.rubro])).rows[0];
+    if (!ali) throw falla(409, 'no hay alícuota configurada para el rubro ni una general');
+    const desde = `${periodo}-01`;
+    const base = num((await c.query(`select coalesce(sum(coalesce(neto, subtotal) + coalesce(exento, 0)), 0) as base
+      from arca.comprobantes where emisor_cuit = $1 and estado = 'emitido'
+        and emitido_en >= $2::date and emitido_en < ($2::date + interval '1 month')`, [cuit, desde])).rows[0].base);
+    const calculado = Math.round(base * num(ali.alicuota) * 100) / 100;
+    const monto = Math.max(calculado, num(ali.minimo));
+    if (!(monto > 0)) throw falla(409, 'el período no tiene base imponible ni mínimo para liquidar');
+    const desglose = [
+      { concepto: `Ventas del período ${periodo} (neto)`, importe: base },
+      { concepto: `Alícuota rubro "${ali.rubro}" ${(num(ali.alicuota) * 100).toFixed(2)} %`, importe: calculado },
+      ...(monto > calculado ? [{ concepto: 'Ajuste al mínimo del rubro', importe: Math.round((monto - calculado) * 100) / 100 }] : []),
+    ];
+    const previa = (await c.query("select * from municipio.tasas where cuit = $1 and periodo = $2 and tipo = 'TSYH'", [cuit, periodo])).rows[0];
+    if (previa?.estado === 'pagada') throw falla(409, 'la tasa del período ya está pagada');
+    const vencimiento = `${periodo}-01`;
+    const { rows } = previa
+      ? await c.query(`update municipio.tasas set monto = $2, desglose = $3 where id = $1 returning *`, [previa.id, monto, JSON.stringify(desglose)])
+      : await c.query(`insert into municipio.tasas (id_tributo, cuit, periodo, tipo, monto, estado, concepto, desglose, vencimiento)
+          values ($1, $2, $3, 'TSYH', $4, 'pendiente', 'Tasa de Seguridad e Higiene (TISH)', $5, ($6::date + interval '1 month 9 days')::date) returning *`,
+          [`${cuit}-${periodo}`, cuit, periodo, monto, JSON.stringify(desglose), vencimiento]);
+    return { status: previa ? 200 : 201, body: { ...tasaDto(rows[0]), base_imponible: base, alicuota: num(ali.alicuota), rubro_aplicado: ali.rubro, simulacion: true } };
+  });
+}));
+
 router.post('/tributos/pagos', ruta(async (req) => {
   const b = req.body || {};
   if (!cuitValido(b.cuit)) throw falla(400, 'CUIT inválido');

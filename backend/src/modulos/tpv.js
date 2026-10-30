@@ -7,10 +7,11 @@ const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('.
 const { transferir } = require('./banco');
 const { pagar: pagarBilletera } = require('./billetera');
 const { registrarEvento, entregarEvento } = require('./webhooks');
+const { calcularIva, tipoComprobante, calcularPercepcion } = require('./impuestos');
 
 const router = express.Router();
+const IVAS = ['21', '10.5', '27', '0', 'exento'];
 const pad = (n, width) => String(n).padStart(width, '0');
-const tipos = { responsable_inscripto: 'FACTURA_B', monotributo: 'FACTURA_C', exento: 'FACTURA_C', consumidor_final: 'FACTURA_C' };
 
 router.get('/health', ruta(async () => ({ body: { status: 'ok', servicio: 'TPV', modulo: 'tpv' } })));
 router.get('/integraciones', ruta(async () => ({ body: [
@@ -83,19 +84,22 @@ router.post('/productos', ruta(async (req) => {
   if (!idValido(b.terminal_id) || !cuitValido(b.comercio_cuit) || !String(b.nombre || '').trim() || !montoValido(b.precio)) {
     throw falla(400, 'terminal_id, comercio_cuit, nombre y precio positivo son obligatorios');
   }
-  const { rows } = await query(`insert into tpv.productos(terminal_id,comercio_cuit,codigo,nombre,categoria,precio,stock,activo)
-    select $1,$2::padron.cuit,$3,$4,$5,$6,$7,$8 where exists(select 1 from tpv.terminales where id=$1)
+  const iva = String(b.iva ?? '21');
+  if (!IVAS.includes(iva)) throw falla(400, 'iva debe ser 21, 10.5, 27, 0 o exento');
+  const { rows } = await query(`insert into tpv.productos(terminal_id,comercio_cuit,codigo,nombre,categoria,precio,stock,activo,iva)
+    select $1,$2::padron.cuit,$3,$4,$5,$6,$7,$8,$9 where exists(select 1 from tpv.terminales where id=$1)
       and exists(select 1 from padron.contribuyentes where cuit=$2::padron.cuit)
     returning *`, [b.terminal_id, b.comercio_cuit, b.codigo || null, String(b.nombre).trim(), b.categoria||'General',b.precio,
-    b.stock === undefined ? null : b.stock,b.activo!==false]);
+    b.stock === undefined ? null : b.stock,b.activo!==false,iva]);
   if (!rows[0]) throw falla(404, 'terminal o comercio no encontrado');
   const p = rows[0]; return { status: 201, body: { ...p, precio: num(p.precio) } };
 }));
 router.put('/productos/:id', ruta(async(req)=>{
   const b=req.body||{};
   if(!idValido(req.params.id)||!String(b.nombre||'').trim()||!montoValido(b.precio)) throw falla(400,'producto, nombre y precio positivo son obligatorios');
-  const {rows}=await query(`update tpv.productos set nombre=$2,categoria=$3,precio=$4,stock=$5,activo=$6
-    where id=$1 returning *`,[req.params.id,String(b.nombre).trim(),b.categoria||'General',b.precio,b.stock===undefined?null:b.stock,b.activo!==false]);
+  if(b.iva!==undefined&&!IVAS.includes(String(b.iva))) throw falla(400,'iva debe ser 21, 10.5, 27, 0 o exento');
+  const {rows}=await query(`update tpv.productos set nombre=$2,categoria=$3,precio=$4,stock=$5,activo=$6,iva=coalesce($7,iva)
+    where id=$1 returning *`,[req.params.id,String(b.nombre).trim(),b.categoria||'General',b.precio,b.stock===undefined?null:b.stock,b.activo!==false,b.iva===undefined?null:String(b.iva)]);
   if(!rows[0]) throw falla(404,'producto no encontrado');
   return {body:{...rows[0],precio:num(rows[0].precio)}};
 }));
@@ -139,6 +143,8 @@ router.post('/ventas', ruta(async (req) => {
   if (!Number.isInteger(puntoVenta) || puntoVenta < 1 || puntoVenta > 99999) throw falla(400, 'punto_venta inválido');
   if (!['banco', 'billetera', 'billetera_virtual', 'efectivo', 'tarjeta', 'transferencia'].includes(medio)) throw falla(400, 'medio_pago inválido');
   for (const i of items) if (!idValido(i.producto_id || i.productoId) || !Number.isInteger(i.cantidad) || i.cantidad <= 0) throw falla(400, 'cada item requiere productoId y cantidad entera positiva');
+  const clienteCuit = b.cuit_cliente || b.cuitComprador || b.cuit_pagador || null;
+  if (clienteCuit !== null && !cuitValido(clienteCuit)) throw falla(400, 'cuit_cliente debe tener 11 dígitos');
   const payloadHash = hash({ terminal, comercioCuit, medio, puntoVenta, cliente: b.cuit_cliente || b.cuitComprador || b.cuit_pagador || null,
     items: items.map((i) => ({ id: i.producto_id || i.productoId, cantidad: i.cantidad })) });
   const result = await tx(async (c) => {
@@ -165,7 +171,7 @@ router.post('/ventas', ruta(async (req) => {
         [item.producto_id || item.productoId, terminal, comercioCuit])).rows[0];
       if (!p) throw falla(404, `producto ${item.producto_id || item.productoId} no disponible para este comercio/terminal`);
       if (p.stock !== null && p.stock < item.cantidad) throw falla(409, `stock insuficiente para ${p.nombre}`);
-      resolved.push({ p, cantidad: item.cantidad, precio: num(p.precio) });
+      resolved.push({ p, cantidad: item.cantidad, precio: num(p.precio), iva: p.iva || '21' });
     }
     const subtotal = Math.round(resolved.reduce((sum, x) => sum + x.precio * x.cantidad, 0) * 100) / 100;
     if (subtotal <= 0) throw falla(400, 'el total de venta debe ser positivo');
@@ -176,10 +182,16 @@ router.post('/ventas', ruta(async (req) => {
       await c.query('insert into tpv.venta_items(id_venta,linea,producto_id,cantidad,precio_unitario) values($1,$2,$3,$4,$5)', [idVenta, index + 1, p.id, cantidad, precio]);
       if (p.stock !== null) await c.query('update tpv.productos set stock=stock-$2 where id=$1', [p.id, cantidad]);
     }
-    const inscripcion = (await c.query("select alicuota from arba.inscripciones where cuit=$1 and estado='activa'", [comercioCuit])).rows[0];
-    const alicuota = inscripcion ? num(inscripcion.alicuota) : 0;
-    const percepcion = Math.round(subtotal * alicuota * 100) / 100;
-    const total = subtotal + percepcion;
+    // Impuestos: IVA según ARCA (por producto), percepción según ARBA (agente,
+    // padrón del comprador y mínimo). Ver doc/IMPUESTOS-Y-PERCEPCIONES.md.
+    const receptor = clienteCuit
+      ? (await c.query('select cuit,condicion_iva from padron.contribuyentes where cuit=$1', [clienteCuit])).rows[0] : null;
+    const condicionReceptor = receptor?.condicion_iva || 'consumidor_final';
+    const fiscal = calcularIva(resolved.map((x) => ({ producto_id: x.p.id, nombre: x.p.nombre, precio: x.precio, cantidad: x.cantidad, iva: x.iva })), comercio.condicion_iva);
+    const perc = await calcularPercepcion(c, { agenteCuit: comercioCuit, sujetoCuit: clienteCuit, base: fiscal.neto + fiscal.exento });
+    const alicuota = perc.alicuota;
+    const percepcion = perc.monto;
+    const total = Math.round((subtotal + percepcion) * 100) / 100;
     const cobroId = `venta:${idVenta}`;
     let pagoId;
     if (medio.includes('billetera')) {
@@ -194,20 +206,23 @@ router.post('/ventas', ruta(async (req) => {
       pagoId = transf.movimiento.id;
     }
     let percepcionId = null;
-    if (inscripcion) {
-      const payloadPercepcion = hash({ cuit: comercioCuit, monto: subtotal });
-      const p = (await c.query(`insert into arba.percepciones(id_venta,cuit,monto_venta,alicuota_aplicada,monto_percepcion,payload_hash)
-        values($1,$2,$3,$4,$5,$6) returning id`, [idVenta, comercioCuit, subtotal, alicuota, percepcion, payloadPercepcion])).rows[0];
+    if (percepcion > 0) {
+      const payloadPercepcion = hash({ cuit: comercioCuit, sujeto: clienteCuit, base: perc.base, alicuota });
+      const p = (await c.query(`insert into arba.percepciones(id_venta,cuit,monto_venta,alicuota_aplicada,monto_percepcion,payload_hash,sujeto_cuit,base_imponible,origen_alicuota)
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`, [idVenta, comercioCuit, subtotal, alicuota, percepcion, payloadPercepcion, clienteCuit, perc.base, perc.origen])).rows[0];
       percepcionId = p.id;
     }
-    const tipo = tipos[comercio.condicion_iva] || 'FACTURA_C';
+    const tipo = tipoComprobante(comercio.condicion_iva, condicionReceptor);
     const puntoConfigurado = (await c.query(`update arca.puntos_venta set ultimo_numero=ultimo_numero+1
       where emisor_cuit=$1 and punto_venta=$2 and tipo_comprobante=$3 returning ultimo_numero`, [comercioCuit,puntoVenta,tipo])).rows[0];
     if (!puntoConfigurado) throw falla(409, 'configurá previamente en ARCA el punto de venta y el tipo de comprobante');
     const numero = puntoConfigurado.ultimo_numero;
     const cae = Array.from(crypto.randomBytes(14), (byte) => byte % 10).join('');
-    const comprobante = (await c.query(`insert into arca.comprobantes(id_venta,emisor_cuit,punto_venta,tipo_comprobante,numero,subtotal,percepcion,monto_total,cae,cae_vencimiento,payload_hash)
-      values($1,$2,$3,$4,$5,$6,$7,$8,$9,current_date+10,$10) returning id`, [idVenta,comercioCuit,puntoVenta,tipo,numero,subtotal,percepcion,total,cae,hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta,receptor:null })])).rows[0];
+    const comprobante = (await c.query(`insert into arca.comprobantes(id_venta,emisor_cuit,receptor_cuit,receptor_condicion,punto_venta,tipo_comprobante,numero,
+        subtotal,percepcion,monto_total,cae,cae_vencimiento,payload_hash,neto,iva_total,exento,iva_detalle)
+      values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,current_date+10,$12,$13,$14,$15,$16) returning id`,
+      [idVenta,comercioCuit,clienteCuit,condicionReceptor,puntoVenta,tipo,numero,subtotal,percepcion,total,cae,
+        hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta,receptor:clienteCuit }),fiscal.neto,fiscal.iva_total,fiscal.exento,JSON.stringify(fiscal.iva_detalle)])).rows[0];
     const out = (await c.query(`update tpv.ventas set estado='completada',percepcion=$2,total=$3,ref_percepcion=$4,ref_pago=$5,ref_comprobante=$6
       where id_venta=$1 returning *`, [idVenta,percepcion,total,percepcionId,pagoId,comprobante.id])).rows[0];
     const webhookEventId=await registrarEvento(c,{terminal_id:terminal,id_venta:idVenta,payload:{
@@ -215,9 +230,12 @@ router.post('/ventas', ruta(async (req) => {
       cuit_pagador:medio.includes('billetera')?(b.cuit_cliente||b.cuitComprador||b.cuit_pagador):null,
       monto:total,subtotal,percepcion,moneda:'ARS',medio_pago:medio,estado:'confirmado',
       pago_id:pagoId,percepcion_id:percepcionId,comprobante_id:comprobante.id,
-      punto_venta:puntoVenta,tipo_comprobante:tipo,
+      punto_venta:puntoVenta,tipo_comprobante:tipo,neto:fiscal.neto,iva_total:fiscal.iva_total,
     }});
-    return { status: 201, body: { ...out, subtotal: num(out.subtotal), percepcion: num(out.percepcion), total: num(out.total), repetida: false,_webhookEventId:webhookEventId } };
+    const impuestos = { tipo_comprobante: tipo, receptor_cuit: clienteCuit, receptor_condicion: condicionReceptor,
+      neto: fiscal.neto, iva_total: fiscal.iva_total, exento: fiscal.exento, iva_detalle: fiscal.iva_detalle, iva_discriminado: tipo === 'FACTURA_A',
+      percepcion: { monto: percepcion, alicuota, base: perc.base, origen: perc.origen, motivo: perc.motivo }, simulacion: true };
+    return { status: 201, body: { ...out, subtotal: num(out.subtotal), percepcion: num(out.percepcion), total: num(out.total), impuestos, repetida: false,_webhookEventId:webhookEventId } };
   });
   if (result.body._webhookEventId) { result.body.webhook=await entregarEvento(result.body._webhookEventId); delete result.body._webhookEventId; }
   return result;

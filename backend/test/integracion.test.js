@@ -159,11 +159,24 @@ test('alta Municipio y venta integral TPV idempotente sobre la base compartida',
     comercio_cuit: '30712345678', medio_pago: 'banco', items: [{ producto_id: producto.id, cantidad: 1 }] });
   assert.equal(venta.status, 201);
   assert.equal(venta.body.estado, 'completada');
-  assert.equal(venta.body.percepcion, Math.round(producto.precio * 0.03 * 100) / 100);
+  // Consumidor final sin CUIT: el comercio es agente, pero no corresponde percepción.
+  assert.equal(venta.body.percepcion, 0);
+  assert.match(venta.body.impuestos.percepcion.motivo, /consumidor final/);
+  assert.equal(venta.body.impuestos.tipo_comprobante, 'FACTURA_B');
   assert.equal((await api('GET', '/banco/cuentas/cuenta-mateo/saldo')).body.saldo, saldoAntes + venta.body.total);
   assert.equal((await api('POST', '/tpv/ventas', { id_venta: 'integracion-tpv-01', terminal_id: 'david',
     comercio_cuit: '30712345678', medio_pago: 'banco', items: [{ producto_id: producto.id, cantidad: 1 }] })).status, 200);
   assert.equal((await api('GET', '/arca/comprobantes?cuit=30712345678')).body.some((f) => f.id_venta === 'integracion-tpv-01'), true);
+
+  // Cliente Responsable Inscripto identificado: Factura A y percepción con la alícuota de su padrón (3 %).
+  const conCliente = await api('POST', '/tpv/ventas', { id_venta: 'integracion-tpv-02', terminal_id: 'david',
+    comercio_cuit: '30712345678', medio_pago: 'banco', cuit_cliente: '30987654321', items: [{ producto_id: producto.id, cantidad: 1 }] });
+  assert.equal(conCliente.status, 201, JSON.stringify(conCliente.body));
+  const imp = conCliente.body.impuestos;
+  assert.equal(imp.tipo_comprobante, 'FACTURA_A');
+  assert.equal(imp.neto, Math.round(producto.precio / 1.21 * 100) / 100);
+  assert.equal(conCliente.body.percepcion, Math.round(imp.neto * 0.03 * 100) / 100);
+  assert.equal(conCliente.body.total, Math.round((producto.precio + conCliente.body.percepcion) * 100) / 100);
 });
 
 test('TPV Brisa y Sebastián usan catálogos por terminal y la ficha Banco/Billetera es por CUIT', async () => {
