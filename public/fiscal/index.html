@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Configuración de IVA, percepciones de IIBB y tasas municipales que se aplican en las ventas del ecosistema Sintegra I26.">
+<link rel="icon" type="image/png" href="../media/logo-sintegra.png">
+<title>Configuración fiscal · Sintegra I26</title>
+<link rel="stylesheet" href="../comercios/styles.css">
+<style>
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; align-items: start; }
+  .fila-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: .5rem; align-items: end; }
+  .fila-form label { font-size: .8rem; font-weight: 600; display: grid; gap: .2rem; }
+  td input, td select { min-height: 36px; padding: .3rem .5rem; }
+  .total { font-size: 1.15rem; font-weight: 800; }
+  .resultado { display: grid; grid-template-columns: 1fr auto; gap: .3rem 1rem; font-size: .95rem; }
+  .resultado dt { color: var(--muted); } .resultado dd { text-align: right; font-variant-numeric: tabular-nums; }
+  @media (max-width: 600px) { .fila-form { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#principal">Saltar al contenido</a>
+<p class="aviso">Simulación académica: las alícuotas son de prueba y no corresponden a normas vigentes. Los cambios afectan las ventas de todos los TPV del ecosistema.</p>
+<header class="topbar">
+  <a class="marca" href="../index.html"><img src="../media/logo-sintegra.png" alt="" width="36" height="36"><span><strong>Configuración fiscal</strong><small>IVA · Percepciones · Tasas</small></span></a>
+</header>
+
+<main id="principal" tabindex="-1">
+  <div class="vista">
+    <div class="encabezado">
+      <div><h1>Impuestos que se aplican en cada venta</h1>
+      <p class="muted">Cada organismo configura lo suyo. El TPV calcula la venta con estos valores.</p></div>
+    </div>
+    <div class="pestanas" role="tablist" id="tabs">
+      <button role="tab" aria-selected="true" data-tab="simulador" type="button">Simular una venta</button>
+      <button role="tab" aria-selected="false" data-tab="arba" type="button">ARBA · Percepciones</button>
+      <button role="tab" aria-selected="false" data-tab="arca" type="button">ARCA · IVA por producto</button>
+      <button role="tab" aria-selected="false" data-tab="municipio" type="button">Municipio · Tasa de Seguridad e Higiene</button>
+    </div>
+
+    <!-- Simulador -->
+    <section data-panel="simulador" class="grid2">
+      <form id="f-sim" class="card form">
+        <h2>¿Cuánto paga el cliente?</h2>
+        <label for="s-comercio">Comercio que vende</label><select id="s-comercio" required></select>
+        <label for="s-cliente">CUIT del cliente (vacío = consumidor final)</label><input id="s-cliente" inputmode="numeric" maxlength="11" placeholder="Opcional">
+        <label for="s-monto">Precio final de los productos</label><input id="s-monto" type="number" min="1" step="0.01" value="12100" required>
+        <label for="s-iva">IVA de los productos</label>
+        <select id="s-iva"><option value="21">21 %</option><option value="10.5">10,5 %</option><option value="27">27 %</option><option value="0">0 %</option><option value="exento">Exento</option></select>
+        <button class="btn btn-prim" type="submit">Calcular</button>
+      </form>
+      <div class="card" id="sim-resultado" aria-live="polite"><p class="muted">Completá los datos y tocá Calcular.</p></div>
+    </section>
+
+    <!-- ARBA -->
+    <section data-panel="arba" class="grid2" hidden>
+      <div class="card">
+        <h2>Parámetros del régimen</h2>
+        <form id="f-param" class="form">
+          <label for="p-noinsc">Alícuota para compradores fuera del padrón (%)</label><input id="p-noinsc" type="number" min="0" max="99" step="0.01" required>
+          <label for="p-min">Monto mínimo de la operación (neto, $)</label><input id="p-min" type="number" min="0" step="0.01" required>
+          <button class="btn btn-prim" type="submit">Guardar parámetros</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Agentes de percepción</h2>
+        <p class="nota">Solo los comercios designados por ARBA perciben. Tienen que estar inscriptos en IIBB.</p>
+        <div id="agentes" class="lista"></div>
+        <form id="f-agente" class="fila-form">
+          <label>Designar comercio<select id="a-cuit" required></select></label>
+          <label>Vigente hasta (opcional)<input id="a-hasta" type="date"></label>
+          <button class="btn btn-borde" type="submit">Designar</button>
+        </form>
+      </div>
+      <div class="card tabla" style="grid-column: 1 / -1">
+        <h2>Padrón de alícuotas (se aplica al comprador)</h2>
+        <table><thead><tr><th>CUIT</th><th>Contribuyente</th><th>Actividad</th><th>Alícuota %</th><th></th></tr></thead><tbody id="padron"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ARCA -->
+    <section data-panel="arca" hidden>
+      <div class="card">
+        <h2>IVA de cada producto</h2>
+        <p class="nota">El precio del catálogo es el precio final. Un Responsable Inscripto discrimina el IVA en la Factura A; Monotributo y Exento emiten Factura C sin IVA.</p>
+        <label for="t-terminal" class="nota">Terminal</label>
+        <select id="t-terminal" style="max-width: 320px; margin-bottom: .8rem"></select>
+        <div class="tabla"><table><thead><tr><th>Producto</th><th>Comercio</th><th>Precio</th><th>IVA</th></tr></thead><tbody id="productos"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- Municipio -->
+    <section data-panel="municipio" class="grid2" hidden>
+      <div class="card tabla">
+        <h2>Alícuota por rubro</h2>
+        <p class="nota">Se aplica sobre lo vendido en el mes. “*” es la alícuota general.</p>
+        <table><thead><tr><th>Rubro</th><th>Alícuota %</th><th>Mínimo $</th><th></th></tr></thead><tbody id="alicuotas"></tbody></table>
+        <form id="f-rubro" class="fila-form" style="margin-top: .8rem">
+          <label>Nuevo rubro<input id="r-rubro" required></label>
+          <label>Alícuota %<input id="r-ali" type="number" min="0" max="99" step="0.01" required></label>
+          <button class="btn btn-borde" type="submit">Agregar</button>
+        </form>
+      </div>
+      <form id="f-liq" class="card form">
+        <h2>Liquidar la tasa del mes</h2>
+        <label for="l-cuit">Comercio</label><select id="l-cuit" required></select>
+        <label for="l-periodo">Período</label><input id="l-periodo" type="month" required>
+        <button class="btn btn-prim" type="submit">Liquidar</button>
+        <div id="liq-resultado" aria-live="polite"></div>
+      </form>
+    </section>
+  </div>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
