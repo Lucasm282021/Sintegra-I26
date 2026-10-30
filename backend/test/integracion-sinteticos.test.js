@@ -30,6 +30,7 @@ async function abrirBaseSintetica() {
     '20261028000006_tpv_brisa_banco_m.sql', '20261028000009_qr_pagos_liquidacion.sql',
     '20261028000010_webhooks_tpv.sql', '20261028000012_municipio_habilitacion_pendiente.sql',
     '20261029000015_impuestos_configurables.sql',
+    '20261029000017_tpv_medio_detalle.sql',
   ];
   for (const nombre of migraciones) await pg.exec(fs.readFileSync(path.join(dir, nombre), 'utf8'));
   await pg.exec('alter table billetera.movimientos add column if not exists contraparte text;');

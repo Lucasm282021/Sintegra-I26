@@ -231,4 +231,4 @@ router.post('/transferencias', ruta(async (req) => {
   });
 }));
 
-module.exports = { router, transferir, cuentaPorCuit, abrirCuenta };
+module.exports = { router, transferir, cuentaPorCuit, abrirCuenta, cuentaPorReferencia };

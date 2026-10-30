@@ -127,3 +127,21 @@ test('Municipio liquida la Tasa de Seguridad e Higiene del período sobre las ve
   assert.equal((await api('POST', '/municipio/tributos/liquidar', { cuit: COMERCIO, periodo })).status, 200);
   assert.equal((await api('POST', '/municipio/tributos/liquidar', { cuit: '27123456789', periodo })).status, 404);
 });
+
+test('el comprador se identifica por la cuenta bancaria de la que paga (alias o CBU)', async () => {
+  const v = await vender([{ producto_id: producto.id, cantidad: 1 }], { cuenta_origen: 'kiosco.esquina.banco' });
+  assert.equal(v.status, 201, JSON.stringify(v.body));
+  assert.equal(v.body.impuestos.receptor_cuit, CLIENTE_RI);
+  assert.equal(v.body.impuestos.tipo_comprobante, 'FACTURA_A');
+  assert.equal(v.body.percepcion, 300);              // 10.000 × 3 % del padrón del Kiosco
+  assert.equal((await vender([{ producto_id: producto.id, cantidad: 1 }], { cuenta_origen: 'no.existe.alias' })).status, 404);
+});
+
+test('ARCA: búsqueda de comprobante por número, tipo y punto de venta', async () => {
+  const v = await vender([{ producto_id: producto.id, cantidad: 1 }]);
+  const c = (await pg.query('select numero, tipo_comprobante, punto_venta from arca.comprobantes where id_venta = $1', [v.body.id_venta])).rows[0];
+  const r = await api('GET', `/arca/comprobantes/${c.numero}?tipo=${c.tipo_comprobante}&pv=${c.punto_venta}&cuit=${COMERCIO}`);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.id_venta, v.body.id_venta);
+  assert.equal((await api('GET', '/arca/comprobantes/99999999')).status, 404);
+});

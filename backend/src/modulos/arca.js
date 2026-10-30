@@ -131,6 +131,23 @@ router.post('/comprobantes', ruta(async (req) => {
   });
 }));
 
+// Búsqueda por número (con tipo, punto de venta y emisor opcionales). Si hay
+// más de uno con ese número, pide más filtros (como el padrón de ARCA de Mateo).
+router.get('/comprobantes/:numero', ruta(async (req) => {
+  const numero = Number(req.params.numero);
+  if (!Number.isInteger(numero) || numero < 1) throw falla(400, 'número de comprobante inválido');
+  const tipo = req.query.tipo ? (TIPOS[req.query.tipo] || req.query.tipo) : null;
+  const pv = req.query.pv ? Number(req.query.pv) : null;
+  const cuit = req.query.cuit || null;
+  if (cuit && !cuitValido(cuit)) throw falla(400, 'cuit inválido');
+  const { rows } = await query(`select * from arca.comprobantes where numero = $1
+    and ($2::text is null or tipo_comprobante = $2) and ($3::int is null or punto_venta = $3) and ($4::text is null or emisor_cuit = $4)
+    order by emitido_en desc limit 2`, [numero, tipo, pv, cuit]);
+  if (!rows.length) throw falla(404, 'comprobante no encontrado');
+  if (rows.length > 1) throw falla(409, 'número ambiguo: indicá tipo, punto de venta o emisor');
+  return { body: filaComprobante(rows[0]) };
+}));
+
 router.get('/comprobantes', ruta(async (req) => {
   const { cuit } = req.query;
   if (cuit !== undefined && !cuitValido(cuit)) throw falla(400, 'cuit debe tener 11 dígitos');

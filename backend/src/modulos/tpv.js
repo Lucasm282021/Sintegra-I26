@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const express = require('express');
 const { query, tx } = require('../db');
 const { falla, cuitValido, idValido, montoValido, num, hash, ruta } = require('../http');
-const { transferir } = require('./banco');
+const { transferir, cuentaPorReferencia } = require('./banco');
 const { pagar: pagarBilletera } = require('./billetera');
 const { registrarEvento, entregarEvento } = require('./webhooks');
 const { calcularIva, tipoComprobante, calcularPercepcion } = require('./impuestos');
@@ -104,8 +104,34 @@ router.put('/productos/:id', ruta(async(req)=>{
   return {body:{...rows[0],precio:num(rows[0].precio)}};
 }));
 
+// Listado con detalle (líneas, comprobante, percepción y cliente) para las cajas
+// que muestran su propio historial, como el TPV de David. ?detalle=1&id_venta=...
+async function ventasDetalladas({ terminal, id }) {
+  const { rows } = await query(`select v.*, c.razon_social,
+      ac.cae, ac.cae_vencimiento::text as cae_vencimiento, ac.tipo_comprobante, ac.punto_venta, ac.numero, ac.receptor_cuit,
+      ap.alicuota_aplicada,
+      coalesce((select json_agg(json_build_object('producto_id', vi.producto_id, 'nombre', p.nombre, 'cantidad', vi.cantidad,
+        'precio_unitario', vi.precio_unitario) order by vi.linea)
+        from tpv.venta_items vi join tpv.productos p on p.id = vi.producto_id where vi.id_venta = v.id_venta), '[]') as lineas
+    from tpv.ventas v join padron.contribuyentes c on c.cuit = v.comercio_cuit
+    left join arca.comprobantes ac on ac.id::text = v.ref_comprobante
+    left join arba.percepciones ap on ap.id::text = v.ref_percepcion
+    where ($1::text is null or v.terminal_id = $1) and ($2::text is null or v.id_venta = $2)
+    order by v.creado_en desc limit 500`, [terminal || null, id || null]);
+  return rows.map((r) => ({
+    id_venta: r.id_venta, terminal_id: r.terminal_id, comercio_cuit: r.comercio_cuit, razon_social: r.razon_social,
+    estado: r.estado, medio_pago: r.medio_pago, medio_detalle: r.medio_detalle, creado_en: new Date(r.creado_en).toISOString(),
+    subtotal: num(r.subtotal), percepcion: num(r.percepcion), total: num(r.total), ref_pago: r.ref_pago,
+    alicuota_percepcion: r.alicuota_aplicada === null ? null : num(r.alicuota_aplicada), cuit_cliente: r.receptor_cuit,
+    lineas: (r.lineas || []).map((l) => ({ ...l, precio_unitario: num(l.precio_unitario) })),
+    comprobante: r.tipo_comprobante ? { tipo_comprobante: r.tipo_comprobante, punto_venta: pad(r.punto_venta, 5),
+      numero: pad(r.numero, 8), cae: `FICTICIO-${r.cae}`, vencimiento_cae: r.cae_vencimiento } : null,
+  }));
+}
+
 router.get('/ventas', ruta(async (req) => {
   const { terminal_id } = req.query;
+  if (req.query.detalle === '1') return { body: await ventasDetalladas({ terminal: terminal_id, id: req.query.id_venta }) };
   const { rows } = await query(`select v.*,c.razon_social,ac.cae comprobante_cae,ac.numero comprobante_numero,ac.tipo_comprobante
     from tpv.ventas v join padron.contribuyentes c on c.cuit=v.comercio_cuit left join arca.comprobantes ac on ac.id::text=v.ref_comprobante
     where ($1::text is null or v.terminal_id=$1) order by v.creado_en desc limit 100`, [terminal_id || null]);
@@ -175,8 +201,8 @@ router.post('/ventas', ruta(async (req) => {
     }
     const subtotal = Math.round(resolved.reduce((sum, x) => sum + x.precio * x.cantidad, 0) * 100) / 100;
     if (subtotal <= 0) throw falla(400, 'el total de venta debe ser positivo');
-    const v = (await c.query(`insert into tpv.ventas(id_venta,terminal_id,comercio_cuit,medio_pago,estado,subtotal,payload_hash)
-      values($1,$2,$3,$4,'pendiente',$5,$6) returning *`, [idVenta, terminal, comercioCuit, medio.includes('billetera') ? 'billetera' : 'banco', subtotal, payloadHash])).rows[0];
+    const v = (await c.query(`insert into tpv.ventas(id_venta,terminal_id,comercio_cuit,medio_pago,estado,subtotal,payload_hash,medio_detalle)
+      values($1,$2,$3,$4,'pendiente',$5,$6,$7) returning *`, [idVenta, terminal, comercioCuit, medio.includes('billetera') ? 'billetera' : 'banco', subtotal, payloadHash, medio])).rows[0];
     for (let index = 0; index < resolved.length; index++) {
       const { p, cantidad, precio } = resolved[index];
       await c.query('insert into tpv.venta_items(id_venta,linea,producto_id,cantidad,precio_unitario) values($1,$2,$3,$4,$5)', [idVenta, index + 1, p.id, cantidad, precio]);
@@ -184,11 +210,21 @@ router.post('/ventas', ruta(async (req) => {
     }
     // Impuestos: IVA según ARCA (por producto), percepción según ARBA (agente,
     // padrón del comprador y mínimo). Ver doc/IMPUESTOS-Y-PERCEPCIONES.md.
-    const receptor = clienteCuit
-      ? (await c.query('select cuit,condicion_iva from padron.contribuyentes where cuit=$1', [clienteCuit])).rows[0] : null;
+    // La cuenta de quien paga puede venir por id, CBU o alias. Su titular es el
+    // comprador: si no se informó su CUIT, se toma de la cuenta (como en un débito real).
+    let cuentaOrigen = null;
+    let compradorCuit = clienteCuit;
+    if (b.cuenta_origen && !medio.includes('billetera')) {
+      const co = await cuentaPorReferencia(c, b.cuenta_origen);
+      if (!co) throw falla(404, 'no existe la cuenta de quien paga (revisá el alias o CBU)');
+      cuentaOrigen = co.id;
+      if (!compradorCuit && !['cuenta-mostrador', 'cuenta-caja'].includes(co.id)) compradorCuit = co.cuit;
+    }
+    const receptor = compradorCuit
+      ? (await c.query('select cuit,condicion_iva from padron.contribuyentes where cuit=$1', [compradorCuit])).rows[0] : null;
     const condicionReceptor = receptor?.condicion_iva || 'consumidor_final';
     const fiscal = calcularIva(resolved.map((x) => ({ producto_id: x.p.id, nombre: x.p.nombre, precio: x.precio, cantidad: x.cantidad, iva: x.iva })), comercio.condicion_iva);
-    const perc = await calcularPercepcion(c, { agenteCuit: comercioCuit, sujetoCuit: clienteCuit, base: fiscal.neto + fiscal.exento });
+    const perc = await calcularPercepcion(c, { agenteCuit: comercioCuit, sujetoCuit: compradorCuit, base: fiscal.neto + fiscal.exento });
     const alicuota = perc.alicuota;
     const percepcion = perc.monto;
     const total = Math.round((subtotal + percepcion) * 100) / 100;
@@ -201,15 +237,15 @@ router.post('/ventas', ruta(async (req) => {
     } else {
       const cuentaDestino = vinculacion?.cuenta_destino || (await c.query('select id from banco.cuentas where cuit=$1 order by creado_en limit 1', [comercioCuit])).rows[0]?.id;
       if (!cuentaDestino) throw falla(404, 'comercio sin cuenta bancaria asociada');
-      const transf = await transferir(c, { id_operacion: cobroId, tipo: 'venta', origen: b.cuenta_origen || 'cuenta-mostrador', destino: cuentaDestino,
+      const transf = await transferir(c, { id_operacion: cobroId, tipo: 'venta', origen: cuentaOrigen || 'cuenta-mostrador', destino: cuentaDestino,
         monto: total, payload: { venta: idVenta, medio_pago: medio } });
       pagoId = transf.movimiento.id;
     }
     let percepcionId = null;
     if (percepcion > 0) {
-      const payloadPercepcion = hash({ cuit: comercioCuit, sujeto: clienteCuit, base: perc.base, alicuota });
+      const payloadPercepcion = hash({ cuit: comercioCuit, sujeto: compradorCuit, base: perc.base, alicuota });
       const p = (await c.query(`insert into arba.percepciones(id_venta,cuit,monto_venta,alicuota_aplicada,monto_percepcion,payload_hash,sujeto_cuit,base_imponible,origen_alicuota)
-        values($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`, [idVenta, comercioCuit, subtotal, alicuota, percepcion, payloadPercepcion, clienteCuit, perc.base, perc.origen])).rows[0];
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`, [idVenta, comercioCuit, subtotal, alicuota, percepcion, payloadPercepcion, compradorCuit, perc.base, perc.origen])).rows[0];
       percepcionId = p.id;
     }
     const tipo = tipoComprobante(comercio.condicion_iva, condicionReceptor);
@@ -221,8 +257,8 @@ router.post('/ventas', ruta(async (req) => {
     const comprobante = (await c.query(`insert into arca.comprobantes(id_venta,emisor_cuit,receptor_cuit,receptor_condicion,punto_venta,tipo_comprobante,numero,
         subtotal,percepcion,monto_total,cae,cae_vencimiento,payload_hash,neto,iva_total,exento,iva_detalle)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,current_date+10,$12,$13,$14,$15,$16) returning id`,
-      [idVenta,comercioCuit,clienteCuit,condicionReceptor,puntoVenta,tipo,numero,subtotal,percepcion,total,cae,
-        hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta,receptor:clienteCuit }),fiscal.neto,fiscal.iva_total,fiscal.exento,JSON.stringify(fiscal.iva_detalle)])).rows[0];
+      [idVenta,comercioCuit,compradorCuit,condicionReceptor,puntoVenta,tipo,numero,subtotal,percepcion,total,cae,
+        hash({ cuit:comercioCuit,total,percepcion,tipo,puntoVenta,receptor:compradorCuit }),fiscal.neto,fiscal.iva_total,fiscal.exento,JSON.stringify(fiscal.iva_detalle)])).rows[0];
     const out = (await c.query(`update tpv.ventas set estado='completada',percepcion=$2,total=$3,ref_percepcion=$4,ref_pago=$5,ref_comprobante=$6
       where id_venta=$1 returning *`, [idVenta,percepcion,total,percepcionId,pagoId,comprobante.id])).rows[0];
     const webhookEventId=await registrarEvento(c,{terminal_id:terminal,id_venta:idVenta,payload:{
@@ -232,7 +268,7 @@ router.post('/ventas', ruta(async (req) => {
       pago_id:pagoId,percepcion_id:percepcionId,comprobante_id:comprobante.id,
       punto_venta:puntoVenta,tipo_comprobante:tipo,neto:fiscal.neto,iva_total:fiscal.iva_total,
     }});
-    const impuestos = { tipo_comprobante: tipo, receptor_cuit: clienteCuit, receptor_condicion: condicionReceptor,
+    const impuestos = { tipo_comprobante: tipo, receptor_cuit: compradorCuit, receptor_condicion: condicionReceptor,
       neto: fiscal.neto, iva_total: fiscal.iva_total, exento: fiscal.exento, iva_detalle: fiscal.iva_detalle, iva_discriminado: tipo === 'FACTURA_A',
       percepcion: { monto: percepcion, alicuota, base: perc.base, origen: perc.origen, motivo: perc.motivo }, simulacion: true };
     return { status: 201, body: { ...out, subtotal: num(out.subtotal), percepcion: num(out.percepcion), total: num(out.total), impuestos, repetida: false,_webhookEventId:webhookEventId } };
