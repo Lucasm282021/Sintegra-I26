@@ -13,5 +13,47 @@
   <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <script src="https://sintegrai26.vercel.app/tour/sintegra-tour.js" defer></script>
+<script>/* Guía paso a paso (Driver.js vía sintegra-tour.js) */
+window.addEventListener("load",function(){if(window.SintegraTour)SintegraTour.init({
+ "app": "municipio",
+ "steps": [
+  {
+   "element": "#demo-login-title",
+   "title": "Ingresá",
+   "text": "Usá el usuario de prueba que aparece en la tarjeta."
+  },
+  {
+   "element": "[aria-label=\"Secciones del módulo Municipio\"]",
+   "title": "Secciones",
+   "text": "Padrón de comercios, alta, cuenta corriente, pagos y libre deuda."
+  },
+  {
+   "element": "[aria-label=\"Buscar comercio por CUIT, razón social o rubro\"]",
+   "title": "1. Buscá un comercio",
+   "text": "Por CUIT, nombre o rubro."
+  },
+  {
+   "element": "#heading-alta-comercio",
+   "title": "2. Alta de habilitación",
+   "text": "Cargá el pedido de habilitación. Queda pendiente hasta que el municipio lo resuelva."
+  },
+  {
+   "element": "#heading-consulta-cuenta",
+   "title": "3. Cuenta corriente",
+   "text": "Las tasas de cada período y lo que falta pagar."
+  },
+  {
+   "element": "#heading-comprobantes-pago",
+   "title": "4. Pagos",
+   "text": "El pago se debita de la cuenta bancaria del comercio y genera un comprobante."
+  },
+  {
+   "element": "#heading-certificado-libre-deuda",
+   "title": "5. Libre deuda",
+   "text": "Se emite cuando no hay tasas pendientes."
+  }
+ ]
+});});</script>
+</body>
 </html>

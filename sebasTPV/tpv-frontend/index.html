@@ -13,5 +13,47 @@
     <div id="root"></div>
     <script src="/config.js"></script>
     <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <script src="https://sintegrai26.vercel.app/tour/sintegra-tour.js" defer></script>
+<script>/* Guía paso a paso (Driver.js vía sintegra-tour.js) */
+window.addEventListener("load",function(){if(window.SintegraTour)SintegraTour.init({
+ "app": "tpv-sebastian",
+ "steps": [
+  {
+   "element": ".demo-login-card",
+   "title": "Ingresá",
+   "text": "Usá el usuario de prueba que aparece en la tarjeta."
+  },
+  {
+   "element": "#merchant-select",
+   "title": "1. Elegí el comercio",
+   "text": "Las ventas se cobran en la cuenta bancaria de este comercio."
+  },
+  {
+   "element": ".search-box",
+   "title": "2. Buscá productos",
+   "text": "Escribí el nombre del producto."
+  },
+  {
+   "element": ".product-grid",
+   "title": "3. Sumá al carrito",
+   "text": "Tocá un producto para agregarlo."
+  },
+  {
+   "element": ".cart-panel",
+   "title": "4. El carrito",
+   "text": "Revisá cantidades y el total."
+  },
+  {
+   "element": ".payment-methods",
+   "title": "5. Medio de pago",
+   "text": "Elegí cómo paga el cliente."
+  },
+  {
+   "element": ".btn-checkout",
+   "title": "6. Cobrar",
+   "text": "Cobra en el Banco, calcula la percepción en ARBA y emite la factura en ARCA."
+  }
+ ]
+});});</script>
+</body>
 </html>

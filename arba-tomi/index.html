@@ -16,5 +16,42 @@
   <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/client/main.jsx"></script>
-  </body>
+  <script src="https://sintegrai26.vercel.app/tour/sintegra-tour.js" defer></script>
+<script>/* Guía paso a paso (Driver.js vía sintegra-tour.js) */
+window.addEventListener("load",function(){if(window.SintegraTour)SintegraTour.init({
+ "app": "arba-tomi",
+ "steps": [
+  {
+   "element": "#login-email",
+   "title": "Ingresá",
+   "text": "Con tu correo y contraseña."
+  },
+  {
+   "element": "[aria-label=\"Datos de prueba\"]",
+   "title": "Usuario de prueba",
+   "text": "Copiá el correo y la contraseña de acá."
+  },
+  {
+   "element": "[aria-label=\"Secciones de ARBA\"]",
+   "title": "Secciones",
+   "text": "Inicio, gestión de sujetos, usuarios, auditoría, percepciones y padrón."
+  },
+  {
+   "element": "#contenido",
+   "title": "Área de trabajo",
+   "text": "Acá das de alta sujetos, los revisás y consultás el padrón."
+  },
+  {
+   "element": "[aria-label=\"CUIT a consultar\"]",
+   "title": "Consultar un CUIT",
+   "text": "Escribí un CUIT para ver su alícuota en el padrón."
+  },
+  {
+   "element": "[aria-label=\"Cerrar sesión\"]",
+   "title": "Salir",
+   "text": "Cerrá la sesión al terminar."
+  }
+ ]
+});});</script>
+</body>
 </html>
