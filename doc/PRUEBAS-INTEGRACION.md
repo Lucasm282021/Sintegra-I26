@@ -4,7 +4,7 @@
 
 ```bash
 cd backend
-npm test             # suite completa: 38 pruebas, 38 pasan (2026-10-29)
+npm test             # suite completa: 40 pruebas, 40 pasan (2026-10-29)
 npm run dev:memoria  # backend local en memoria en http://localhost:3010 para probar las pantallas
 ```
 
@@ -50,3 +50,7 @@ Con `npm run dev:memoria` y el portal servido en local: ingreso con el usuario d
 
 - Pruebas E2E automatizadas del asistente web (hoy es prueba manual).
 - Pruebas de las apps de alumnos contra el CORE cuando migren a `commerce_id` (etapa 3 del [plan de migración](PLAN-MIGRACION.md)).
+
+## Recorrido de punta a punta
+
+`node scripts/e2e-integracion.js` (ver [MAPA-INTEGRACION.md](MAPA-INTEGRACION.md)). 2026-10-29: 20/20 en local y en producción.

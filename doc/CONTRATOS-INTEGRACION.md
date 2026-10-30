@@ -70,6 +70,9 @@ Diseño: [ARQUITECTURA-COMERCIOS.md](ARQUITECTURA-COMERCIOS.md) · Flujo: [FLUJO
 | Banco | `POST /banco/cuentas` | Apertura de cuenta (sandbox). Banco asigna CBU y alias. Idempotente: `201` nueva, `200` existente; `409` sin padrón fiscal. |
 | Municipio | `POST /municipio/comercios` | **Cambio de comportamiento compatible:** si el CUIT ya está en el padrón (lo informó ARCA) se reutiliza sin pisarlo; `409` solo si ya hay un trámite de habilitación. Crear el CUIT desde Municipio queda deprecado. |
 | Municipio | `POST /municipio/comercios/:cuit/resolucion` | Resolución simulada del trámite (`estado`: `activa`, `suspendida` o `baja`; `expediente` obligatorio). |
+| TPV | `GET /tpv/ventas?detalle=1&terminal_id=&id_venta=` | Ventas con líneas, comprobante (tipo, PV, número, CAE, vencimiento), percepción (alícuota) y cliente. |
+| TPV | `POST /tpv/ventas` | Acepta `cuenta_origen` por id, CBU o alias; si no hay `cuit_cliente`, el titular de esa cuenta es el comprador. Devuelve `impuestos` (tipo, neto, IVA, percepción y motivo). |
+| ARCA | `GET /arca/comprobantes/:numero?tipo=&pv=&cuit=` | Busca un comprobante por número; `409` si es ambiguo. |
 | TPV | `POST /tpv/comercios` | Sin cambios de contrato. La lógica se extrajo a `vincularComercio()`, que también usa el CORE. |
 
 ## Eventos (`core.eventos`)

@@ -2,6 +2,22 @@
 
 Qué se conserva, modifica, reemplaza, depreca o elimina en cada entrega. Lo anterior al 2026-10-29 está en [AVANCES-UNIFICACION.md](AVANCES-UNIFICACION.md).
 
+## 2026-10-29 (cierre) — Integración real de TPV David y ARCA de Mateo
+
+### Agregado
+- Migración `20261029000017_tpv_medio_detalle.sql`: medio de pago real de cada venta. Solo agrega.
+- `GET /tpv/ventas?detalle=1` (líneas, comprobante, percepción y cliente) y `GET /arca/comprobantes/:numero`.
+- La venta acepta la cuenta de quien paga por id, CBU o alias; su titular queda como comprador.
+- `backend/scripts/e2e-integracion.js`: recorrido completo; 20/20 en local y en producción.
+- [MAPA-INTEGRACION.md](MAPA-INTEGRACION.md): qué usa cada app y dónde quedan sus datos.
+
+### Modificado
+- **TPV David**: con `TPV_BACKEND_URL`, su catálogo, comercios y ventas viven en la base común y la venta usa el motor común (IVA, percepción, factura). Se respetaron sus interfaces de repositorio; sin la variable funciona como antes. La pantalla pide el CUIT del cliente como opcional.
+- **ARCA (Mateo)**: con `ARCA_BACKEND_URL`, consulta el padrón fiscal común y emite/busca comprobantes en el ARCA común (numeración compartida con los TPV). Usuarios y sesiones siguen siendo suyos.
+- **TPV Brisa**: la cuenta de quien paga se indica por alias o CBU.
+- **TPV Sebastián**: deja de mostrar una percepción estimada fija del 3 %; se calcula al cobrar.
+- Suite: 40/40.
+
 ## 2026-10-29 (noche) — Gestión de cuentas en el Banco y visitas guiadas
 
 ### Agregado
