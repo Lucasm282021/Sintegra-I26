@@ -2,6 +2,20 @@
 
 Qué se conserva, modifica, reemplaza, depreca o elimina en cada entrega. Lo anterior al 2026-10-29 está en [AVANCES-UNIFICACION.md](AVANCES-UNIFICACION.md).
 
+## 2026-10-29 (tarde) — Impuestos configurables y solo modo real
+
+### Agregado
+- Migración `20261029000015_impuestos_configurables.sql`: IVA por producto, comprobante con neto/IVA/receptor, agentes de percepción, parámetros del régimen, datos de la percepción (sujeto, base, origen) y alícuotas municipales por rubro. Solo agrega.
+- Motor `backend/src/modulos/impuestos.js` y su uso en `POST /tpv/ventas`: IVA, tipo A/B/C según emisor y receptor, percepción con agente + padrón del comprador + mínimo.
+- ARBA: `/arba/agentes`, `/arba/config-percepcion`, `/arba/percepciones/simular`. Municipio: `/municipio/alicuotas`, `/municipio/tributos/liquidar`. TPV: `iva` en productos.
+- Consola `public/fiscal/` (simulador de venta y configuración de ARBA, ARCA y Municipio) y [IMPUESTOS-Y-PERCEPCIONES.md](IMPUESTOS-Y-PERCEPCIONES.md).
+- `backend/test/impuestos.test.js` (7 pruebas). Suite: 35/35.
+
+### Modificado
+- **La percepción ya no se aplica a todas las ventas con la alícuota del vendedor.** Ahora solo si el comercio es agente vigente y el comprador se identifica con CUIT. Una venta a consumidor final sin CUIT no lleva percepción.
+- Las pruebas de venta existentes se ajustaron a esta regla.
+- ARBA Lucas y ARBA Tomi: se quitó el modo "Demo" (motor en el navegador); trabajan siempre contra la API. ARBA Lucas se volvió a publicar: la versión anterior no respondía su API.
+
 ## 2026-10-29 — CORE de comercios (Fases B y C del prompt maestro)
 
 ### Agregado

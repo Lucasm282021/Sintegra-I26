@@ -4,7 +4,7 @@
 
 ```bash
 cd backend
-npm test             # suite completa: 28 pruebas, 28 pasan (2026-10-29)
+npm test             # suite completa: 35 pruebas, 35 pasan (2026-10-29)
 npm run dev:memoria  # backend local en memoria en http://localhost:3010 para probar las pantallas
 ```
 
@@ -14,6 +14,7 @@ npm run dev:memoria  # backend local en memoria en http://localhost:3010 para pr
 |---|---|
 | `test/core.test.js` | CORE de comercios: los 14 casos del prompt maestro, la importación y el recorrido completo |
 | `test/integracion.test.js` | Padrón, Billetera, Banco, venta TPV, Municipio, ARCA (incluye la migración del CORE sobre el seed) |
+| `test/impuestos.test.js` | IVA, tipo de comprobante, percepción (agente, padrón del comprador, no inscriptos, mínimo) y Tasa de Seguridad e Higiene ([detalle](IMPUESTOS-Y-PERCEPCIONES.md)) |
 | `test/integracion-sinteticos.test.js` | Cinco sujetos sintéticos aislados: QR, punto de venta, checkout, webhooks HMAC |
 
 ## Casos del prompt maestro → prueba
