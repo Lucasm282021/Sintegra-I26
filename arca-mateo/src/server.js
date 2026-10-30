@@ -9,6 +9,20 @@ const DATA_FILE = path.resolve(process.env.ARCA_DATA_FILE || path.join(__dirname
 const rawPuntoVenta = process.env.ARCA_PUNTO_VENTA || '00001';
 if (!/^\d{1,5}$/.test(rawPuntoVenta)) throw new Error('ARCA_PUNTO_VENTA debe tener entre 1 y 5 dígitos');
 const PUNTO_VENTA = rawPuntoVenta.padStart(5, '0');
+// Con ARCA_BACKEND_URL, el padrón fiscal y los comprobantes son los del backend
+// común del ecosistema (los mismos que usan los TPV). Usuarios y sesiones siguen
+// siendo de esta app. Sin la variable, se usa el archivo JSON local como antes.
+const BACKEND = (process.env.ARCA_BACKEND_URL || '').replace(/\/$/, '');
+async function backend(metodo, ruta, body) {
+  try {
+    const r = await fetch(BACKEND + ruta, { method: metodo, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  } catch {
+    return { status: 503, body: { error: 'el backend común de ARCA no responde' } };
+  }
+}
+const reciboBackend = (c) => ({ id: c.id, id_venta: c.id_venta, cuit: c.cuit, numero_comprobante: c.numero_comprobante,
+  tipo_comprobante: c.tipo_comprobante, monto_total: c.monto_total, cae: c.cae, fecha_emision: c.fecha_emision, estado: c.estado });
 const TIPOS = new Set(['FACTURA_A', 'FACTURA_B', 'FACTURA_C']);
 const ROLES = new Set(['superadmin', 'admin', 'usuario']);
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -268,15 +282,20 @@ app.post('/admin/users/:id/password', requireAuth, requireRole('superadmin', 'ad
   return res.status(200).json({ usuario: publicUser(updated) });
 });
 
-app.get('/arca/contribuyentes/:cuit', requireAuth, (req, res) => {
+app.get('/arca/contribuyentes/:cuit', requireAuth, async (req, res) => {
   const { cuit } = req.params;
   if (!validCuit(cuit)) return error(res, 400, 'El cuit debe ser un string de 11 dígitos, sin puntos ni guiones');
+  if (BACKEND) {
+    const r = await backend('GET', `/arca/contribuyentes/${cuit}`);
+    if (r.status !== 200) return error(res, r.status, r.status === 404 ? 'Contribuyente no encontrado' : r.body.error);
+    return res.status(200).json({ cuit: r.body.cuit, condicion_fiscal: r.body.condicion_fiscal, razon_social: r.body.razon_social });
+  }
   const contributor = store.contribuyentes[cuit];
   if (!contributor) return error(res, 404, 'Contribuyente no encontrado');
   return res.status(200).json(contributor);
 });
 
-app.post('/arca/comprobantes', requireAuth, (req, res) => {
+app.post('/arca/comprobantes', requireAuth, async (req, res) => {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) return error(res, 400, 'El cuerpo debe ser un objeto JSON');
   const allowed = new Set(['id_venta', 'cuit', 'monto_total', 'tipo_comprobante']);
   if (Object.keys(req.body).some((key) => !allowed.has(key))) return error(res, 400, 'El request contiene campos no admitidos');
@@ -290,6 +309,17 @@ app.post('/arca/comprobantes', requireAuth, (req, res) => {
     return error(res, 400, 'monto_total debe tener hasta dos decimales y estar dentro del rango admitido');
   }
   if (typeof tipo_comprobante !== 'string' || !TIPOS.has(tipo_comprobante)) return error(res, 400, 'tipo_comprobante debe ser FACTURA_A, FACTURA_B o FACTURA_C');
+  if (BACKEND) {
+    const saleId = id_venta.trim();
+    const propio = store.comprobantes_por_venta[saleId];
+    if (propio && req.user.rol === 'usuario' && propio.owner_user_id !== req.user.id) return error(res, 404, 'Comprobante no encontrado');
+    const r = await backend('POST', '/arca/comprobantes', { id_venta: saleId, cuit, monto_total, tipo_comprobante, punto_venta: Number(PUNTO_VENTA) });
+    if (r.status !== 200 && r.status !== 201) return error(res, r.status, r.body.error || 'No se pudo emitir el comprobante');
+    // Se recuerda quién lo emitió para que un usuario común vea solo los suyos.
+    if (!propio) persistStore({ ...store, comprobantes_por_venta: { ...store.comprobantes_por_venta,
+      [saleId]: { id_venta: saleId, numero_comprobante: r.body.numero_comprobante, tipo_comprobante, owner_user_id: req.user.id } } });
+    return res.status(r.status).json(reciboBackend(r.body));
+  }
   if (!store.contribuyentes[cuit]) return error(res, 404, 'Contribuyente no encontrado');
 
   const saleId = id_venta.trim();
@@ -321,7 +351,7 @@ app.post('/arca/comprobantes', requireAuth, (req, res) => {
 });
 
 // Consulta aditiva tomada del handbook ARCA v2; los filtros resuelven series homónimas.
-app.get('/arca/comprobantes/:numero', requireAuth, (req, res) => {
+app.get('/arca/comprobantes/:numero', requireAuth, async (req, res) => {
   const { numero } = req.params;
   if (!/^\d{8}$/.test(numero)) return error(res, 400, 'numero debe tener 8 dígitos');
   const filters = req.query;
@@ -329,6 +359,13 @@ app.get('/arca/comprobantes/:numero', requireAuth, (req, res) => {
   if (filters.cuit !== undefined && !validCuit(filters.cuit)) return error(res, 400, 'El filtro cuit debe tener 11 dígitos');
   if (filters.tipo !== undefined && !TIPOS.has(filters.tipo)) return error(res, 400, 'El filtro tipo debe ser FACTURA_A, FACTURA_B o FACTURA_C');
   if (filters.pv !== undefined && !/^\d{1,5}$/.test(filters.pv)) return error(res, 400, 'El filtro pv debe tener entre 1 y 5 dígitos');
+  if (BACKEND) {
+    const q = new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== undefined));
+    const r = await backend('GET', `/arca/comprobantes/${Number(numero)}?${q}`);
+    if (r.status !== 200) return error(res, r.status, r.status === 404 ? 'Comprobante no encontrado' : r.body.error);
+    if (req.user.rol === 'usuario' && store.comprobantes_por_venta[r.body.id_venta]?.owner_user_id !== req.user.id) return error(res, 404, 'Comprobante no encontrado');
+    return res.status(200).json(reciboBackend(r.body));
+  }
   const matches = Object.values(store.comprobantes_por_venta).filter((r) => (
     r.numero_comprobante === numero
     && (req.user.rol !== 'usuario' || r.owner_user_id === req.user.id)
