@@ -103,26 +103,6 @@ export default function AuthView({ onLoginSuccess, mode, onChangeMode, status })
               <h1 className="auth-title">Módulo de Gestión Fiscal IIBB</h1>
             </div>
           </div>
-
-          <div className="auth-mode-selector">
-            <span className="auth-mode-label">Entorno:</span>
-            <div className="mode-switch">
-              <button
-                type="button"
-                className={`mode-option ${mode === 'api' ? 'active' : ''}`}
-                onClick={() => onChangeMode('api')}
-              >
-                API {status?.online ? '●' : '○'}
-              </button>
-              <button
-                type="button"
-                className={`mode-option ${mode === 'demo' ? 'active' : ''}`}
-                onClick={() => onChangeMode('demo')}
-              >
-                Demo ⚡
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Pestañas Login / Registro */}

@@ -14,8 +14,10 @@ export function App() {
   const [user, setUser] = useState(null);
   const [authError, setAuthError] = useState('');
   // Modo explícito seleccionado por el usuario ('api' | 'demo')
+  // Solo modo real: la app trabaja siempre contra la API del ecosistema.
   const [mode, setMode] = useState(() => {
-    return localStorage.getItem('arba_app_mode') || 'api';
+    try { localStorage.removeItem('arba_app_mode'); } catch { /* sin almacenamiento */ }
+    return 'api';
   });
 
   const [apiBaseUrl, setApiBaseUrl] = useState(() => {
@@ -60,7 +62,6 @@ export function App() {
   useEffect(() => {
     arbaApi.setMode(mode);
     arbaApi.setBaseUrl(apiBaseUrl);
-    localStorage.setItem('arba_app_mode', mode);
   }, [mode, apiBaseUrl]);
 
   useEffect(() => {

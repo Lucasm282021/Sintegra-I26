@@ -72,27 +72,6 @@ export default function Topbar({
         <div className="topbar-right">
           <ConnectionBadge mode={mode} status={status} />
 
-          <div className="mode-switch" role="radiogroup" aria-label="Modo de operación">
-            <button
-              id="mode-api"
-              role="radio"
-              aria-checked={mode === 'api'}
-              className={`mode-option ${mode === 'api' ? 'active' : ''}`}
-              onClick={() => onChangeMode('api')}
-            >
-              API
-            </button>
-            <button
-              id="mode-demo"
-              role="radio"
-              aria-checked={mode === 'demo'}
-              className={`mode-option ${mode === 'demo' ? 'active' : ''}`}
-              onClick={() => onChangeMode('demo')}
-            >
-              Demo
-            </button>
-          </div>
-
           <button id="btn-ver-intro" className="btn-intro" onClick={onShowIntro} title="Ver la intro del módulo">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/>
@@ -133,9 +112,6 @@ export default function Topbar({
           <span>
             <strong>API desconectada.</strong> El servicio ARBA no responde; no se mostrarán resultados inventados.
           </span>
-          <button id="btn-activar-demo" className="btn btn-secondary btn-xs" onClick={() => onChangeMode('demo')}>
-            Usar Modo Demo
-          </button>
         </div>
       )}
     </>

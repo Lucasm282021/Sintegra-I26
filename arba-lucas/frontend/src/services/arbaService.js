@@ -16,14 +16,14 @@ const MODE_KEY = 'arba_lucas_mode';
 const SESSION_KEY = 'arba_lucas_session_v1';
 export const MODES = { API: 'api', DEMO: 'demo' };
 
+// Solo se usa el modo real (API del ecosistema). El motor demo del navegador
+// queda en el código pero ya no se puede activar desde la interfaz.
 export function getMode() {
-  const stored = localStorage.getItem(MODE_KEY);
-  if (stored === MODES.API || stored === MODES.DEMO) return stored;
-  return import.meta.env.VITE_DEFAULT_MODE === MODES.DEMO ? MODES.DEMO : MODES.API;
+  return MODES.API;
 }
 
-export function setMode(mode) {
-  localStorage.setItem(MODE_KEY, mode);
+export function setMode() {
+  try { localStorage.removeItem(MODE_KEY); } catch { /* sin almacenamiento */ }
 }
 
 // ─── Manejo de Sesión ────────────────────────────────────────────────────────

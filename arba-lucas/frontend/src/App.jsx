@@ -73,7 +73,7 @@ export default function App() {
       setPadron(r.data.items || []);
     } else if (r.networkError) {
       setPadron([]);
-      addToast('No se pudo conectar con el padrón fiscal. Podés activar el Modo Demo.', 'error');
+      addToast('No se pudo conectar con el padrón fiscal. Revisá la conexión e intentá de nuevo.', 'error');
     }
   }, [addToast]);
 
