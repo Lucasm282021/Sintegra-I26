@@ -45,10 +45,10 @@ const BILLETERA_MOCK = process.env.BILLETERA_MOCK === "true";
 // Con TPV_BACKEND_URL, catálogo, comercios y ventas viven en la base común del
 // ecosistema y la venta se procesa con el motor común (impuestos incluidos).
 // Sin esa variable, se usan los archivos JSON locales como antes.
-const TPV_BACKEND_URL = process.env.TPV_BACKEND_URL;
+const TPV_BACKEND_URL = process.env.TPV_BACKEND_URL?.trim();
 const backendTpv = TPV_BACKEND_URL
-  ? new BackendTpv({ url: TPV_BACKEND_URL, terminalId: process.env.TPV_TERMINAL_ID ?? "david",
-      comercioCuit: process.env.TPV_COMERCIO_CUIT ?? "30712345678" })
+  ? new BackendTpv({ url: TPV_BACKEND_URL, terminalId: process.env.TPV_TERMINAL_ID?.trim() || "david",
+      comercioCuit: process.env.TPV_COMERCIO_CUIT?.trim() || "30712345678" })
   : null;
 const ventaRepository = backendTpv ? new BackendVentaRepository(backendTpv) : new FileVentaRepository();
 const productoRepository = backendTpv ? new BackendProductoRepository(backendTpv) : new FileProductoRepository();
@@ -80,7 +80,7 @@ if (BILLETERA_MOCK) {
 }
 
 const ventasService = new VentasService(ventaRepository, productoRepository, bancoClient, arbaClient, arcaClient, billeteraClient,
-  process.env.TPV_TERMINAL_ID ?? "david", backendTpv ? (venta) => checkoutEnBackend(backendTpv, venta) : undefined);
+  process.env.TPV_TERMINAL_ID?.trim() || "david", backendTpv ? (venta) => checkoutEnBackend(backendTpv, venta) : undefined);
 const productosService = new ProductosService(productoRepository);
 const comerciosService = new ComerciosService(comercioRepository, municipioClient);
 

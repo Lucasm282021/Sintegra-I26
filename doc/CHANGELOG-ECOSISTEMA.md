@@ -17,6 +17,9 @@ Qué se conserva, modifica, reemplaza, depreca o elimina en cada entrega. Lo ant
 - **TPV Brisa**: la cuenta de quien paga se indica por alias o CBU.
 - **TPV Sebastián**: deja de mostrar una percepción estimada fija del 3 %; se calcula al cobrar.
 - Suite: 40/40.
+- TPV David limpia espacios y saltos de línea en `TPV_TERMINAL_ID` y otras variables: la cargada en Vercel tenía `david
+` y el backend no reconocía la terminal.
+- Publicado y verificado en producción: venta en TPV David (Factura A, percepción 3 %, medio transferencia) y emisión en ARCA de Mateo con numeración compartida.
 
 ## 2026-10-29 (noche) — Gestión de cuentas en el Banco y visitas guiadas
 
